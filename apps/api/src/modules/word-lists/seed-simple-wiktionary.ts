@@ -1,4 +1,5 @@
 import { Pool } from 'pg';
+import { applyContinuation } from './wiktionary-pagination';
 
 const apiUrl = 'https://simple.wiktionary.org/w/api.php';
 const sourceName = 'Simple English Wiktionary';
@@ -10,6 +11,10 @@ type WikiResponse = {
   query?: { pages?: WikiPage[] };
   error?: { code: string; info: string };
 };
+
+class WiktionaryApiError extends Error {
+  constructor(message: string, readonly retryable: boolean) { super(message); }
+}
 
 function cleanDefinition(extract: string | undefined) {
   return (extract ?? '')
@@ -30,11 +35,23 @@ async function fetchPageBatch(params: URLSearchParams): Promise<WikiResponse> {
         headers: { 'User-Agent': 'LexiPlay dictionary importer/1.0 (https://github.com/Hwent/Lexiplay)' },
         signal: AbortSignal.timeout(30_000),
       });
-      if (!response.ok) throw new Error(`Wiktionary API returned HTTP ${response.status}`);
+      if (!response.ok) {
+        if (response.status < 500 && response.status !== 429) {
+          throw new WiktionaryApiError(`Wiktionary API returned HTTP ${response.status}`, false);
+        }
+        throw new Error(`Wiktionary API returned HTTP ${response.status}`);
+      }
       const result = await response.json() as WikiResponse;
-      if (result.error) throw new Error(`Wiktionary API error ${result.error.code}: ${result.error.info}`);
+      if (result.error) {
+        const requestedContinuation = Object.fromEntries([...params].filter(([key]) => key === 'continue' || key.endsWith('continue')));
+        throw new WiktionaryApiError(
+          `Wiktionary API error ${result.error.code}: ${result.error.info}; requested continuation ${JSON.stringify(requestedContinuation)}`,
+          result.error.code !== 'badcontinue',
+        );
+      }
       return result;
     } catch (error) {
+      if (error instanceof WiktionaryApiError && !error.retryable) throw error;
       lastError = error;
       await new Promise(resolve => setTimeout(resolve, Math.min(1000 * 2 ** attempt, 10_000)));
     }
@@ -58,8 +75,15 @@ async function* wiktionaryEntries() {
     format: 'json',
     formatversion: '2',
   });
+  let continuationKeys: string[] = [];
+  const seenRequests = new Set<string>();
 
   while (true) {
+    const cursor = JSON.stringify([...params].filter(([key]) => key === 'continue' || key.endsWith('continue')).sort(([left], [right]) => left.localeCompare(right)));
+    if (seenRequests.has(cursor)) {
+      throw new Error(`Wiktionary API repeated a continuation request: ${cursor}`);
+    }
+    seenRequests.add(cursor);
     const result = await fetchPageBatch(params);
     for (const page of result.query?.pages ?? []) {
       const term = page.title.toLowerCase();
@@ -69,7 +93,7 @@ async function* wiktionaryEntries() {
     }
 
     if (!result.continue) break;
-    for (const [key, value] of Object.entries(result.continue)) params.set(key, value);
+    continuationKeys = applyContinuation(params, continuationKeys, result.continue);
     await new Promise(resolve => setTimeout(resolve, 250));
   }
 }
