@@ -43,7 +43,12 @@ export class WordListRepository implements OnModuleDestroy {
     await this.ensureSchema();
     const { rows } = await this.pool.query<WordEntry>(
       `INSERT INTO user_words (list_id, term, definition, part_of_speech, example)
-       SELECT lists.id, dictionary.term, dictionary.definition, dictionary.part_of_speech[1], NULL
+       SELECT lists.id, dictionary.term,
+              CASE WHEN char_length(dictionary.definition) > 500
+                THEN left(dictionary.definition, 499) || '…'
+                ELSE dictionary.definition
+              END,
+              dictionary.part_of_speech[1], NULL
        FROM user_word_lists AS lists CROSS JOIN dictionary_words AS dictionary
        WHERE lists.owner_id = $1 AND lists.id = $2 AND dictionary.term = $3
        ON CONFLICT (list_id, term) DO UPDATE SET term = EXCLUDED.term
@@ -144,7 +149,7 @@ export class WordListRepository implements OnModuleDestroy {
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         list_id uuid NOT NULL REFERENCES user_word_lists(id) ON DELETE CASCADE,
         term varchar(100) NOT NULL CHECK (term ~ '^[a-z][a-z ''-]{0,99}$'),
-        definition text NOT NULL DEFAULT '',
+        definition varchar(500) NOT NULL DEFAULT '',
         part_of_speech varchar(40),
         example varchar(500),
         status varchar(16) NOT NULL DEFAULT 'UNFAMILIAR' CHECK (status IN ('KNOWN', 'UNFAMILIAR')),
@@ -152,7 +157,8 @@ export class WordListRepository implements OnModuleDestroy {
         updated_at timestamptz NOT NULL DEFAULT now(),
         UNIQUE (list_id, term)
       );
-      ALTER TABLE user_words ALTER COLUMN definition TYPE text;
+      ALTER TABLE user_words ALTER COLUMN definition TYPE varchar(500)
+        USING CASE WHEN char_length(definition) > 500 THEN left(definition, 499) || '…' ELSE definition END;
       ALTER TABLE user_words ALTER COLUMN term TYPE varchar(100);
       ALTER TABLE user_words DROP CONSTRAINT IF EXISTS user_words_term_check;
       ALTER TABLE user_words ADD CONSTRAINT user_words_term_check CHECK (term ~ '^[a-z][a-z ''-]{0,99}$');

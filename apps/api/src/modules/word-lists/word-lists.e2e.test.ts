@@ -67,7 +67,8 @@ class MemoryWordListRepository {
     if (!list) return null;
     const existing = list.words.find(word => word.term === term);
     if (existing) return existing;
-    const saved = { id: this.uuid(this.nextId++), term, definition: entry.definition, partOfSpeech: 'noun', example: null, status: 'UNFAMILIAR' as const };
+    const definition = entry.definition.length > 500 ? `${entry.definition.slice(0, 499)}…` : entry.definition;
+    const saved = { id: this.uuid(this.nextId++), term, definition, partOfSpeech: 'noun', example: null, status: 'UNFAMILIAR' as const };
     list.words.push(saved);
     return saved;
   }
@@ -130,6 +131,12 @@ describe('owned vocabulary list HTTP endpoints', () => {
     const baseUrl = `${await app.getUrl()}/api/v1/word-lists`;
     const headers = { 'content-type': 'application/json', cookie: `lexiplay_session=${ownerToken}` };
 
+    const localFile = new FormData();
+    localFile.append('file', new Blob(['peach: A fuzzy fruit'], { type: 'text/plain' }), 'words.txt');
+    const localPreview = await fetch(`${baseUrl}/00000000-0000-4000-8000-000000000001/import-preview`, { method: 'POST', body: localFile });
+    expect(localPreview.status).toBe(200);
+    expect(await localPreview.json()).toMatchObject({ rows: [expect.objectContaining({ term: 'peach', definition: 'A fuzzy fruit' })] });
+
     const listsResponse = await fetch(baseUrl, { headers });
     expect(listsResponse.status).toBe(200);
     const list = (await listsResponse.json() as { id: string; name: string }[])[0]!;
@@ -137,7 +144,7 @@ describe('owned vocabulary list HTTP endpoints', () => {
     expect(Object.hasOwn(list, 'description')).toBe(false);
     expect(await (await fetch(baseUrl, { headers })).json()).toMatchObject([{ id: list.id }]);
 
-    const dictionary = await fetch(`${baseUrl}/dictionary?q=apple`, { headers });
+    const dictionary = await fetch(`${baseUrl}/dictionary?q=apple`);
     expect(await dictionary.json()).toMatchObject([{ term: 'apple', partOfSpeech: ['noun'] }]);
     const addedDictionaryWord = await fetch(`${baseUrl}/${list.id}/dictionary`, { method: 'POST', headers, body: JSON.stringify({ term: 'apple' }) });
     expect(addedDictionaryWord.status).toBe(201);
@@ -150,7 +157,7 @@ describe('owned vocabulary list HTTP endpoints', () => {
       method: 'POST', headers, body: JSON.stringify({ term: 'longword' }),
     });
     expect(addedLongDictionaryWord.status).toBe(201);
-    expect((await addedLongDictionaryWord.json() as { definition: string }).definition).toHaveLength(650);
+    expect((await addedLongDictionaryWord.json() as { definition: string }).definition).toBe(`${'A'.repeat(499)}…`);
 
     const update = await fetch(`${baseUrl}/${list.id}/words/${word.id}`, {
       method: 'PATCH', headers, body: JSON.stringify({ definition: 'A crisp fruit' }),
@@ -164,7 +171,7 @@ describe('owned vocabulary list HTTP endpoints', () => {
     const listForOwner = await fetch(baseUrl, { headers });
     expect(await listForOwner.json()).toMatchObject([{ id: list.id, name: 'My words', words: [
       { term: 'apple', definition: 'A crisp fruit', status: 'KNOWN' },
-      { term: 'longword', definition: 'A'.repeat(650), status: 'UNFAMILIAR' },
+      { term: 'longword', definition: `${'A'.repeat(499)}…`, status: 'UNFAMILIAR' },
     ] }]);
 
     expect((await fetch(`${baseUrl}/${list.id}/words/${word.id}`, { method: 'DELETE', headers })).status).toBe(204);

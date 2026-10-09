@@ -48,8 +48,7 @@ export class WordListsService {
     }
   }
 
-  async searchDictionary(cookie: string | undefined, query: string) {
-    await this.accounts.current(cookie);
+  async searchDictionary(query: string) {
     const normalized = query.trim().toLowerCase();
     if (!/^[a-z][a-z '-]{0,99}$/.test(normalized)) {
       throw new BadRequestException({ code: 'INVALID_DICTIONARY_QUERY', message: 'Search for a word using letters, spaces, or hyphens.' });
@@ -98,6 +97,7 @@ export class WordListsService {
   }
 
   async previewImport(cookie: string | undefined, listId: string, file: { originalname: string; buffer: Buffer } | undefined) {
+    if (!cookie) return this.importer.preview(file, []);
     const user = await this.accounts.current(cookie);
     const list = await this.lists.find(user.id, listId);
     if (!list) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });

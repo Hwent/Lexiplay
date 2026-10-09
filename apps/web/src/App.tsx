@@ -21,6 +21,7 @@ type GuessResult = {
 };
 type Game = { id: string; wordLength: number; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[] };
 type WordListSummary = { id: string; words: { term: string }[] };
+const LOCAL_WORD_LISTS_KEY = 'lexiplay-local-word-lists';
 
 function BookmarkIcon({ added }: { added: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
@@ -35,13 +36,22 @@ function DefinitionText({ text }: { text: string }) {
   </>;
 }
 
+function savedDefinition(text: string) {
+  const trimmed = text.trim();
+  return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
+}
+
+class ApiError extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
+
 const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`/api/v1${path}`, {
     ...init,
     headers: { 'content-type': 'application/json', ...init?.headers },
   });
   const payload = await response.json();
-  if (!response.ok) throw new Error(payload.message ?? 'Something went wrong. Please try again.');
+  if (!response.ok) throw new ApiError(payload.message ?? 'Something went wrong. Please try again.', response.status);
   return payload as T;
 };
 
@@ -146,10 +156,27 @@ export default function App() {
       const list = lists[0];
       if (!list) throw new Error('Your word list is unavailable.');
       if (!list.words.some(word => word.term === term)) {
-        await api(`/word-lists/${list.id}/words`, { method: 'POST', body: JSON.stringify({ term, definition }) });
+        await api(`/word-lists/${list.id}/words`, { method: 'POST', body: JSON.stringify({ term, definition: savedDefinition(definition) }) });
       }
       setAddedWords(current => new Set(current).add(term));
     } catch (error) {
+      if (error instanceof ApiError && error.status === 401) {
+        try {
+          const stored = window.localStorage.getItem(LOCAL_WORD_LISTS_KEY);
+          const lists = stored ? JSON.parse(stored) as { id: string; name: string; words: { id: string; term: string; definition: string; status: 'KNOWN' | 'UNFAMILIAR' }[] }[] : [];
+          const localList = lists[0] ?? { id: '00000000-0000-4000-8000-000000000001', name: 'My words', words: [] };
+          if (!localList.words.some(word => word.term === term)) {
+            localList.words.push({
+              id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+              term, definition: savedDefinition(definition),
+              status: 'UNFAMILIAR',
+            });
+          }
+          window.localStorage.setItem(LOCAL_WORD_LISTS_KEY, JSON.stringify([localList]));
+          setAddedWords(current => new Set(current).add(term));
+          return;
+        } catch { /* Fall through to the request error if local storage is unavailable. */ }
+      }
       setMessage(error instanceof Error ? error.message : 'Could not add this word.');
     }
   }

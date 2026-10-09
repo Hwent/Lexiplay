@@ -16,8 +16,8 @@ export class WordListsController {
   }
 
   @Get('dictionary')
-  searchDictionary(@Headers('cookie') cookie: string | undefined, @Query('q') query = '') {
-    return this.lists.searchDictionary(readSessionCookie(cookie), query);
+  searchDictionary(@Query('q') query = '') {
+    return this.lists.searchDictionary(query);
   }
 
   @Post(':listId/dictionary')
@@ -50,7 +50,7 @@ export class WordListsController {
   @HttpCode(HttpStatus.OK)
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 5 * 1024 * 1024 } }))
   previewImport(@Headers('cookie') cookie: string | undefined, @Param('listId', ParseUUIDPipe) listId: string, @UploadedFile() file?: { originalname: string; buffer: Buffer }) {
-    return this.lists.previewImport(readSessionCookie(cookie), listId, file);
+    return this.lists.previewImport(cookie ? readSessionCookie(cookie) : undefined, listId, file);
   }
 
   @Post(':listId/import')

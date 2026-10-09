@@ -104,6 +104,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .text-action:disabled { opacity: .5; cursor: default; }
 .list-edit-form, .word-edit-form { margin-top: .65rem; padding: .65rem; border-radius: 4px; background: color-mix(in srgb, var(--text) 5%, transparent); }
 .word-list-detail { padding-top: .4rem; }
+.word-list-actions { display: flex; align-items: center; gap: 1rem; }
+.word-list-actions .account-action { margin-top: 0; }
 .word-entry-list { margin: .5rem 0 0; padding: 0; list-style: none; }
 .word-entry-list li { display: flex; align-items: center; gap: .4rem; padding: .45rem .1rem; border-top: 1px solid var(--line); }
 .word-entry-list li > span { flex: 1; }
@@ -114,7 +116,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .play-my-words { display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem; color: var(--soft-text); font-size: .9rem; cursor: pointer; }
 .play-my-words input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
 .word-add-form { margin-top: .65rem; padding: .8rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface); }
-.add-word-toggle { margin-top: 1.3rem; }
 .game-consumables { width: 100%; margin: .8rem 0 .25rem; display: flex; justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
 .game-consumables button, .guess-definition button, .answer-definition button { min-height: 2.35rem; padding: .4rem .7rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--surface-soft); color: var(--text); cursor: pointer; font-size: .76rem; font-weight: 650; }
 .game-consumables button:disabled, .guess-definition button:disabled, .answer-definition button:disabled { opacity: .55; cursor: default; }

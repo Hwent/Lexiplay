@@ -1,14 +1,15 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WordListsPanel from './WordListsPanel';
 
-const list = { id: 'list-1', name: 'My words', words: [] };
+const list = { id: 'list-1', name: 'Cloud words', words: [] };
 
 describe('vocabulary list panel', () => {
   afterEach(() => {
     cleanup();
     vi.unstubAllGlobals();
+    window.localStorage.clear();
   });
 
   it('keeps added and status changes local until leaving the route', async () => {
@@ -19,10 +20,15 @@ describe('vocabulary list panel', () => {
     const user = userEvent.setup();
 
     render(<WordListsPanel pageMode />);
-    await user.click(await screen.findByRole('button', { name: /add words/i }));
+    await screen.findByRole('heading', { name: 'Cloud words' });
+    const addToggle = screen.getByRole('button', { name: /^add$/i });
+    await waitFor(() => expect(addToggle).toBeEnabled());
+    await user.click(addToggle);
+    expect(addToggle).toHaveAttribute('aria-expanded', 'true');
     await user.type(await screen.findByRole('textbox', { name: /^word$/i }), 'apple');
     await user.type(screen.getByRole('textbox', { name: /definition/i }), 'A fruit');
-    await user.click(screen.getByRole('button', { name: /^add$/i }));
+    const addForm = screen.getByRole('textbox', { name: /definition/i }).closest('form')!;
+    await user.click(within(addForm).getByRole('button', { name: /^add$/i }));
     expect(await screen.findByText('apple')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByRole('button', { name: 'Unfamiliar' }));
@@ -64,6 +70,49 @@ describe('vocabulary list panel', () => {
     })));
   });
 
+  it('keeps signed-out additions on this device and restores them after remounting', async () => {
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    const firstRender = render(<WordListsPanel pageMode />);
+    await screen.findByText('Your words are saved on this device.');
+    await user.click(screen.getByRole('button', { name: /^add$/i }));
+    await user.type(screen.getByRole('textbox', { name: /^word$/i }), 'localword');
+    await user.type(screen.getByRole('textbox', { name: /definition/i }), 'A local definition');
+    const addForm = screen.getByRole('textbox', { name: /definition/i }).closest('form')!;
+    await user.click(within(addForm).getByRole('button', { name: /^add$/i }));
+    expect(await screen.findByText('localword')).toBeInTheDocument();
+    await waitFor(() => expect(JSON.parse(window.localStorage.getItem('lexiplay-local-word-lists') ?? '[]')[0].words[0]).toMatchObject({
+      term: 'localword', definition: 'A local definition',
+    }));
+
+    firstRender.unmount();
+    render(<WordListsPanel pageMode />);
+    expect(await screen.findByText('localword')).toBeInTheDocument();
+  });
+
+  it('truncates a long dictionary definition when a signed-out user saves it locally', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/word-lists')) return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
+      if (path.includes('/dictionary?q=longword')) return new Response(JSON.stringify([
+        { term: 'longword', definition: 'A'.repeat(650), partOfSpeech: ['noun'] },
+      ]), { status: 200 });
+      throw new Error(`Unexpected request ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    render(<WordListsPanel pageMode searchQuery="longword" />);
+    await screen.findByRole('button', { name: /save longword to word list/i });
+    await user.click(screen.getByRole('button', { name: /save longword to word list/i }));
+    await waitFor(() => {
+      const saved = JSON.parse(window.localStorage.getItem('lexiplay-local-word-lists') ?? '[]')[0].words[0];
+      expect(saved.definition).toBe(`${'A'.repeat(499)}…`);
+    });
+  });
+
   it('previews an uploaded word file and confirms the selected rows', async () => {
     const preview = { rows: [{ rowNumber: 1, term: 'apple', definition: 'A fruit', partOfSpeech: null, example: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } };
     const updatedList = { ...list, words: [{ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }] };
@@ -76,7 +125,10 @@ describe('vocabulary list panel', () => {
     const user = userEvent.setup();
 
     render(<WordListsPanel pageMode />);
-    await user.click(await screen.findByRole('button', { name: /upload words/i }));
+    await screen.findByRole('heading', { name: 'Cloud words' });
+    const uploadToggle = screen.getByRole('button', { name: /^upload$/i });
+    await waitFor(() => expect(uploadToggle).toBeEnabled());
+    await user.click(uploadToggle);
     const upload = await screen.findByLabelText(/upload word list/i);
     await user.upload(upload, new File(['apple — A fruit'], 'words.txt', { type: 'text/plain' }));
     await user.click(screen.getByRole('button', { name: /preview import/i }));

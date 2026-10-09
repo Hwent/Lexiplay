@@ -11,6 +11,25 @@ type WordList = { id: string; name: string; words: WordEntry[] };
 type DictionaryEntry = { term: string; definition: string; partOfSpeech: string[] };
 type ImportRow = { rowNumber: number; term: string; definition: string; partOfSpeech: string | null; example: string | null; selected: boolean; issues: string[] };
 type ImportPreview = { rows: ImportRow[]; totals: { ready: number; warnings: number; rejected: number } };
+const LOCAL_WORD_LISTS_KEY = 'lexiplay-local-word-lists';
+
+function loadLocalLists(): WordList[] {
+  try {
+    const stored = window.localStorage.getItem(LOCAL_WORD_LISTS_KEY);
+    const lists = stored ? JSON.parse(stored) as WordList[] : [];
+    if (Array.isArray(lists) && lists.length > 0 && lists.every(list => typeof list.id === 'string' && Array.isArray(list.words))) return lists;
+  } catch { /* Use an empty local list when storage is missing or invalid. */ }
+  return [{ id: '00000000-0000-4000-8000-000000000001', name: 'My words', words: [] }];
+}
+
+function savedDefinition(value: string) {
+  const trimmed = value.trim();
+  return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
+}
+
+class WordListRequestError extends Error {
+  constructor(message: string, readonly status: number) { super(message); }
+}
 
 function BookmarkIcon({ added }: { added: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
@@ -26,22 +45,22 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
   });
   const payload = response.status === 204 ? undefined : await response.json();
   if (!response.ok) {
-    if (response.status === 401) throw new Error('Sign in with the Account menu to manage your word lists.');
-    throw new Error(payload?.message ?? 'Something went wrong. Please try again.');
+    throw new WordListRequestError(payload?.message ?? 'Something went wrong. Please try again.', response.status);
   }
   return payload as T;
 }
 
 export default function WordListsPanel({ pageMode = false, searchQuery = '' }: { pageMode?: boolean; searchQuery?: string }) {
-  const [lists, setLists] = useState<WordList[]>([]);
+  const [lists, setLists] = useState<WordList[]>(loadLocalLists);
   const [term, setTerm] = useState('');
   const [definition, setDefinition] = useState('');
   const [addOpen, setAddOpen] = useState(false);
   const [editingWordId, setEditingWordId] = useState('');
   const [editingTerm, setEditingTerm] = useState('');
   const [editingDefinition, setEditingDefinition] = useState('');
-  const [busy, setBusy] = useState(false);
+  const [busy, setBusy] = useState(true);
   const [authenticated, setAuthenticated] = useState(false);
+  const [localOnly, setLocalOnly] = useState(false);
   const [message, setMessage] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [uploadOpen, setUploadOpen] = useState(false);
@@ -67,18 +86,29 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     return () => { active = false; window.clearTimeout(timer); };
   }, [searchQuery]);
   useEffect(() => {
-    if (!open) return;
     let active = true;
     setBusy(true);
     request<WordList[]>('/word-lists')
-      .then(nextLists => { if (active) { setLists(nextLists); setAuthenticated(true); setMessage(''); } })
-      .catch(error => { if (active) setMessage(error instanceof Error ? error.message : 'Could not load your lists.'); })
+      .then(nextLists => { if (active) { setLists(nextLists); setAuthenticated(true); setLocalOnly(false); setMessage(''); } })
+      .catch(error => {
+        if (!active) return;
+        if (error instanceof WordListRequestError && error.status === 401) {
+          setLists(loadLocalLists());
+          setLocalOnly(true);
+          setMessage('');
+        } else setMessage(error instanceof Error ? error.message : 'Could not load your lists.');
+      })
       .finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
-  }, [open]);
+  }, []);
+
+  useEffect(() => {
+    if (localOnly) window.localStorage.setItem(LOCAL_WORD_LISTS_KEY, JSON.stringify(lists));
+  }, [lists, localOnly]);
 
   useEffect(() => {
     async function flushPendingStatuses() {
+      if (localOnly) return;
       const createdIds = new Map<string, string>();
       for (const [wordId, operation] of pendingWordOperations.current) {
         try {
@@ -123,13 +153,13 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     }
     window.addEventListener('lexiplay:before-route-change', flushPendingStatuses);
     return () => window.removeEventListener('lexiplay:before-route-change', flushPendingStatuses);
-  }, []);
+  }, [localOnly]);
 
   async function submitWord(event: FormEvent<HTMLFormElement>, listId: string) {
     event.preventDefault();
     const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const word: WordEntry = { id, term: term.trim().toLowerCase(), definition: definition.trim(), status: 'UNFAMILIAR' };
-    pendingWordOperations.current.set(id, { kind: 'create', listId, term: word.term, definition: word.definition });
+    const word: WordEntry = { id, term: term.trim().toLowerCase(), definition: savedDefinition(definition), status: 'UNFAMILIAR' };
+    if (!localOnly) pendingWordOperations.current.set(id, { kind: 'create', listId, term: word.term, definition: word.definition });
     setLists(current => current.map(list => list.id === listId ? { ...list, words: [...list.words, word] } : list));
     setTerm('');
     setDefinition('');
@@ -138,23 +168,25 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   function saveWord(event: FormEvent<HTMLFormElement>, listId: string, wordId: string) {
     event.preventDefault();
     const currentOperation = pendingWordOperations.current.get(wordId);
-    if (currentOperation?.kind === 'create') {
-      pendingWordOperations.current.set(wordId, { ...currentOperation, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() });
+    if (localOnly) {
+      pendingWordOperations.current.delete(wordId);
+    } else if (currentOperation?.kind === 'create') {
+      pendingWordOperations.current.set(wordId, { ...currentOperation, term: editingTerm.trim().toLowerCase(), definition: savedDefinition(editingDefinition) });
     } else if (currentOperation?.kind === 'dictionary-create') {
-      pendingWordOperations.current.set(wordId, { kind: 'create', listId, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() });
+      pendingWordOperations.current.set(wordId, { kind: 'create', listId, term: editingTerm.trim().toLowerCase(), definition: savedDefinition(editingDefinition) });
     } else {
-      pendingWordOperations.current.set(wordId, { kind: 'update', listId, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() });
+      pendingWordOperations.current.set(wordId, { kind: 'update', listId, term: editingTerm.trim().toLowerCase(), definition: savedDefinition(editingDefinition) });
     }
-    setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.map(word => word.id === wordId ? { ...word, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() } : word) } : list));
+    setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.map(word => word.id === wordId ? { ...word, term: editingTerm.trim().toLowerCase(), definition: savedDefinition(editingDefinition) } : word) } : list));
     setEditingWordId('');
   }
 
   function addDictionaryWord(listId: string, entry: DictionaryEntry) {
     if (lists.some(list => list.id === listId && list.words.some(word => word.term === entry.term))) return;
     const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    pendingWordOperations.current.set(id, { kind: 'dictionary-create', listId, term: entry.term });
+    if (!localOnly) pendingWordOperations.current.set(id, { kind: 'dictionary-create', listId, term: entry.term });
     setLists(current => current.map(list => list.id === listId
-      ? { ...list, words: [...list.words, { id, term: entry.term, definition: entry.definition, status: 'UNFAMILIAR', partOfSpeech: entry.partOfSpeech.join(', '), example: null }] }
+      ? { ...list, words: [...list.words, { id, term: entry.term, definition: savedDefinition(entry.definition), status: 'UNFAMILIAR', partOfSpeech: entry.partOfSpeech.join(', '), example: null }] }
       : list));
     setMessage(`${entry.term} added as unfamiliar.`);
   }
@@ -162,7 +194,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     const status: WordStatus = word.status === 'KNOWN' ? 'UNFAMILIAR' : 'KNOWN';
     const operation = pendingWordOperations.current.get(word.id);
     if ((operation?.kind === 'create' || operation?.kind === 'dictionary-create') && status === 'UNFAMILIAR') pendingStatuses.current.delete(word.id);
-    else pendingStatuses.current.set(word.id, { listId, status });
+    else if (!localOnly) pendingStatuses.current.set(word.id, { listId, status });
     setLists(current => current.map(list => list.id === listId
       ? { ...list, words: list.words.map(item => item.id === word.id ? { ...item, status } : item) }
       : list));
@@ -170,7 +202,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   function deleteWord(listId: string, wordId: string) {
     const operation = pendingWordOperations.current.get(wordId);
-    if (operation?.kind === 'create' || operation?.kind === 'dictionary-create') pendingWordOperations.current.delete(wordId);
+    if (localOnly || operation?.kind === 'create' || operation?.kind === 'dictionary-create') pendingWordOperations.current.delete(wordId);
     else pendingWordOperations.current.set(wordId, { kind: 'delete', listId });
     pendingStatuses.current.delete(wordId);
     setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.filter(word => word.id !== wordId) } : list));
@@ -192,6 +224,27 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   async function confirmImport(listId: string) {
     if (!preview) return;
     const selectedCount = preview.rows.filter(row => row.selected).length;
+    if (localOnly) {
+      const selectedRows = preview.rows.filter(row => row.selected);
+      let added = 0;
+      const updatedLists = lists.map(list => {
+        if (list.id !== listId) return list;
+        const existingTerms = new Set(list.words.map(word => word.term.toLowerCase()));
+        const addedWords = selectedRows.filter(row => !existingTerms.has(row.term.toLowerCase())).map(row => ({
+          id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
+          term: row.term.trim().toLowerCase(), definition: savedDefinition(row.definition),
+          partOfSpeech: row.partOfSpeech, example: row.example, status: 'UNFAMILIAR' as const,
+        }));
+        added = addedWords.length;
+        return { ...list, words: [...list.words, ...addedWords] };
+      });
+      setLists(updatedLists);
+      setPreview(null);
+      setUploadFile(null);
+      const duplicates = selectedCount - added;
+      setMessage(`${added} ${added === 1 ? 'word' : 'words'} added${duplicates ? `; ${duplicates} duplicate${duplicates === 1 ? '' : 's'} skipped` : ''}.`);
+      return;
+    }
     setBusy(true);
     setMessage('');
     try {
@@ -215,7 +268,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   return <section className={`word-lists-panel${pageMode ? ' page-mode' : ''}`}>
     <div className="word-lists-content">
-      {pageMode && authenticated && <div className="list-library-heading"><div><p className="eyebrow">YOUR VOCABULARY</p><h2>My word list</h2><p>Search the dictionary and keep track of what you know.</p></div></div>}
+      {pageMode && <div className="list-library-heading"><div><p className="eyebrow">YOUR VOCABULARY</p><h2>My word list</h2><p>{authenticated ? 'Search the dictionary and keep track of what you know.' : 'Your words are saved on this device.'}</p></div></div>}
 
       {busy && !lists.length && <p className="account-message">Loading your lists…</p>}
       {!busy && authenticated && !lists.length && !message && <p className="account-message">Your lists will appear here.</p>}
@@ -240,7 +293,10 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
         <div className="word-list-detail">
           <section className="word-import" aria-label="Edit words">
-            <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} onClick={() => setUploadOpen(value => !value)}>{uploadOpen ? 'Close upload' : 'Upload words'}</button>
+            <div className="word-list-actions">
+              <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} disabled={busy} onClick={() => setUploadOpen(value => !value)}>Upload</button>
+              <button className="account-action add-word-toggle" type="button" aria-expanded={addOpen} disabled={busy} onClick={() => setAddOpen(value => !value)}>Add</button>
+            </div>
             {uploadOpen && <div className="upload-interface">
             <h4>Import a word list</h4>
             <p>Upload TXT, DOCX, CSV, XLSX, or PDF. Use one word per line or include a definition after a dash or colon.</p>
@@ -261,7 +317,6 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
             </>}
             </div>}
 
-          <button className="account-action add-word-toggle" type="button" aria-expanded={addOpen} onClick={() => setAddOpen(value => !value)}>{addOpen ? 'Cancel' : 'Add words'}</button>
           {addOpen && <form className="word-add-form" onSubmit={event => { void submitWord(event, list.id); setAddOpen(false); }}>
             <h4>Add a word</h4>
             <label htmlFor={`word-term-${list.id}`}>Word</label>
