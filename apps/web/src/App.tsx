@@ -45,13 +45,17 @@ export default function App() {
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
-    const syncSection = () => setActiveSection(pathSections[window.location.pathname] ?? 'home');
+    const syncSection = () => {
+      window.dispatchEvent(new Event('lexiplay:before-route-change'));
+      setActiveSection(pathSections[window.location.pathname] ?? 'home');
+    };
     window.addEventListener('popstate', syncSection);
     return () => window.removeEventListener('popstate', syncSection);
   }, []);
 
   function navigateTo(section: Section) {
     const path = sectionPaths[section];
+    if (window.location.pathname !== path) window.dispatchEvent(new Event('lexiplay:before-route-change'));
     if (window.location.pathname !== path) window.history.pushState({}, '', path);
     setActiveSection(section);
   }

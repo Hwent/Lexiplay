@@ -1,4 +1,4 @@
-import { cleanup, render, screen } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WordListsPanel from './WordListsPanel';
@@ -15,7 +15,7 @@ describe('vocabulary list panel', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify([list]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'KNOWN' }), { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
@@ -27,9 +27,14 @@ describe('vocabulary list panel', () => {
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByRole('button', { name: 'Unfamiliar' }));
     expect(await screen.findByRole('button', { name: 'Known' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Known' }));
+    expect(screen.getByRole('button', { name: 'Unfamiliar' })).toHaveAttribute('aria-pressed', 'false');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    await act(async () => { window.dispatchEvent(new Event('lexiplay:before-route-change')); });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
     expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/word-lists/list-1/words/word-1', expect.objectContaining({
       method: 'PATCH',
-      body: JSON.stringify({ status: 'KNOWN' }),
+      body: JSON.stringify({ status: 'UNFAMILIAR' }),
     }));
   });
 

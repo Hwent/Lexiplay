@@ -1,4 +1,4 @@
-import { FormEvent, useEffect, useState } from 'react';
+import { FormEvent, useEffect, useRef, useState } from 'react';
 
 type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; example?: string | null; status: WordStatus };
@@ -40,7 +40,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [listSearch, setListSearch] = useState(searchQuery);
   const [dictionaryResults, setDictionaryResults] = useState<DictionaryEntry[]>([]);
   const [dictionaryBusy, setDictionaryBusy] = useState(false);
-  const [updatingWordIds, setUpdatingWordIds] = useState<Set<string>>(() => new Set());
+  const pendingStatuses = useRef(new Map<string, { listId: string; status: WordStatus }>());
 
   useEffect(() => setListSearch(searchQuery), [searchQuery]);
   useEffect(() => {
@@ -73,6 +73,26 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       .finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
   }, [open]);
+
+  useEffect(() => {
+    async function flushPendingStatuses() {
+      for (const [wordId, pending] of pendingStatuses.current) {
+        try {
+          const updated = await request<WordEntry>(`/word-lists/${pending.listId}/words/${wordId}`, {
+            method: 'PATCH', body: JSON.stringify({ status: pending.status }),
+          });
+          setLists(current => current.map(list => list.id === pending.listId
+            ? { ...list, words: list.words.map(word => word.id === wordId ? updated : word) }
+            : list));
+          if (pendingStatuses.current.get(wordId) === pending) pendingStatuses.current.delete(wordId);
+        } catch (error) {
+          setMessage(error instanceof Error ? error.message : 'Could not update the word status.');
+        }
+      }
+    }
+    window.addEventListener('lexiplay:before-route-change', flushPendingStatuses);
+    return () => window.removeEventListener('lexiplay:before-route-change', flushPendingStatuses);
+  }, []);
 
   async function submitWord(event: FormEvent<HTMLFormElement>, listId: string) {
     event.preventDefault();
@@ -118,16 +138,11 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   }
 
   async function changeWordStatus(listId: string, word: WordEntry) {
-    if (updatingWordIds.has(word.id)) return;
     const status: WordStatus = word.status === 'KNOWN' ? 'UNFAMILIAR' : 'KNOWN';
-    setUpdatingWordIds(current => new Set(current).add(word.id));
-    try {
-      const updated = await request<WordEntry>(`/word-lists/${listId}/words/${word.id}`, {
-        method: 'PATCH', body: JSON.stringify({ status }),
-      });
-      setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.map(item => item.id === word.id ? updated : item) } : list));
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not update the word status.'); }
-    finally { setUpdatingWordIds(current => { const next = new Set(current); next.delete(word.id); return next; }); }
+    pendingStatuses.current.set(word.id, { listId, status });
+    setLists(current => current.map(list => list.id === listId
+      ? { ...list, words: list.words.map(item => item.id === word.id ? { ...item, status } : item) }
+      : list));
   }
 
   async function deleteWord(listId: string, wordId: string) {
@@ -243,7 +258,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
                 <button className="text-action" type="button" onClick={() => setEditingWordId('')}>Cancel</button>
               </form> : <>
                 <span><strong>{word.term}</strong><small>{word.definition || 'No definition yet'}</small></span>
-                <button className={`word-status ${word.status === 'KNOWN' ? 'known' : 'unfamiliar'}`} type="button" aria-pressed={word.status === 'KNOWN'} aria-label={updatingWordIds.has(word.id) ? `Updating ${word.term} status` : undefined} disabled={updatingWordIds.has(word.id)} onClick={() => void changeWordStatus(list.id, word)}>{updatingWordIds.has(word.id) ? 'Updating…' : word.status === 'KNOWN' ? 'Known' : 'Unfamiliar'}</button>
+                <button className={`word-status ${word.status === 'KNOWN' ? 'known' : 'unfamiliar'}`} type="button" aria-pressed={word.status === 'KNOWN'} onClick={() => void changeWordStatus(list.id, word)}>{word.status === 'KNOWN' ? 'Known' : 'Unfamiliar'}</button>
                 <button className="text-action" type="button" onClick={() => { setEditingWordId(word.id); setEditingTerm(word.term); setEditingDefinition(word.definition); }}>Edit</button>
                 <button className="text-action" type="button" onClick={() => void deleteWord(list.id, word.id)} disabled={busy}>Remove</button>
               </>}
