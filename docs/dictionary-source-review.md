@@ -17,7 +17,7 @@ WordNet remains useful for the game’s word pool and semantic relationships, bu
 
 ## Recommendation
 
-**Decision:** use Simple English Wiktionary as LexiPlay’s one shared searchable dictionary source for now. It covers function words and provides learner-friendly definitions without requiring a commercial API key. The importer uses its public MediaWiki API and stages a complete import before replacing the database rows. Preserve attribution and share-alike terms when redistributing those definitions. The existing static game guess/answer lists remain unchanged and separate from dictionary search.
+**Decision:** use Simple English Wiktionary to populate LexiPlay’s own PostgreSQL dictionary. The stored dictionary is the single standard for search, game answers, and accepted guesses. It covers function words and provides learner-friendly definitions without requiring a commercial API key. The importer uses its public MediaWiki API and stages a complete import before replacing the database rows. Preserve attribution and share-alike terms when redistributing those definitions. The old static game files are retained as historical snapshots and are no longer used by gameplay.
 
 The project does not add Merriam-Webster or another dictionary provider/API key.
 

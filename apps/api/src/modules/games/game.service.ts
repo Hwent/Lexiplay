@@ -1,34 +1,32 @@
-import { BadRequestException, Injectable, NotFoundException } from '@nestjs/common';
+import { BadRequestException, Inject, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { randomInt, randomUUID } from 'node:crypto';
-import { readFileSync } from 'node:fs';
-import { resolve } from 'node:path';
+import { WordListsService } from '../word-lists/word-lists.service';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type WordLength = 3 | 4 | 5 | 6 | 7 | 8;
 type Guess = { guess: string; feedback: Feedback[]; attemptsRemaining: number; completed: boolean; outcome?: 'WON' | 'LOST'; answer?: string };
-type Game = { id: string; answer: string; wordLength: WordLength; attemptLimit: number; guesses: Guess[]; completed: boolean; unusedHints: number; greenHints: number; revealedAbsent: Set<string>; revealedPresent: Set<string> };
+type Game = { id: string; answer: string; allowedWords: Set<string>; wordLength: WordLength; attemptLimit: number; guesses: Guess[]; completed: boolean; unusedHints: number; greenHints: number; revealedAbsent: Set<string>; revealedPresent: Set<string> };
 
 const WORD_LENGTHS = [3, 4, 5, 6, 7, 8] as const;
-const vocabularyPath = resolve(__dirname, '../../../../../packages/shared/vocabulary');
-const readWords = (file: string) => new Set(
-  readFileSync(resolve(vocabularyPath, file), 'utf8').trim().split(/\r?\n/),
-);
-const GUESSES = new Map(WORD_LENGTHS.map(length => [length, readWords(`allowed-guesses-${length}.txt`)]));
-const ANSWERS = new Map(WORD_LENGTHS.map(length => [length, [...readWords(`answers-${length}.txt`)]]));
 
 @Injectable()
 export class GameService {
   private readonly games = new Map<string, Game>();
-  start(requestedWordLength: unknown = 5, wordList?: string[]) {
+  constructor(@Inject(WordListsService) private readonly dictionary: WordListsService) {}
+
+  async start(requestedWordLength: unknown = 5, wordList?: string[]) {
     if (typeof requestedWordLength !== 'number' || !WORD_LENGTHS.includes(requestedWordLength as typeof WORD_LENGTHS[number])) {
       throw new BadRequestException({ code: 'INVALID_WORD_LENGTH', message: 'Choose a word length from three to eight letters.' });
     }
     const wordLength = requestedWordLength as WordLength;
-    const answerWords = wordList ?? ANSWERS.get(wordLength)!;
-    if (!answerWords.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words yet.` });
+    const dictionaryWords = await this.dictionary.dictionaryGameWords(wordLength);
+    if (!dictionaryWords.length) throw new ServiceUnavailableException({ code: 'DICTIONARY_NOT_READY', message: `The dictionary has no ${wordLength}-letter game words. Load the dictionary before playing.` });
+    const allowedWords = new Set(dictionaryWords);
+    const answerWords = wordList === undefined ? dictionaryWords : [...new Set(wordList)].filter(word => allowedWords.has(word));
+    if (!answerWords.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words in the game dictionary yet.` });
     const id = randomUUID();
     const answer = answerWords[randomInt(answerWords.length)]!;
-    this.games.set(id, { id, answer, wordLength, attemptLimit: 6, guesses: [], completed: false, unusedHints: 3, greenHints: 3, revealedAbsent: new Set(), revealedPresent: new Set() });
+    this.games.set(id, { id, answer, allowedWords, wordLength, attemptLimit: 6, guesses: [], completed: false, unusedHints: 3, greenHints: 3, revealedAbsent: new Set(), revealedPresent: new Set() });
     return { id, wordLength, attemptLimit: 6, guesses: [], hints: { unused: 3, present: 3 }, revealedAbsent: [], revealedPresent: [] };
   }
 
@@ -65,9 +63,7 @@ export class GameService {
     if (game.completed) throw new BadRequestException({ code: 'GAME_FINISHED', message: 'This game is already complete.' });
 
     const guess = typeof rawGuess === 'string' ? rawGuess.trim().toLowerCase() : '';
-    const allowedGuesses = GUESSES.get(game.wordLength)!;
-    const allowedAnswers = new Set(ANSWERS.get(game.wordLength)!);
-    if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || (!allowedGuesses.has(guess) && !allowedAnswers.has(guess))) {
+    if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !game.allowedWords.has(guess)) {
       throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
     }
 

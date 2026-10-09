@@ -16,7 +16,7 @@ Limits are enforced by the API: 5 MB maximum upload, 1,000 preview rows, and PDF
 
 ## API
 
-All endpoints require the signed-in session cookie.
+Dictionary search and definition lookup are public. Personal list endpoints require the signed-in session cookie.
 
 | Method and path | Purpose |
 |---|---|
@@ -34,13 +34,15 @@ The API accepts terms containing letters, spaces, apostrophes, and hyphens, up t
 
 ## Shared dictionary
 
-LexiPlay uses Simple English Wiktionary as its single searchable dictionary source. The seed command reads namespace-zero entry revisions from the MediaWiki API, extracts the first two definition lines and their parts of speech, excludes redirects, and filters entries to terms supported by LexiPlay. Page introductions are not used because many dictionary entries, including “because,” have no introduction:
+The PostgreSQL `dictionary_words` table is LexiPlay’s canonical dictionary. Search, definitions, game answers, and accepted guesses use these stored entries. Simple English Wiktionary supplies the initial data. The seed command reads namespace-zero entry revisions from the MediaWiki API, extracts the first two definition lines and their parts of speech, excludes redirects, and filters entries to terms supported by LexiPlay. Page introductions are not used because many dictionary entries, including “because,” have no introduction:
 
 ```powershell
 pnpm --filter @lexiplay/api dictionary:seed
 ```
 
-Run this after starting the local database with `docker compose up -d database`; the API seeder needs internet access. A refresh stages the complete import and only replaces the existing dictionary after all pages load successfully. Attribution and source terms are documented in [`apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE`](../apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE). The separate static game guess/answer lists are unchanged.
+Run this after starting the local database with `docker compose up -d database`; the API seeder needs internet access. A refresh stages the complete import and only replaces the existing dictionary after all pages load successfully. Attribution and source terms are documented in [`SIMPLE-WIKTIONARY-LICENSE`](../../apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE).
+
+Games select from dictionary entries of the chosen length (3–8), containing only `a`–`z` and a nonempty definition. The same pool validates guesses. “Play with my words” intersects the personal list with this pool for answer selection; other dictionary words remain valid guesses. Personal notes and manual entries do not change the canonical dictionary. Each game retains its starting pool so a dictionary refresh does not change its valid guesses. An empty dictionary pool produces `DICTIONARY_NOT_READY`; there is no static-file fallback. Public dictionary search and ordinary guest games do not require account tables or a login.
 
 ## Verification seams
 

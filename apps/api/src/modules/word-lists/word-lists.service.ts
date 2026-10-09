@@ -32,6 +32,10 @@ export class WordListsService {
       .filter(term => term.length === wordLength && /^[a-z]+$/.test(term));
   }
 
+  dictionaryGameWords(wordLength: number) {
+    return this.lists.dictionaryGameWords(wordLength);
+  }
+
   async get(cookie: string | undefined, listId: string) {
     const user = await this.accounts.current(cookie);
     const list = await this.lists.find(user.id, listId);

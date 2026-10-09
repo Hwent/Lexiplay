@@ -13,6 +13,7 @@ export class WordListRepository implements OnModuleDestroy {
     connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay',
   });
   private schemaReady?: Promise<void>;
+  private dictionarySchemaReady?: Promise<void>;
 
   async findAll(ownerId: string): Promise<WordList[]> {
     await this.ensureSchema();
@@ -28,7 +29,7 @@ export class WordListRepository implements OnModuleDestroy {
   }
 
   async searchDictionary(query: string, limit = 25): Promise<DictionaryEntry[]> {
-    await this.ensureSchema();
+    await this.ensureDictionarySchema();
     const normalized = query.trim().toLowerCase();
     const { rows } = await this.pool.query<DictionaryEntry>(
       `SELECT term, part_of_speech AS "partOfSpeech"
@@ -40,11 +41,21 @@ export class WordListRepository implements OnModuleDestroy {
   }
 
   async getDictionaryDefinition(term: string): Promise<string> {
-    await this.ensureSchema();
+    await this.ensureDictionarySchema();
     const { rows } = await this.pool.query<{ definition: string }>(
       'SELECT definition FROM dictionary_words WHERE term = $1', [term.trim().toLowerCase()],
     );
     return rows[0]?.definition ?? '';
+  }
+
+  async dictionaryGameWords(wordLength: number): Promise<string[]> {
+    await this.ensureDictionarySchema();
+    const { rows } = await this.pool.query<{ term: string }>(
+      `SELECT term FROM dictionary_words
+       WHERE char_length(term) = $1 AND term ~ '^[a-z]+$' AND btrim(definition) <> ''
+       ORDER BY term`, [wordLength],
+    );
+    return rows.map(row => row.term);
   }
 
   async addDictionaryWord(ownerId: string, listId: string, term: string): Promise<WordEntry | null> {
@@ -143,7 +154,7 @@ export class WordListRepository implements OnModuleDestroy {
   }
 
   private ensureSchema(): Promise<void> {
-    this.schemaReady ??= this.pool.query(`
+    this.schemaReady ??= this.ensureDictionarySchema().then(() => this.pool.query(`
       CREATE TABLE IF NOT EXISTS user_word_lists (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         owner_id uuid NOT NULL REFERENCES account_users(id) ON DELETE CASCADE,
@@ -175,14 +186,6 @@ export class WordListRepository implements OnModuleDestroy {
       ALTER TABLE user_words DROP CONSTRAINT IF EXISTS user_words_status_check;
       ALTER TABLE user_words ADD CONSTRAINT user_words_status_check CHECK (status IN ('KNOWN', 'UNFAMILIAR'));
       CREATE INDEX IF NOT EXISTS user_words_list_created_idx ON user_words(list_id, created_at);
-      CREATE TABLE IF NOT EXISTS dictionary_words (
-        term varchar(100) PRIMARY KEY,
-        definition text NOT NULL,
-        part_of_speech text[] NOT NULL DEFAULT '{}',
-        source varchar(80) NOT NULL DEFAULT 'Simple English Wiktionary'
-      );
-      CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
-      UPDATE dictionary_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
       WITH ranked AS (
         SELECT id, first_value(id) OVER (PARTITION BY owner_id ORDER BY created_at, id) AS keep_id,
                row_number() OVER (PARTITION BY owner_id ORDER BY created_at, id) AS list_rank
@@ -203,8 +206,22 @@ export class WordListRepository implements OnModuleDestroy {
         SELECT id, row_number() OVER (PARTITION BY owner_id ORDER BY created_at, id) AS list_rank FROM user_word_lists
       ) DELETE FROM user_word_lists WHERE id IN (SELECT id FROM ranked WHERE list_rank > 1);
       CREATE UNIQUE INDEX IF NOT EXISTS user_word_lists_one_per_owner_idx ON user_word_lists(owner_id);
-    `).then(() => undefined);
+    `)).then(() => undefined);
     return this.schemaReady;
+  }
+
+  private ensureDictionarySchema(): Promise<void> {
+    this.dictionarySchemaReady ??= this.pool.query(`
+      CREATE TABLE IF NOT EXISTS dictionary_words (
+        term varchar(100) PRIMARY KEY,
+        definition text NOT NULL,
+        part_of_speech text[] NOT NULL DEFAULT '{}',
+        source varchar(80) NOT NULL DEFAULT 'Simple English Wiktionary'
+      );
+      CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
+      UPDATE dictionary_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
+    `).then(() => undefined);
+    return this.dictionarySchemaReady;
   }
 
   private async ensureDefaultList(ownerId: string): Promise<WordList> {
