@@ -20,9 +20,9 @@ pnpm install
 pnpm dev
 ```
 
-The launcher starts the NestJS API and Vite web app on available localhost ports and prints the web URL. Players can choose 3–8 letter games and enter guesses one letter at a time. The length-specific guess and answer lists are in `packages/shared/vocabulary`; provenance and license notes are in that directory. Active games are held in API memory, so restarting the API clears them. PostgreSQL is available for the next persistence milestone through `docker compose up -d database`.
+The launcher starts the NestJS API and Vite web app on available localhost ports and prints the web URL. Players can create an account, sign in, or play as a guest; account sessions and each learner’s single “My words” list persist in PostgreSQL. Start the local database with `docker compose up -d database`, then load the searchable Princeton WordNet 3.1 dictionary with `pnpm --filter @lexiplay/api dictionary:seed`. The dictionary supports word search and add-to-list; new words start as unfamiliar. Word-list uploads accept TXT, DOCX, CSV, XLSX, and text-based PDF files, with a preview before confirmation. Players can choose 3–8 letter games and enter guesses one letter at a time. The length-specific guess and answer lists are in `packages/shared/vocabulary`; provenance and license notes are in that directory and the API word-list module. Active practice games are held in API memory, so restarting the API clears them.
 
-Run the checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Tests cover the browser practice flow, versioned health endpoint, and two randomly selected guesses from each 3–6 letter vocabulary file. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for boundaries and conventions.
+Run the checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Tests cover the account and word-list UI, auth and owned-list HTTP lifecycles, browser practice, the versioned health endpoint, and two randomly selected guesses from each 3–6 letter vocabulary file. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for boundaries and conventions.
 
 ## GitHub
 

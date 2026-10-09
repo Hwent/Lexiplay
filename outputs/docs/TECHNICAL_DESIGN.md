@@ -69,8 +69,8 @@ Base path: `/api/v1`; JSON; consistent error shape such as `{ "code": "VALIDATIO
 | `POST /word-lists`, `GET /word-lists/:id`, `PATCH /word-lists/:id`, `DELETE /word-lists/:id` | Manage owned lists. |
 | `GET /word-lists/:id/words` | Paginated list contents. |
 | `POST /word-lists/:id/words`, `PATCH /words/:id`, `DELETE /words/:id` | Manage words with ownership and validation checks. |
-| `POST /word-lists/:id/import-preview` | Parse bounded CSV and return valid rows plus row errors; does not write. |
-| `POST /word-lists/:id/import` | Commit validated preview/import payload. |
+| `POST /word-lists/:id/import-preview` | Parse bounded `.txt`/`.doc`/`.docx` upload or pasted text; return preview rows and row issues without writing. CSV may be optional secondary compatibility. |
+| `POST /word-lists/:id/import` | Commit selected/corrected preview rows after server-side revalidation. |
 | `POST /games` | Start game for selected list; return game ID, rules, and eligible guess dictionary as appropriate, but never answer. |
 | `POST /games/:id/guesses` | Submit one guess; return per-letter feedback, attempts remaining, and completion status; reveal answer only after game ends. |
 | `GET /games/:id` | Read caller's game state with answer redaction while active. |
@@ -87,10 +87,10 @@ For feedback, define duplicate-letter handling explicitly and test it: mark exac
 
 ## 7. Testing strategy
 
-- **Unit:** guess scoring (including repeated letters), normalization, answer selection, streak calculations, CSV validation, and authorization policies.
+- **Unit:** guess scoring (including repeated letters), normalization, answer selection, streak calculations, text/document extraction and row validation, and authorization policies.
 - **API integration:** NestJS modules against disposable PostgreSQL; verify migrations, constraints, transactions, redaction, and user isolation.
 - **E2E:** register/login, create/import list, start/complete game, refresh and verify progress; cover mobile viewport and keyboard navigation.
-- **Security-focused cases:** cross-user ID access, malformed/oversized CSV, SQL/HTML payloads, rate limiting, session expiry, and answer leakage.
+- **Security-focused cases:** cross-user ID access, malformed/oversized text/document files, embedded-content handling, SQL/HTML payloads, rate limiting, session expiry, and answer leakage.
 - Use deterministic seeded fixtures and stable test dictionaries. Avoid relying on external APIs in CI.
 
 ## 8. Containers and local development
