@@ -112,8 +112,10 @@ describe('practice puzzle', () => {
     await user.type(screen.getByRole('searchbox', { name: /search your words/i }), 'apple');
     await user.keyboard('{Enter}');
     expect(await screen.findByText('apple')).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/library');
     expect(screen.queryByText('chair')).toBeNull();
     await user.click(screen.getByRole('button', { name: /play/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/play');
   });
 });

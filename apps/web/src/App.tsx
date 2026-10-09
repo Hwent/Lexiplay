@@ -5,6 +5,10 @@ import WordListsPanel from './WordListsPanel';
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
 type Section = 'home' | 'play' | 'library' | 'progress' | 'community' | 'settings';
+const sectionPaths: Record<Section, string> = {
+  home: '/', play: '/play', library: '/library', progress: '/progress', community: '/community', settings: '/settings',
+};
+const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
 type GuessResult = {
   guess: string;
   feedback: Feedback[];
@@ -36,9 +40,21 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [selectedWordLength, setSelectedWordLength] = useState(5);
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
-  const [activeSection, setActiveSection] = useState<Section>('home');
+  const [activeSection, setActiveSection] = useState<Section>(() => pathSections[window.location.pathname] ?? 'home');
   const [quickSearch, setQuickSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
+
+  useEffect(() => {
+    const syncSection = () => setActiveSection(pathSections[window.location.pathname] ?? 'home');
+    window.addEventListener('popstate', syncSection);
+    return () => window.removeEventListener('popstate', syncSection);
+  }, []);
+
+  function navigateTo(section: Section) {
+    const path = sectionPaths[section];
+    if (window.location.pathname !== path) window.history.pushState({}, '', path);
+    setActiveSection(section);
+  }
 
   const finished = game?.guesses.at(-1)?.completed ?? false;
   const attemptsRemaining = game?.guesses.at(-1)?.attemptsRemaining ?? game?.attemptLimit ?? 0;
@@ -141,9 +157,9 @@ export default function App() {
   return (
     <main className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="/" aria-label="LexiPlay home" onClick={event => { event.preventDefault(); setActiveSection('home'); }}><span className="brand-mark">L</span> LexiPlay</a>
+        <a className="brand" href="/" aria-label="LexiPlay home" onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark">L</span> LexiPlay</a>
         <nav aria-label="Main navigation" className="main-navigation">
-          {navigation.map(item => <button type="button" key={item.key} className={activeSection === item.key ? 'active' : ''} aria-current={activeSection === item.key ? 'page' : undefined} onClick={() => setActiveSection(item.key)}><span aria-hidden="true">{item.icon}</span>{sectionTitle[item.key]}</button>)}
+          {navigation.map(item => <button type="button" key={item.key} className={activeSection === item.key ? 'active' : ''} aria-current={activeSection === item.key ? 'page' : undefined} onClick={() => navigateTo(item.key)}><span aria-hidden="true">{item.icon}</span>{sectionTitle[item.key]}</button>)}
         </nav>
         <div className="sidebar-bottom"><p>Small steps, stronger words.</p></div>
       </aside>
@@ -151,7 +167,7 @@ export default function App() {
       <header className="topbar">
         <div className="page-title"><p className="eyebrow">YOUR LEARNING SPACE</p><h1>{sectionTitle[activeSection]}</h1></div>
         <div className="header-actions">
-          <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); setActiveSection('library'); }}>
+          <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('library'); }}>
             <label className="sr-only" htmlFor="quick-search">Search your words</label>
             <input id="quick-search" type="search" value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search words" />
             <button type="submit" aria-label="Search words">⌕</button>
@@ -225,10 +241,10 @@ export default function App() {
         <WordListsPanel pageMode searchQuery={quickSearch} />
       </section>}
       {activeSection === 'home' && <section className="overview-page">
-        <div className="welcome-banner"><p className="eyebrow">A LITTLE PRACTICE GOES A LONG WAY</p><h2>Make room for a new word.</h2><p>Build a habit with a quick puzzle or spend a few minutes organizing your vocabulary.</p><button type="button" className="primary-button" onClick={() => setActiveSection('play')}>Start a puzzle <span aria-hidden="true">→</span></button></div>
-        <div className="overview-cards"><button type="button" onClick={() => setActiveSection('library')}><span className="overview-icon" aria-hidden="true">▤</span><strong>Your word list</strong><span>Browse and add words</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => setActiveSection('play')}><span className="overview-icon" aria-hidden="true">▦</span><strong>Quick practice</strong><span>Solve a word puzzle</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => setActiveSection('progress')}><span className="overview-icon" aria-hidden="true">▥</span><strong>Learning progress</strong><span>Review your activity</span><span className="card-arrow" aria-hidden="true">→</span></button></div>
+        <div className="welcome-banner"><p className="eyebrow">A LITTLE PRACTICE GOES A LONG WAY</p><h2>Make room for a new word.</h2><p>Build a habit with a quick puzzle or spend a few minutes organizing your vocabulary.</p><button type="button" className="primary-button" onClick={() => navigateTo('play')}>Start a puzzle <span aria-hidden="true">→</span></button></div>
+        <div className="overview-cards"><button type="button" onClick={() => navigateTo('library')}><span className="overview-icon" aria-hidden="true">▤</span><strong>Your word list</strong><span>Browse and add words</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('play')}><span className="overview-icon" aria-hidden="true">▦</span><strong>Quick practice</strong><span>Solve a word puzzle</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('progress')}><span className="overview-icon" aria-hidden="true">▥</span><strong>Learning progress</strong><span>Review your activity</span><span className="card-arrow" aria-hidden="true">→</span></button></div>
       </section>}
-      {activeSection === 'progress' && <section className="section-placeholder"><span aria-hidden="true">▥</span><h2>Your learning history will live here.</h2><p>Practice with words from your own lists to build a record of what you’ve learned.</p><button type="button" className="primary-button" onClick={() => setActiveSection('library')}>Open your word list <span aria-hidden="true">→</span></button></section>}
+      {activeSection === 'progress' && <section className="section-placeholder"><span aria-hidden="true">▥</span><h2>Your learning history will live here.</h2><p>Practice with words from your own lists to build a record of what you’ve learned.</p><button type="button" className="primary-button" onClick={() => navigateTo('library')}>Open your word list <span aria-hidden="true">→</span></button></section>}
       {activeSection === 'community' && <section className="section-placeholder"><span aria-hidden="true">♧</span><h2>Learn alongside others.</h2><p>Community features are being planned. Your private word lists stay yours.</p></section>}
       {activeSection === 'settings' && <section className="settings-page"><h2>Appearance</h2><p>Choose the theme that feels comfortable.</p><button className="theme-toggle" type="button" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '☾ Dark mode'}</button></section>}
       <footer className="workspace-footer"><span>Thoughtful practice, one word at a time.</span><span className="footer-seed" aria-hidden="true">✳</span></footer>
