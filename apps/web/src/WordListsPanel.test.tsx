@@ -11,11 +11,10 @@ describe('vocabulary list panel', () => {
     vi.unstubAllGlobals();
   });
 
-  it('adds a word and lets the learner mark it as known', async () => {
+  it('keeps added and status changes local until leaving the route', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify([list]), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }), { status: 200 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
@@ -29,12 +28,12 @@ describe('vocabulary list panel', () => {
     expect(await screen.findByRole('button', { name: 'Known' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Known' }));
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toHaveAttribute('aria-pressed', 'false');
-    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(fetchMock).toHaveBeenCalledTimes(1);
     await act(async () => { window.dispatchEvent(new Event('lexiplay:before-route-change')); });
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(3));
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/word-lists/list-1/words/word-1', expect.objectContaining({
-      method: 'PATCH',
-      body: JSON.stringify({ status: 'UNFAMILIAR' }),
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/word-lists/list-1/words', expect.objectContaining({
+      method: 'POST',
+      body: JSON.stringify({ term: 'apple', definition: 'A fruit' }),
     }));
   });
 
@@ -56,10 +55,12 @@ describe('vocabulary list panel', () => {
     await user.click(screen.getByRole('button', { name: /add to list/i }));
     expect(await screen.findByText(/apple added as unfamiliar/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/word-lists/list-1/dictionary', expect.objectContaining({
+    expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/word-lists/list-1/dictionary')).toBe(false);
+    await act(async () => { window.dispatchEvent(new Event('lexiplay:before-route-change')); });
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledWith('/api/v1/word-lists/list-1/dictionary', expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ term: 'apple' }),
-    }));
+    })));
   });
 
   it('previews an uploaded word file and confirms the selected rows', async () => {

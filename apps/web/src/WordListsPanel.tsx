@@ -2,6 +2,11 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 
 type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; example?: string | null; status: WordStatus };
+type PendingWordOperation =
+  | { kind: 'create'; listId: string; term: string; definition: string }
+  | { kind: 'dictionary-create'; listId: string; term: string }
+  | { kind: 'update'; listId: string; term: string; definition: string }
+  | { kind: 'delete'; listId: string };
 type WordList = { id: string; name: string; words: WordEntry[] };
 type DictionaryEntry = { term: string; definition: string; partOfSpeech: string[] };
 type ImportRow = { rowNumber: number; term: string; definition: string; partOfSpeech: string | null; example: string | null; selected: boolean; issues: string[] };
@@ -41,6 +46,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [dictionaryResults, setDictionaryResults] = useState<DictionaryEntry[]>([]);
   const [dictionaryBusy, setDictionaryBusy] = useState(false);
   const pendingStatuses = useRef(new Map<string, { listId: string; status: WordStatus }>());
+  const pendingWordOperations = useRef(new Map<string, PendingWordOperation>());
 
   useEffect(() => setListSearch(searchQuery), [searchQuery]);
   useEffect(() => {
@@ -76,9 +82,37 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   useEffect(() => {
     async function flushPendingStatuses() {
-      for (const [wordId, pending] of pendingStatuses.current) {
+      const createdIds = new Map<string, string>();
+      for (const [wordId, operation] of pendingWordOperations.current) {
         try {
-          const updated = await request<WordEntry>(`/word-lists/${pending.listId}/words/${wordId}`, {
+          if (operation.kind === 'create' || operation.kind === 'dictionary-create') {
+            const created = operation.kind === 'create'
+              ? await request<WordEntry>(`/word-lists/${operation.listId}/words`, {
+                method: 'POST', body: JSON.stringify({ term: operation.term, definition: operation.definition }),
+              })
+              : await request<WordEntry>(`/word-lists/${operation.listId}/dictionary`, {
+                method: 'POST', body: JSON.stringify({ term: operation.term }),
+              });
+            createdIds.set(wordId, created.id);
+            pendingWordOperations.current.delete(wordId);
+          } else if (operation.kind === 'update') {
+            await request<WordEntry>(`/word-lists/${operation.listId}/words/${wordId}`, {
+              method: 'PATCH', body: JSON.stringify({ term: operation.term, definition: operation.definition }),
+            });
+            pendingWordOperations.current.delete(wordId);
+          } else {
+            await request<void>(`/word-lists/${operation.listId}/words/${wordId}`, { method: 'DELETE' });
+            pendingWordOperations.current.delete(wordId);
+          }
+        } catch (error) {
+          setMessage(error instanceof Error ? error.message : 'Could not save your word list changes.');
+        }
+      }
+      for (const [wordId, pending] of pendingStatuses.current) {
+        if (pendingWordOperations.current.get(wordId)?.kind === 'create' || pendingWordOperations.current.get(wordId)?.kind === 'dictionary-create') continue;
+        try {
+          const serverWordId = createdIds.get(wordId) ?? wordId;
+          const updated = await request<WordEntry>(`/word-lists/${pending.listId}/words/${serverWordId}`, {
             method: 'PATCH', body: JSON.stringify({ status: pending.status }),
           });
           setLists(current => current.map(list => list.id === pending.listId
@@ -96,62 +130,54 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   async function submitWord(event: FormEvent<HTMLFormElement>, listId: string) {
     event.preventDefault();
-    setBusy(true);
-    setMessage('');
-    try {
-      const word = await request<WordEntry>(`/word-lists/${listId}/words`, {
-        method: 'POST', body: JSON.stringify({ term, definition }),
-      });
-      setLists(current => current.map(list => list.id === listId ? { ...list, words: [...list.words, word] } : list));
-      setTerm('');
-      setDefinition('');
-    } catch (error) {
-      setMessage(error instanceof Error ? error.message : 'Could not add the word.');
-    } finally { setBusy(false); }
+    const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const word: WordEntry = { id, term: term.trim().toLowerCase(), definition: definition.trim(), status: 'UNFAMILIAR' };
+    pendingWordOperations.current.set(id, { kind: 'create', listId, term: word.term, definition: word.definition });
+    setLists(current => current.map(list => list.id === listId ? { ...list, words: [...list.words, word] } : list));
+    setTerm('');
+    setDefinition('');
   }
 
-  async function saveWord(event: FormEvent<HTMLFormElement>, listId: string, wordId: string) {
+  function saveWord(event: FormEvent<HTMLFormElement>, listId: string, wordId: string) {
     event.preventDefault();
-    setBusy(true);
-    try {
-      const updated = await request<WordEntry>(`/word-lists/${listId}/words/${wordId}`, {
-        method: 'PATCH', body: JSON.stringify({ term: editingTerm, definition: editingDefinition }),
-      });
-      setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.map(word => word.id === wordId ? updated : word) } : list));
-      setEditingWordId('');
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not save the word.'); }
-    finally { setBusy(false); }
+    const currentOperation = pendingWordOperations.current.get(wordId);
+    if (currentOperation?.kind === 'create') {
+      pendingWordOperations.current.set(wordId, { ...currentOperation, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() });
+    } else if (currentOperation?.kind === 'dictionary-create') {
+      pendingWordOperations.current.set(wordId, { kind: 'create', listId, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() });
+    } else {
+      pendingWordOperations.current.set(wordId, { kind: 'update', listId, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() });
+    }
+    setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.map(word => word.id === wordId ? { ...word, term: editingTerm.trim().toLowerCase(), definition: editingDefinition.trim() } : word) } : list));
+    setEditingWordId('');
   }
 
-  async function addDictionaryWord(listId: string, term: string) {
-    setBusy(true);
-    setMessage('');
-    try {
-      const word = await request<WordEntry>(`/word-lists/${listId}/dictionary`, {
-        method: 'POST', body: JSON.stringify({ term }),
-      });
-      setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.some(existing => existing.term === term) ? list.words : [...list.words, word] } : list));
-      setSelectedId(listId);
-      setMessage(`${term} added as unfamiliar.`);
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not add this word.'); }
-    finally { setBusy(false); }
+  function addDictionaryWord(listId: string, entry: DictionaryEntry) {
+    if (lists.some(list => list.id === listId && list.words.some(word => word.term === entry.term))) return;
+    const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    pendingWordOperations.current.set(id, { kind: 'dictionary-create', listId, term: entry.term });
+    setLists(current => current.map(list => list.id === listId
+      ? { ...list, words: [...list.words, { id, term: entry.term, definition: entry.definition, status: 'UNFAMILIAR', partOfSpeech: entry.partOfSpeech.join(', '), example: null }] }
+      : list));
+    setSelectedId(listId);
+    setMessage(`${entry.term} added as unfamiliar.`);
   }
-
   async function changeWordStatus(listId: string, word: WordEntry) {
     const status: WordStatus = word.status === 'KNOWN' ? 'UNFAMILIAR' : 'KNOWN';
-    pendingStatuses.current.set(word.id, { listId, status });
+    const operation = pendingWordOperations.current.get(word.id);
+    if ((operation?.kind === 'create' || operation?.kind === 'dictionary-create') && status === 'UNFAMILIAR') pendingStatuses.current.delete(word.id);
+    else pendingStatuses.current.set(word.id, { listId, status });
     setLists(current => current.map(list => list.id === listId
       ? { ...list, words: list.words.map(item => item.id === word.id ? { ...item, status } : item) }
       : list));
   }
 
-  async function deleteWord(listId: string, wordId: string) {
-    setBusy(true);
-    try {
-      await request<void>(`/word-lists/${listId}/words/${wordId}`, { method: 'DELETE' });
-      setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.filter(word => word.id !== wordId) } : list));
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not remove the word.'); }
-    finally { setBusy(false); }
+  function deleteWord(listId: string, wordId: string) {
+    const operation = pendingWordOperations.current.get(wordId);
+    if (operation?.kind === 'create' || operation?.kind === 'dictionary-create') pendingWordOperations.current.delete(wordId);
+    else pendingWordOperations.current.set(wordId, { kind: 'delete', listId });
+    pendingStatuses.current.delete(wordId);
+    setLists(current => current.map(list => list.id === listId ? { ...list, words: list.words.filter(word => word.id !== wordId) } : list));
   }
 
   async function previewImport(listId: string) {
@@ -202,7 +228,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       {normalizedSearch && <section className="dictionary-results" aria-label="Dictionary search results"><h3>Dictionary</h3>{dictionaryBusy && <p className="account-message">Searching…</p>}{!dictionaryBusy && dictionaryResults.length === 0 && <p className="account-message">No dictionary matches.</p>}{dictionaryResults.map(entry => {
         const list = lists[0];
         const alreadyAdded = list?.words.some(word => word.term === entry.term) ?? false;
-        return <article className="dictionary-result" key={entry.term}><div><strong>{entry.term}</strong><span>{entry.definition}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</div><button className="account-action" type="button" disabled={busy || alreadyAdded || !list} onClick={() => list && void addDictionaryWord(list.id, entry.term)}>{alreadyAdded ? 'Added' : 'Add to list'}</button></article>;
+        return <article className="dictionary-result" key={entry.term}><div><strong>{entry.term}</strong><span>{entry.definition}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</div><button className="account-action" type="button" disabled={alreadyAdded || !list} onClick={() => list && addDictionaryWord(list.id, entry)}>{alreadyAdded ? 'Added' : 'Add to list'}</button></article>;
       })}</section>}
       {visibleLists.map(list => {
         const listMatches = list.name.toLowerCase().includes(normalizedSearch);
@@ -239,28 +265,28 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
               <button className="account-action" type="button" onClick={() => void confirmImport(list.id)} disabled={busy || !preview.rows.some(row => row.selected)}>Import {preview.rows.filter(row => row.selected).length} {preview.rows.filter(row => row.selected).length === 1 ? 'word' : 'words'}</button>
             </>}
 
-          <form className="word-add-form" onSubmit={event => void submitWord(event, list.id)}>
+          <form className="word-add-form" onSubmit={event => submitWord(event, list.id)}>
             <h4>Add a word</h4>
             <label htmlFor={`word-term-${list.id}`}>Word</label>
             <input id={`word-term-${list.id}`} value={term} onChange={event => setTerm(event.target.value)} required maxLength={100} pattern="[A-Za-z][A-Za-z '-]{0,99}" />
             <label htmlFor={`word-definition-${list.id}`}>Definition</label>
             <input id={`word-definition-${list.id}`} value={definition} onChange={event => setDefinition(event.target.value)} maxLength={500} />
-            <button className="account-action" type="submit" disabled={busy}>Add word</button>
+            <button className="account-action" type="submit">Add word</button>
           </form>
           <ul className="word-entry-list">
             {visibleWords.map(word => <li key={word.id}>
-              {editingWordId === word.id ? <form className="word-edit-form" onSubmit={event => void saveWord(event, list.id, word.id)}>
+              {editingWordId === word.id ? <form className="word-edit-form" onSubmit={event => saveWord(event, list.id, word.id)}>
                 <label htmlFor={`edit-term-${word.id}`}>Word</label>
                 <input id={`edit-term-${word.id}`} value={editingTerm} onChange={event => setEditingTerm(event.target.value)} required maxLength={100} pattern="[A-Za-z][A-Za-z '-]{0,99}" />
                 <label htmlFor={`edit-definition-${word.id}`}>Definition</label>
                 <input id={`edit-definition-${word.id}`} value={editingDefinition} onChange={event => setEditingDefinition(event.target.value)} maxLength={500} />
-                <button className="text-action" type="submit" disabled={busy}>Save</button>
+                <button className="text-action" type="submit">Save</button>
                 <button className="text-action" type="button" onClick={() => setEditingWordId('')}>Cancel</button>
               </form> : <>
                 <span><strong>{word.term}</strong><small>{word.definition || 'No definition yet'}</small></span>
                 <button className={`word-status ${word.status === 'KNOWN' ? 'known' : 'unfamiliar'}`} type="button" aria-pressed={word.status === 'KNOWN'} onClick={() => void changeWordStatus(list.id, word)}>{word.status === 'KNOWN' ? 'Known' : 'Unfamiliar'}</button>
                 <button className="text-action" type="button" onClick={() => { setEditingWordId(word.id); setEditingTerm(word.term); setEditingDefinition(word.definition); }}>Edit</button>
-                <button className="text-action" type="button" onClick={() => void deleteWord(list.id, word.id)} disabled={busy}>Remove</button>
+                <button className="text-action" type="button" onClick={() => deleteWord(list.id, word.id)}>Remove</button>
               </>}
             </li>)}
           </ul>
