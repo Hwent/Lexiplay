@@ -1,0 +1,13 @@
+{
+  "name": "@lexiplay/api",
+  "version": "0.1.0",
+  "private": true,
+  "type": "commonjs",
+  "scripts": {
+    "dev": "nest start --watch",
+    "build": "nest build",
+    "lint": "eslint src",
+    "typecheck": "tsc --noEmit",
+    "test": "jest --runInBand"
+  }
+}
