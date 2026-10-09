@@ -98,6 +98,25 @@ describe('practice puzzle', () => {
     expect(await screen.findByText(/you’re signed out/i)).toBeInTheDocument();
   });
 
+  it('shows account creation errors and keeps the user signed out', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response('{}', { status: 401 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'An account with this email already exists.' }), { status: 409 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+    await user.click(screen.getByText('Account'));
+    await user.click(screen.getByRole('tab', { name: /create account/i }));
+    await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
+    await user.type(screen.getByLabelText(/password/i), 'wordpractice123');
+    await user.click(screen.getByRole('button', { name: /^create account$/i }));
+
+    expect(await screen.findByRole('status')).toHaveTextContent('An account with this email already exists.');
+    expect(screen.queryByText(/signed in as/i)).toBeNull();
+    expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/auth/register', expect.objectContaining({ method: 'POST' }));
+  });
+
   it('navigates between the learning library and Wordle practice', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response('{}', { status: 401 }))

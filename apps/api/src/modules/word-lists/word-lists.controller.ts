@@ -20,6 +20,11 @@ export class WordListsController {
     return this.lists.searchDictionary(query);
   }
 
+  @Get('dictionary/:term/definition')
+  async dictionaryDefinition(@Param('term') term: string) {
+    return { definition: await this.lists.dictionaryDefinition(term) };
+  }
+
   @Post(':listId/dictionary')
   addDictionaryWord(@Headers('cookie') cookie: string | undefined, @Param('listId', ParseUUIDPipe) listId: string, @Body() input: AddDictionaryWordDto) {
     return this.lists.addDictionaryWord(readSessionCookie(cookie), listId, input.term);

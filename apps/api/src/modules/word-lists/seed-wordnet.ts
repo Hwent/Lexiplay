@@ -4,6 +4,13 @@ import { Pool } from 'pg';
 
 const wordnet = require('wordnet-db') as { path: string; version: string };
 const pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
+
+function trimAtSecondSemicolon(definition: string) {
+  const first = definition.indexOf(';');
+  const second = first < 0 ? -1 : definition.indexOf(';', first + 1);
+  return second < 0 ? definition : definition.slice(0, second + 1).trim();
+}
+
 async function seed() {
   await pool.query(`
     CREATE TABLE IF NOT EXISTS dictionary_words (
@@ -13,6 +20,7 @@ async function seed() {
       source varchar(80) NOT NULL DEFAULT 'Princeton WordNet 3.1'
     );
     CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
+    UPDATE dictionary_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
   `);
 
   for (const posCode of ['noun', 'verb', 'adj', 'adv']) {
@@ -47,13 +55,13 @@ async function insertBatch(rows: Array<{ term: string; definition: string }>, po
     grouped.set(row.term, definitionsForTerm);
   }
   const terms = [...grouped.keys()];
-  const definitions = [...grouped.values()].map(senses => senses.join('; ').slice(0, 2000));
+  const definitions = [...grouped.values()].map(senses => trimAtSecondSemicolon(senses.join('; ')).slice(0, 2000));
   await pool.query(
     `INSERT INTO dictionary_words (term, definition, part_of_speech)
      SELECT incoming.term, incoming.definition, ARRAY[$3::text]
      FROM UNNEST($1::text[], $2::text[]) AS incoming(term, definition)
      ON CONFLICT (term) DO UPDATE SET
-       definition = CASE WHEN position(EXCLUDED.definition in dictionary_words.definition) > 0 THEN dictionary_words.definition ELSE left(dictionary_words.definition || '; ' || EXCLUDED.definition, 2000) END,
+       definition = CASE WHEN position(EXCLUDED.definition in dictionary_words.definition) > 0 THEN dictionary_words.definition ELSE left(array_to_string((string_to_array(dictionary_words.definition || '; ' || EXCLUDED.definition, ';'))[1:3], ';'), 2000) END,
        part_of_speech = ARRAY(SELECT DISTINCT value FROM UNNEST(dictionary_words.part_of_speech || EXCLUDED.part_of_speech) AS values(value))`,
     [terms, definitions, pos],
   );

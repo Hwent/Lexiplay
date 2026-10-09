@@ -56,19 +56,25 @@ class MemoryWordListRepository {
     return saved;
   }
   async searchDictionary(query: string) {
-    if (query === 'apple') return [{ term: 'apple', definition: 'The round fruit of a tree of the rose family.', partOfSpeech: ['noun'] }];
-    if (query === 'longword') return [{ term: 'longword', definition: 'A'.repeat(650), partOfSpeech: ['noun'] }];
+    if (query === 'apple') return [{ term: 'apple', partOfSpeech: ['noun'] }];
+    if (query === 'longword') return [{ term: 'longword', partOfSpeech: ['noun'] }];
     return [];
+  }
+  async getDictionaryDefinition(term: string) {
+    if (term === 'apple') return 'The round fruit of a tree of the rose family.';
+    if (term === 'longword') return 'A'.repeat(650);
+    return '';
   }
   async addDictionaryWord(ownerId: string, listId: string, term: string) {
     const entry = (await this.searchDictionary(term)).find(item => item.term === term);
     if (!entry) return null;
+    const definition = await this.getDictionaryDefinition(term);
     const list = await this.find(ownerId, listId);
     if (!list) return null;
     const existing = list.words.find(word => word.term === term);
     if (existing) return existing;
-    const definition = entry.definition.length > 500 ? `${entry.definition.slice(0, 499)}…` : entry.definition;
-    const saved = { id: this.uuid(this.nextId++), term, definition, partOfSpeech: 'noun', example: null, status: 'UNFAMILIAR' as const };
+    const savedDefinition = definition.length > 500 ? `${definition.slice(0, 499)}…` : definition;
+    const saved = { id: this.uuid(this.nextId++), term, definition: savedDefinition, partOfSpeech: 'noun', example: null, status: 'UNFAMILIAR' as const };
     list.words.push(saved);
     return saved;
   }
@@ -145,13 +151,22 @@ describe('owned vocabulary list HTTP endpoints', () => {
     expect(await (await fetch(baseUrl, { headers })).json()).toMatchObject([{ id: list.id }]);
 
     const dictionary = await fetch(`${baseUrl}/dictionary?q=apple`);
-    expect(await dictionary.json()).toMatchObject([{ term: 'apple', partOfSpeech: ['noun'] }]);
+    expect(await dictionary.json()).toEqual([{ term: 'apple', partOfSpeech: ['noun'] }]);
+    const appleDefinition = await fetch(`${baseUrl}/dictionary/apple/definition`);
+    expect(await appleDefinition.json()).toEqual({ definition: 'The round fruit of a tree of the rose family.' });
     const addedDictionaryWord = await fetch(`${baseUrl}/${list.id}/dictionary`, { method: 'POST', headers, body: JSON.stringify({ term: 'apple' }) });
     expect(addedDictionaryWord.status).toBe(201);
     const word = await addedDictionaryWord.json() as { id: string; term: string };
     expect(word).toMatchObject({ term: 'apple', status: 'UNFAMILIAR' });
     const duplicateWord = await fetch(`${baseUrl}/${list.id}/dictionary`, { method: 'POST', headers, body: JSON.stringify({ term: 'apple' }) });
     expect(await duplicateWord.json()).toMatchObject({ id: word.id, status: 'UNFAMILIAR' });
+
+    const semicolonDefinition = await fetch(`${baseUrl}/${list.id}/words`, {
+      method: 'POST', headers, body: JSON.stringify({ term: 'pear', definition: 'first sense; second sense; third sense' }),
+    });
+    const pear = await semicolonDefinition.json() as { id: string; definition: string };
+    expect(pear.definition).toBe('first sense; second sense;');
+    await fetch(`${baseUrl}/${list.id}/words/${pear.id}`, { method: 'DELETE', headers });
 
     const addedLongDictionaryWord = await fetch(`${baseUrl}/${list.id}/dictionary`, {
       method: 'POST', headers, body: JSON.stringify({ term: 'longword' }),

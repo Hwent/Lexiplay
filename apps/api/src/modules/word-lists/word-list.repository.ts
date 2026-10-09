@@ -5,7 +5,7 @@ export type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 export type WordEntry = { id: string; term: string; definition: string; partOfSpeech: string | null; example: string | null; status: WordStatus };
 export type WordList = { id: string; name: string; words: WordEntry[] };
 type WordListRow = Omit<WordList, 'words'>;
-export type DictionaryEntry = { term: string; definition: string; partOfSpeech: string[] };
+export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[] };
 
 @Injectable()
 export class WordListRepository implements OnModuleDestroy {
@@ -31,12 +31,20 @@ export class WordListRepository implements OnModuleDestroy {
     await this.ensureSchema();
     const normalized = query.trim().toLowerCase();
     const { rows } = await this.pool.query<DictionaryEntry>(
-      `SELECT term, definition, part_of_speech AS "partOfSpeech"
+      `SELECT term, part_of_speech AS "partOfSpeech"
        FROM dictionary_words WHERE term LIKE $1 || '%' OR term = $2
        ORDER BY CASE WHEN term = $2 THEN 0 ELSE 1 END, term LIMIT $3`,
-      [normalized, normalized, limit],
+      [normalized, normalized, Math.min(limit, 10)],
     );
     return rows;
+  }
+
+  async getDictionaryDefinition(term: string): Promise<string> {
+    await this.ensureSchema();
+    const { rows } = await this.pool.query<{ definition: string }>(
+      'SELECT definition FROM dictionary_words WHERE term = $1', [term.trim().toLowerCase()],
+    );
+    return rows[0]?.definition ?? '';
   }
 
   async addDictionaryWord(ownerId: string, listId: string, term: string): Promise<WordEntry | null> {
@@ -159,6 +167,7 @@ export class WordListRepository implements OnModuleDestroy {
       );
       ALTER TABLE user_words ALTER COLUMN definition TYPE varchar(500)
         USING CASE WHEN char_length(definition) > 500 THEN left(definition, 499) || '…' ELSE definition END;
+      UPDATE user_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
       ALTER TABLE user_words ALTER COLUMN term TYPE varchar(100);
       ALTER TABLE user_words DROP CONSTRAINT IF EXISTS user_words_term_check;
       ALTER TABLE user_words ADD CONSTRAINT user_words_term_check CHECK (term ~ '^[a-z][a-z ''-]{0,99}$');
@@ -173,6 +182,7 @@ export class WordListRepository implements OnModuleDestroy {
         source varchar(80) NOT NULL DEFAULT 'Princeton WordNet 3.1'
       );
       CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
+      UPDATE dictionary_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
       WITH ranked AS (
         SELECT id, first_value(id) OVER (PARTITION BY owner_id ORDER BY created_at, id) AS keep_id,
                row_number() OVER (PARTITION BY owner_id ORDER BY created_at, id) AS list_rank

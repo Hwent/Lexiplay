@@ -288,7 +288,8 @@ body { background: var(--page); }
 .dictionary-results h3 { margin: 0 0 .5rem; font-family: inherit; font-size: .95rem; }
 .dictionary-result { padding: .65rem 0; display: flex; align-items: center; justify-content: space-between; gap: .8rem; border-top: 1px solid var(--line); }
 .dictionary-result > div { min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
-.dictionary-result strong { font-size: .9rem; }
+.dictionary-term { width: fit-content; padding: 0; border: 0; background: transparent; color: var(--text); cursor: pointer; font-size: .9rem; font-weight: 700; text-align: left; text-decoration: underline; text-underline-offset: .15em; }
+.dictionary-term:disabled { opacity: .65; cursor: wait; }
 .dictionary-result span { color: var(--soft-text); font-size: .78rem; line-height: 1.4; }
 .dictionary-result small { color: var(--muted); font-size: .7rem; }
 .dictionary-result .account-action { flex: 0 0 auto; margin: 0; min-height: 2.2rem; }

@@ -5,6 +5,13 @@ import { WordListRepository } from './word-list.repository';
 import { ConfirmWordImportDto } from './word-list.dto';
 import { WordListImportService } from './word-list-import';
 
+function trimDefinitionAtSecondSemicolon(value: string) {
+  const firstSemicolon = value.indexOf(';');
+  if (firstSemicolon < 0) return value;
+  const secondSemicolon = value.indexOf(';', firstSemicolon + 1);
+  return secondSemicolon < 0 ? value : value.slice(0, secondSemicolon + 1).trim();
+}
+
 @Injectable()
 export class WordListsService {
   constructor(
@@ -37,7 +44,7 @@ export class WordListsService {
     try {
       const word = await this.lists.addWord(user.id, listId, {
         term: input.term.trim().toLowerCase(),
-        definition: input.definition?.trim() ?? '',
+        definition: trimDefinitionAtSecondSemicolon(input.definition?.trim() ?? ''),
         partOfSpeech: input.partOfSpeech?.trim() || null,
         example: input.example?.trim() || null,
       });
@@ -58,8 +65,7 @@ export class WordListsService {
 
   async dictionaryDefinition(term: string) {
     try {
-      const entries = await this.lists.searchDictionary(term, 1);
-      return entries.find(entry => entry.term === term)?.definition ?? '';
+      return await this.lists.getDictionaryDefinition(term);
     } catch {
       return '';
     }
@@ -79,7 +85,7 @@ export class WordListsService {
     try {
       const word = await this.lists.updateWord(user.id, listId, wordId, {
         ...(input.term !== undefined ? { term: input.term.trim().toLowerCase() } : {}),
-        ...(input.definition !== undefined ? { definition: input.definition.trim() } : {}),
+        ...(input.definition !== undefined ? { definition: trimDefinitionAtSecondSemicolon(input.definition.trim()) } : {}),
         ...(input.partOfSpeech !== undefined ? { partOfSpeech: input.partOfSpeech.trim() || null } : {}),
         ...(input.example !== undefined ? { example: input.example.trim() || null } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
@@ -110,7 +116,7 @@ export class WordListsService {
     if (!list) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
     const selected = input.rows.filter(row => row.selected).map(row => ({
       term: row.term.trim().toLowerCase(),
-      definition: row.definition.trim(),
+      definition: trimDefinitionAtSecondSemicolon(row.definition.trim()),
       partOfSpeech: row.partOfSpeech?.trim() || null,
       example: row.example?.trim() || null,
     }));

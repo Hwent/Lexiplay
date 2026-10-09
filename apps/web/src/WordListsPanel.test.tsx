@@ -49,8 +49,9 @@ describe('vocabulary list panel', () => {
       const path = String(input);
       if (path.endsWith('/word-lists')) return new Response(JSON.stringify([list]), { status: 200 });
       if (path.includes('/dictionary?q=apple')) return new Response(JSON.stringify([
-        { term: 'apple', definition: 'The round fruit of a tree of the rose family.', partOfSpeech: ['noun'] },
+        { term: 'apple', partOfSpeech: ['noun'] },
       ]), { status: 200 });
+      if (path.endsWith('/dictionary/apple/definition')) return new Response(JSON.stringify({ definition: 'The round fruit of a tree of the rose family.' }), { status: 200 });
       if (path.endsWith('/list-1/dictionary')) return new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'The round fruit of a tree of the rose family.', status: 'UNFAMILIAR' }), { status: 201 });
       throw new Error(`Unexpected request ${path} ${init?.method ?? 'GET'}`);
     });
@@ -58,6 +59,9 @@ describe('vocabulary list panel', () => {
     const user = userEvent.setup();
 
     render(<WordListsPanel pageMode searchQuery="apple" />);
+    await screen.findByRole('button', { name: 'apple' });
+    expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary/apple/definition'))).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'apple' }));
     expect(await screen.findByText('The round fruit of a tree of the rose family.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /save apple to word list/i }));
     expect(await screen.findByText(/apple added as unfamiliar/i)).toBeInTheDocument();
@@ -97,19 +101,22 @@ describe('vocabulary list panel', () => {
       const path = String(input);
       if (path.endsWith('/word-lists')) return new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 });
       if (path.includes('/dictionary?q=longword')) return new Response(JSON.stringify([
-        { term: 'longword', definition: 'A'.repeat(650), partOfSpeech: ['noun'] },
+        { term: 'longword', partOfSpeech: ['noun'] },
       ]), { status: 200 });
+      if (path.endsWith('/dictionary/longword/definition')) return new Response(JSON.stringify({ definition: `${'A'.repeat(450)}; ${'B'.repeat(250)}; discarded third sense` }), { status: 200 });
       throw new Error(`Unexpected request ${path}`);
     });
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
     render(<WordListsPanel pageMode searchQuery="longword" />);
+    await screen.findByRole('button', { name: 'longword' });
+    await user.click(screen.getByRole('button', { name: 'longword' }));
     await screen.findByRole('button', { name: /save longword to word list/i });
     await user.click(screen.getByRole('button', { name: /save longword to word list/i }));
     await waitFor(() => {
       const saved = JSON.parse(window.localStorage.getItem('lexiplay-local-word-lists') ?? '[]')[0].words[0];
-      expect(saved.definition).toBe(`${'A'.repeat(499)}…`);
+      expect(saved.definition).toBe(`${'A'.repeat(450)}; ${'B'.repeat(47)}…`);
     });
   });
 

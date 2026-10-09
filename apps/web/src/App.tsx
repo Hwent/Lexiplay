@@ -37,7 +37,10 @@ function DefinitionText({ text }: { text: string }) {
 }
 
 function savedDefinition(text: string) {
-  const trimmed = text.trim();
+  const valueTrimmed = text.trim();
+  const firstSemicolon = valueTrimmed.indexOf(';');
+  const secondSemicolon = firstSemicolon < 0 ? -1 : valueTrimmed.indexOf(';', firstSemicolon + 1);
+  const trimmed = secondSemicolon < 0 ? valueTrimmed : valueTrimmed.slice(0, secondSemicolon + 1).trim();
   return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
 }
 
