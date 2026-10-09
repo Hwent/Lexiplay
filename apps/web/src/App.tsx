@@ -22,6 +22,19 @@ type GuessResult = {
 type Game = { id: string; wordLength: number; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[] };
 type WordListSummary = { id: string; words: { term: string }[] };
 
+function BookmarkIcon({ added }: { added: boolean }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
+}
+
+function DefinitionText({ text }: { text: string }) {
+  const [expanded, setExpanded] = useState(false);
+  const canExpand = text.length > 150;
+  return <>
+    <span className={`definition-text${canExpand && !expanded ? ' collapsed' : ''}`}>{text}</span>
+    {canExpand && <button type="button" className="learn-more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : 'Learn more'}</button>}
+  </>;
+}
+
 const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`/api/v1${path}`, {
     ...init,
@@ -97,7 +110,10 @@ export default function App() {
       });
       setGame({ ...newGame, hints: newGame.hints ?? { unused: 3, present: 3 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
       setGuess('');
-      setAddedWords(new Set());
+      try {
+        const lists = await api<WordListSummary[]>('/word-lists');
+        setAddedWords(new Set(lists.flatMap(list => list.words.map(word => word.term))));
+      } catch { setAddedWords(new Set()); }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not start practice.');
     } finally {
@@ -289,6 +305,19 @@ export default function App() {
               {game.revealedPresent.length > 0 && <p className="revealed-letter-hint" aria-live="polite">{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')} {game.revealedPresent.length === 1 ? 'is' : 'are'} in the answer; position unknown.</p>}
               <label className="sr-only" htmlFor="guess-input">Type your {lengthName(game.wordLength)} guess one letter at a time</label>
               <input ref={inputRef} className="game-input" id="guess-input" value={guess} onChange={event => setGuess(event.target.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, game.wordLength))} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="text" />
+            </>}
+            </div>
+            <aside className="puzzle-definitions" aria-label="Word definitions">
+            {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
+              <div><strong>{result.guess}</strong><DefinitionText text={result.definition || 'Definition unavailable.'} /></div>
+              <button className="bookmark-button" type="button" aria-label={addedWords.has(result.guess) ? 'Already in word list' : `Save ${result.guess} to word list`} title={addedWords.has(result.guess) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(result.guess, result.definition ?? '')} disabled={addedWords.has(result.guess)}><BookmarkIcon added={addedWords.has(result.guess)} />{addedWords.has(result.guess) && <span>Added</span>}</button>
+            </div>)}
+            {finished && game.guesses.at(-1)?.answer && <div className="answer-definition">
+              <div><p className="eyebrow">THE ANSWER</p><strong>{game.guesses.at(-1)!.answer}</strong><DefinitionText text={game.guesses.at(-1)!.answerDefinition || game.guesses.at(-1)!.definition || 'Definition unavailable.'} /></div>
+              <button className="bookmark-button" type="button" aria-label={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : `Save ${game.guesses.at(-1)!.answer} to word list`} title={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(game.guesses.at(-1)!.answer!, game.guesses.at(-1)!.answerDefinition ?? game.guesses.at(-1)!.definition ?? '')} disabled={addedWords.has(game.guesses.at(-1)!.answer!)}><BookmarkIcon added={addedWords.has(game.guesses.at(-1)!.answer!)} />{addedWords.has(game.guesses.at(-1)!.answer!) && <span>Added</span>}</button>
+            </div>}
+            </aside>
+            {!finished && <div className="keyboard-dock">
               <div className="game-keyboard" role="group" aria-label="On-screen keyboard">
                 {keyboardRows.map((row, rowIndex) => <div className={`keyboard-row keyboard-row-${rowIndex + 1}`} key={row}>
                   {rowIndex === 2 && <button className="keyboard-key special-key enter-key" type="button" onMouseDown={event => event.preventDefault()} onClick={() => void submitGuess()} disabled={busy || finished || guess.length !== game.wordLength}>Enter</button>}
@@ -300,18 +329,7 @@ export default function App() {
                 </div>)}
               </div>
               <p className="input-hint">Type one letter at a time or use the on-screen keyboard.</p>
-            </>}
-            </div>
-            <aside className="puzzle-definitions" aria-label="Word definitions">
-            {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
-              <div><strong>{result.guess}</strong><span>{result.definition || 'Definition unavailable.'}</span></div>
-              <button type="button" onClick={() => void addGameWord(result.guess, result.definition ?? '')} disabled={addedWords.has(result.guess)}>{addedWords.has(result.guess) ? 'Added' : 'Add to my words'}</button>
-            </div>)}
-            {finished && game.guesses.at(-1)?.answer && <div className="answer-definition">
-              <div><p className="eyebrow">THE ANSWER</p><strong>{game.guesses.at(-1)!.answer}</strong><span>{game.guesses.at(-1)!.answerDefinition || game.guesses.at(-1)!.definition || 'Definition unavailable.'}</span></div>
-              <button type="button" onClick={() => void addGameWord(game.guesses.at(-1)!.answer!, game.guesses.at(-1)!.answerDefinition ?? game.guesses.at(-1)!.definition ?? '')} disabled={addedWords.has(game.guesses.at(-1)!.answer!)}>{addedWords.has(game.guesses.at(-1)!.answer!) ? 'Added' : 'Add to my words'}</button>
             </div>}
-            </aside>
             </div>
           </div>
         )}

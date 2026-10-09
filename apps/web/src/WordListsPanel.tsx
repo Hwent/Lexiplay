@@ -12,6 +12,10 @@ type DictionaryEntry = { term: string; definition: string; partOfSpeech: string[
 type ImportRow = { rowNumber: number; term: string; definition: string; partOfSpeech: string | null; example: string | null; selected: boolean; issues: string[] };
 type ImportPreview = { rows: ImportRow[]; totals: { ready: number; warnings: number; rejected: number } };
 
+function BookmarkIcon({ added }: { added: boolean }) {
+  return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const headers = new Headers(init?.headers);
   if (init?.body && !(init.body instanceof FormData)) headers.set('content-type', 'application/json');
@@ -227,7 +231,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       {normalizedSearch && <section className="dictionary-results" aria-label="Dictionary search results"><h3>Dictionary</h3>{dictionaryBusy && <p className="account-message">Searching…</p>}{!dictionaryBusy && dictionaryResults.length === 0 && <p className="account-message">No dictionary matches.</p>}{dictionaryResults.map(entry => {
         const list = lists[0];
         const alreadyAdded = list?.words.some(word => word.term === entry.term) ?? false;
-        return <article className="dictionary-result" key={entry.term}><div><strong>{entry.term}</strong><span>{entry.definition}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</div><button className="account-action" type="button" disabled={alreadyAdded || !list} onClick={() => list && addDictionaryWord(list.id, entry)}>{alreadyAdded ? 'Added' : 'Add to list'}</button></article>;
+        return <article className="dictionary-result" key={entry.term}><div><strong>{entry.term}</strong><span>{entry.definition}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list} onClick={() => list && addDictionaryWord(list.id, entry)}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
       })}</section>}
       {visibleLists.map(list => {
         const listMatches = list.name.toLowerCase().includes(normalizedSearch);
@@ -244,7 +248,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
         <div className="word-list-detail">
           <section className="word-import" aria-label="Edit words">
-            <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} onClick={() => setUploadOpen(value => !value)}>{uploadOpen ? 'Close upload' : 'Upload words'}</button>
+            <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} onClick={() => setUploadOpen(value => !value)}>{uploadOpen ? 'Close' : 'Upload'}</button>
             {uploadOpen && <div className="upload-interface">
             <h4>Import a word list</h4>
             <p>Upload TXT, DOCX, CSV, XLSX, or PDF. Use one word per line or include a definition after a dash or colon.</p>
@@ -272,7 +276,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
             <input id={`word-term-${list.id}`} value={term} onChange={event => setTerm(event.target.value)} required maxLength={100} pattern="[A-Za-z][A-Za-z '-]{0,99}" />
             <label htmlFor={`word-definition-${list.id}`}>Definition</label>
             <input id={`word-definition-${list.id}`} value={definition} onChange={event => setDefinition(event.target.value)} maxLength={500} />
-            <button className="account-action" type="submit">Add word</button>
+            <button className="account-action" type="submit">Add</button>
           </form>}
           <ul className="word-entry-list">
             {visibleWords.map(word => <li key={word.id}>

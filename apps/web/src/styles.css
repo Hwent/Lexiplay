@@ -114,7 +114,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .play-my-words { display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem; color: var(--soft-text); font-size: .9rem; cursor: pointer; }
 .play-my-words input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
 .word-add-form { margin-top: .65rem; padding: .8rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface); }
-.add-word-toggle { margin-top: 1rem; }
+.add-word-toggle { margin-top: 1.3rem; }
 .game-consumables { width: 100%; margin: .8rem 0 .25rem; display: flex; justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
 .game-consumables button, .guess-definition button, .answer-definition button { min-height: 2.35rem; padding: .4rem .7rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--surface-soft); color: var(--text); cursor: pointer; font-size: .76rem; font-weight: 650; }
 .game-consumables button:disabled, .guess-definition button:disabled, .answer-definition button:disabled { opacity: .55; cursor: default; }
@@ -124,12 +124,18 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .puzzle-play-column { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
 .puzzle-definitions { min-width: 0; padding-top: .3rem; display: flex; flex-direction: column; gap: .55rem; }
 .puzzle-definitions { max-height: 70vh; overflow-y: auto; overscroll-behavior: contain; }
+.keyboard-dock { width: 100%; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; }
 .puzzle-definitions:empty::after { color: var(--muted); content: 'Definitions for your guesses will appear here.'; font-size: .82rem; }
 .revealed-letter-hint { margin: .4rem 0 0; padding: .55rem .7rem; border: 1px solid color-mix(in srgb, var(--present) 45%, var(--line)); border-radius: .55rem; background: color-mix(in srgb, var(--present) 10%, var(--surface)); color: var(--soft-text); font-size: .82rem; }
 .guess-definition, .answer-definition { width: 100%; margin: 0; padding: .7rem .8rem; display: flex; align-items: center; justify-content: space-between; gap: .8rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface-soft); }
 .guess-definition > div, .answer-definition > div { min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
 .guess-definition strong, .answer-definition strong { color: var(--accent); font-size: .88rem; }
-.guess-definition span, .answer-definition span { max-width: 34rem; color: var(--soft-text); font-size: clamp(.82rem, .9vw, .95rem); line-height: 1.5; overflow-wrap: anywhere; }
+.guess-definition .definition-text, .answer-definition .definition-text { max-width: 34rem; color: var(--soft-text); font-size: clamp(.82rem, .9vw, .95rem); line-height: 1.5; overflow-wrap: anywhere; }
+.definition-text.collapsed { display: -webkit-box; overflow: hidden; -webkit-box-orient: vertical; -webkit-line-clamp: 3; }
+.learn-more { align-self: flex-start; padding: .12rem 0; border: 0; background: transparent; color: var(--accent); cursor: pointer; font-size: .72rem; font-weight: 700; }
+.bookmark-button { min-width: 2.5rem; min-height: 2.5rem !important; padding: .4rem .55rem !important; display: inline-flex; align-items: center; justify-content: center; gap: .35rem; color: var(--accent) !important; }
+.bookmark-button svg { width: 1.05rem; height: 1.05rem; flex: 0 0 auto; }
+.bookmark-button span { color: var(--accent); font-size: .7rem; }
 .answer-definition { border-color: color-mix(in srgb, var(--accent) 45%, var(--line)); }
 .answer-definition .eyebrow { margin: 0 0 .1rem; color: var(--muted); font-size: .62rem; font-weight: 700; letter-spacing: .11em; }
 .guess-definition button, .answer-definition button { flex: 0 0 auto; }
@@ -160,7 +166,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .letter-tile.present { border-color: var(--present); background: var(--present); }
 .letter-tile.absent { border-color: var(--absent); background: var(--absent); }
 .game-input { position: fixed; top: 0; left: -10000px; width: 1px; height: 1px; opacity: 0; }
-.game-keyboard { width: 100%; max-width: 46rem; margin: .75rem auto 0; user-select: none; }
+.game-keyboard { width: min(100%, 46rem); margin: .75rem auto 0; justify-self: center; user-select: none; }
 .keyboard-row { width: 100%; margin: 0 auto .45rem; display: flex; justify-content: center; gap: .4rem; }
 .keyboard-row-2 { width: 90%; }
 .keyboard-row-3 { width: 100%; }
