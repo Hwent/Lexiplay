@@ -54,13 +54,6 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   useEffect(() => setListSearch(searchQuery), [searchQuery]);
   useEffect(() => {
-    const query = searchQuery.trim().toLowerCase();
-    if (!query) return;
-    const match = lists.find(list => list.name.toLowerCase().includes(query)
-      || list.words.some(word => `${word.term} ${word.definition}`.toLowerCase().includes(query)));
-    if (match) setSelectedId(match.id);
-  }, [searchQuery, lists]);
-  useEffect(() => {
     const query = searchQuery.trim();
     let active = true;
     if (!query) { setDictionaryResults([]); return; }
@@ -78,7 +71,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     let active = true;
     setBusy(true);
     request<WordList[]>('/word-lists')
-      .then(nextLists => { if (active) { setLists(nextLists); setSelectedId(nextLists[0]?.id ?? ''); setAuthenticated(true); setMessage(''); } })
+      .then(nextLists => { if (active) { setLists(nextLists); setAuthenticated(true); setMessage(''); } })
       .catch(error => { if (active) setMessage(error instanceof Error ? error.message : 'Could not load your lists.'); })
       .finally(() => { if (active) setBusy(false); });
     return () => { active = false; };
@@ -163,7 +156,6 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     setLists(current => current.map(list => list.id === listId
       ? { ...list, words: [...list.words, { id, term: entry.term, definition: entry.definition, status: 'UNFAMILIAR', partOfSpeech: entry.partOfSpeech.join(', '), example: null }] }
       : list));
-    setSelectedId(listId);
     setMessage(`${entry.term} added as unfamiliar.`);
   }
   async function changeWordStatus(listId: string, word: WordEntry) {
@@ -248,7 +240,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
         <div className="word-list-detail">
           <section className="word-import" aria-label="Edit words">
-            <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} onClick={() => setUploadOpen(value => !value)}>{uploadOpen ? 'Close' : 'Upload'}</button>
+            <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} onClick={() => setUploadOpen(value => !value)}>{uploadOpen ? 'Close upload' : 'Upload words'}</button>
             {uploadOpen && <div className="upload-interface">
             <h4>Import a word list</h4>
             <p>Upload TXT, DOCX, CSV, XLSX, or PDF. Use one word per line or include a definition after a dash or colon.</p>

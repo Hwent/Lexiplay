@@ -19,9 +19,10 @@ describe('vocabulary list panel', () => {
     const user = userEvent.setup();
 
     render(<WordListsPanel pageMode />);
+    await user.click(await screen.findByRole('button', { name: /add words/i }));
     await user.type(await screen.findByRole('textbox', { name: /^word$/i }), 'apple');
     await user.type(screen.getByRole('textbox', { name: /definition/i }), 'A fruit');
-    await user.click(screen.getByRole('button', { name: /add word/i }));
+    await user.click(screen.getByRole('button', { name: /^add$/i }));
     expect(await screen.findByText('apple')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByRole('button', { name: 'Unfamiliar' }));
@@ -52,7 +53,7 @@ describe('vocabulary list panel', () => {
 
     render(<WordListsPanel pageMode searchQuery="apple" />);
     expect(await screen.findByText('The round fruit of a tree of the rose family.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /add to list/i }));
+    await user.click(screen.getByRole('button', { name: /save apple to word list/i }));
     expect(await screen.findByText(/apple added as unfamiliar/i)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([path]) => path === '/api/v1/word-lists/list-1/dictionary')).toBe(false);
@@ -75,6 +76,7 @@ describe('vocabulary list panel', () => {
     const user = userEvent.setup();
 
     render(<WordListsPanel pageMode />);
+    await user.click(await screen.findByRole('button', { name: /upload words/i }));
     const upload = await screen.findByLabelText(/upload word list/i);
     await user.upload(upload, new File(['apple — A fruit'], 'words.txt', { type: 'text/plain' }));
     await user.click(screen.getByRole('button', { name: /preview import/i }));

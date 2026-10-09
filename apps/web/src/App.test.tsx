@@ -13,6 +13,7 @@ describe('practice puzzle', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response('{}', { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-4', wordLength: 4, attemptLimit: 6, guesses: [] }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'word', feedback: ['ABSENT', 'PRESENT', 'ABSENT', 'CORRECT'], attemptsRemaining: 5, completed: false }), { status: 201 }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
@@ -28,18 +29,20 @@ describe('practice puzzle', () => {
     await user.keyboard('{Enter}');
 
     expect(await screen.findByRole('row', { name: 'word' })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ wordLength: 4 });
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ wordLength: 4, playWithMyWords: false });
   });
 
   it('starts a game and submits a guess with server feedback', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response('{}', { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-1', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Enter a valid five-letter word from the practice dictionary.' }), { status: 400 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'crane', feedback: ['ABSENT', 'ABSENT', 'CORRECT', 'CORRECT', 'ABSENT'], attemptsRemaining: 5, completed: false }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'plant', feedback: ['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT', 'CORRECT'], attemptsRemaining: 4, completed: true, outcome: 'WON', answer: 'plant' }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-2', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }));
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-2', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
@@ -55,16 +58,18 @@ describe('practice puzzle', () => {
     await user.type(guessInput, 'crane');
     await user.keyboard('{Enter}');
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
     expect(await screen.findByRole('row', { name: 'crane' })).toBeInTheDocument();
     expect(screen.getByText(/5 guesses left/i)).toBeInTheDocument();
 
     await user.type(guessInput, 'plant');
     await user.keyboard('{Enter}');
     expect(await screen.findByText(/you found it/i)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: /try another word/i }));
+    await user.click(screen.getByRole('button', { name: /^return$/i }));
+    expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
     expect(await screen.findByRole('textbox', { name: /five-letter guess/i })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(6);
+    expect(fetchMock).toHaveBeenCalledTimes(8);
   });
 
   it('creates an account through the account panel', async () => {

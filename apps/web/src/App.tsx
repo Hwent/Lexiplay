@@ -313,7 +313,7 @@ export default function App() {
               <button className="bookmark-button" type="button" aria-label={addedWords.has(result.guess) ? 'Already in word list' : `Save ${result.guess} to word list`} title={addedWords.has(result.guess) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(result.guess, result.definition ?? '')} disabled={addedWords.has(result.guess)}><BookmarkIcon added={addedWords.has(result.guess)} />{addedWords.has(result.guess) && <span>Added</span>}</button>
             </div>)}
             {finished && game.guesses.at(-1)?.answer && <div className="answer-definition">
-              <div><p className="eyebrow">THE ANSWER</p><strong>{game.guesses.at(-1)!.answer}</strong><DefinitionText text={game.guesses.at(-1)!.answerDefinition || game.guesses.at(-1)!.definition || 'Definition unavailable.'} /></div>
+              <div><p className="eyebrow">THE ANSWER</p><strong>{game.guesses.at(-1)!.answer}</strong><DefinitionText text={game.guesses.at(-1)!.answerDefinition || 'Definition unavailable.'} /></div>
               <button className="bookmark-button" type="button" aria-label={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : `Save ${game.guesses.at(-1)!.answer} to word list`} title={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(game.guesses.at(-1)!.answer!, game.guesses.at(-1)!.answerDefinition ?? game.guesses.at(-1)!.definition ?? '')} disabled={addedWords.has(game.guesses.at(-1)!.answer!)}><BookmarkIcon added={addedWords.has(game.guesses.at(-1)!.answer!)} />{addedWords.has(game.guesses.at(-1)!.answer!) && <span>Added</span>}</button>
             </div>}
             </aside>
