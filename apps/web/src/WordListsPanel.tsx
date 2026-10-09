@@ -32,6 +32,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [lists, setLists] = useState<WordList[]>([]);
   const [term, setTerm] = useState('');
   const [definition, setDefinition] = useState('');
+  const [addOpen, setAddOpen] = useState(false);
   const [editingWordId, setEditingWordId] = useState('');
   const [editingTerm, setEditingTerm] = useState('');
   const [editingDefinition, setEditingDefinition] = useState('');
@@ -264,14 +265,15 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
             </>}
             </div>}
 
-          <form className="word-add-form" onSubmit={event => submitWord(event, list.id)}>
+          <button className="account-action add-word-toggle" type="button" aria-expanded={addOpen} onClick={() => setAddOpen(value => !value)}>{addOpen ? 'Cancel' : 'Add'}</button>
+          {addOpen && <form className="word-add-form" onSubmit={event => { void submitWord(event, list.id); setAddOpen(false); }}>
             <h4>Add a word</h4>
             <label htmlFor={`word-term-${list.id}`}>Word</label>
             <input id={`word-term-${list.id}`} value={term} onChange={event => setTerm(event.target.value)} required maxLength={100} pattern="[A-Za-z][A-Za-z '-]{0,99}" />
             <label htmlFor={`word-definition-${list.id}`}>Definition</label>
             <input id={`word-definition-${list.id}`} value={definition} onChange={event => setDefinition(event.target.value)} maxLength={500} />
             <button className="account-action" type="submit">Add word</button>
-          </form>
+          </form>}
           <ul className="word-entry-list">
             {visibleWords.map(word => <li key={word.id}>
               {editingWordId === word.id ? <form className="word-edit-form" onSubmit={event => saveWord(event, list.id, word.id)}>

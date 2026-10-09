@@ -18,7 +18,15 @@ export class GameController {
   }
 
   @Post(':gameId/guesses')
-  submit(@Param('gameId') gameId: string, @Body() body: SubmitGuessDto) {
-    return this.games.submit(gameId, body.guess);
+  async submit(@Param('gameId') gameId: string, @Body() body: SubmitGuessDto) {
+    const result = this.games.submit(gameId, body.guess);
+    const enriched = { ...result, definition: await this.wordLists.dictionaryDefinition(result.guess) };
+    if (result.answer) return { ...enriched, answerDefinition: await this.wordLists.dictionaryDefinition(result.answer) };
+    return enriched;
+  }
+
+  @Post(':gameId/hints')
+  hint(@Param('gameId') gameId: string, @Body() body: { type?: unknown }) {
+    return this.games.hint(gameId, body?.type);
   }
 }

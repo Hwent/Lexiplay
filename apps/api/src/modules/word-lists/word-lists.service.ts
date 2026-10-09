@@ -57,6 +57,15 @@ export class WordListsService {
     return this.lists.searchDictionary(normalized);
   }
 
+  async dictionaryDefinition(term: string) {
+    try {
+      const entries = await this.lists.searchDictionary(term, 1);
+      return entries.find(entry => entry.term === term)?.definition ?? '';
+    } catch {
+      return '';
+    }
+  }
+
   async addDictionaryWord(cookie: string | undefined, listId: string, term: string) {
     const user = await this.accounts.current(cookie);
     const normalized = term.trim().toLowerCase();

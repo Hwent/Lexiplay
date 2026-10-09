@@ -16,8 +16,11 @@ type GuessResult = {
   completed: boolean;
   outcome?: 'WON' | 'LOST';
   answer?: string;
+  definition?: string;
+  answerDefinition?: string;
 };
-type Game = { id: string; wordLength: number; attemptLimit: number; guesses: GuessResult[] };
+type Game = { id: string; wordLength: number; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; green: number }; revealedAbsent: string[]; revealedGreen: { letter: string; index: number }[] };
+type WordListSummary = { id: string; words: { term: string }[] };
 
 const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
   const response = await fetch(`/api/v1${path}`, {
@@ -40,6 +43,7 @@ export default function App() {
   const [message, setMessage] = useState('');
   const [selectedWordLength, setSelectedWordLength] = useState(5);
   const [playWithMyWords, setPlayWithMyWords] = useState(false);
+  const [addedWords, setAddedWords] = useState<Set<string>>(() => new Set());
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
   const [activeSection, setActiveSection] = useState<Section>(() => pathSections[window.location.pathname] ?? 'home');
   const [quickSearch, setQuickSearch] = useState('');
@@ -48,7 +52,9 @@ export default function App() {
   useEffect(() => {
     const syncSection = () => {
       window.dispatchEvent(new Event('lexiplay:before-route-change'));
-      setActiveSection(pathSections[window.location.pathname] ?? 'home');
+      const nextSection = pathSections[window.location.pathname] ?? 'home';
+      if (nextSection !== 'play') resetGame();
+      setActiveSection(nextSection);
     };
     window.addEventListener('popstate', syncSection);
     return () => window.removeEventListener('popstate', syncSection);
@@ -56,9 +62,17 @@ export default function App() {
 
   function navigateTo(section: Section) {
     const path = sectionPaths[section];
+    if (section !== 'play') resetGame();
     if (window.location.pathname !== path) window.dispatchEvent(new Event('lexiplay:before-route-change'));
     if (window.location.pathname !== path) window.history.pushState({}, '', path);
     setActiveSection(section);
+  }
+
+  function resetGame() {
+    setGame(null);
+    setGuess('');
+    setMessage('');
+    setAddedWords(new Set());
   }
 
   const finished = game?.guesses.at(-1)?.completed ?? false;
@@ -81,12 +95,48 @@ export default function App() {
         method: 'POST',
         body: JSON.stringify({ wordLength: selectedWordLength, playWithMyWords }),
       });
-      setGame(newGame);
+      setGame({ ...newGame, hints: newGame.hints ?? { unused: 3, green: 3 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedGreen: newGame.revealedGreen ?? [] });
       setGuess('');
+      setAddedWords(new Set());
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not start practice.');
     } finally {
       setBusy(false);
+    }
+  }
+
+  async function useHint(type: 'unused' | 'green') {
+    if (!game || busy || finished) return;
+    setBusy(true);
+    setMessage('');
+    try {
+      const result = await api<{ type: string; letters?: string[]; letter?: string; index?: number; hints: Game['hints'] }>(`/games/${game.id}/hints`, {
+        method: 'POST', body: JSON.stringify({ type }),
+      });
+      setGame({ ...game, hints: result.hints,
+        revealedAbsent: [...game.revealedAbsent, ...(result.letters ?? [])],
+        revealedGreen: result.letter && result.index !== undefined
+          ? [...game.revealedGreen, { letter: result.letter, index: result.index }]
+          : game.revealedGreen,
+      });
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not use this hint.');
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function addGameWord(term: string, definition: string) {
+    try {
+      const lists = await api<WordListSummary[]>('/word-lists');
+      const list = lists[0];
+      if (!list) throw new Error('Your word list is unavailable.');
+      if (!list.words.some(word => word.term === term)) {
+        await api(`/word-lists/${list.id}/words`, { method: 'POST', body: JSON.stringify({ term, definition }) });
+      }
+      setAddedWords(current => new Set(current).add(term));
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not add this word.');
     }
   }
 
@@ -141,6 +191,7 @@ export default function App() {
   }
 
   const keyboardFeedback = new Map<string, Feedback>();
+  for (const letter of game?.revealedAbsent ?? []) keyboardFeedback.set(letter.toUpperCase(), 'ABSENT');
   for (const result of game?.guesses ?? []) {
     result.guess.split('').forEach((letter, index) => {
       const key = letter.toUpperCase();
@@ -214,13 +265,26 @@ export default function App() {
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
                 return <div className="guess-row" role="row" aria-label={result?.guess ?? `Guess ${row + 1}`} key={row} style={{ gridTemplateColumns: `repeat(${game.wordLength}, minmax(0, 1fr))` }}>
                   {Array.from({ length: game.wordLength }, (_, column) => {
-                    const letter = result?.guess[column] ?? activeGuess[column] ?? '';
-                    const state = result?.feedback[column]?.toLowerCase() ?? '';
+                    const greenHint = !result && row === game.guesses.length ? game.revealedGreen.find(item => item.index === column) : undefined;
+                    const letter = result?.guess[column] ?? activeGuess[column] ?? greenHint?.letter ?? '';
+                    const state = result?.feedback[column]?.toLowerCase() ?? (greenHint ? 'correct' : '');
                     return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} key={column}>{letter}</span>;
                   })}
                 </div>;
               })}
             </div>
+            {!finished && <div className="game-consumables" aria-label="Hints">
+              <button type="button" onClick={() => void useHint('unused')} disabled={busy || game.hints.unused === 0}>Remove 3 unused letters <span>{game.hints.unused} left</span></button>
+              <button type="button" onClick={() => void useHint('green')} disabled={busy || game.hints.green === 0}>Reveal a green letter <span>{game.hints.green} left</span></button>
+            </div>}
+            {game.guesses.map(result => <div className="guess-definition" key={`${result.guess}-${game.guesses.indexOf(result)}`}>
+              <div><strong>{result.guess}</strong><span>{result.definition || 'Definition unavailable.'}</span></div>
+              <button type="button" onClick={() => void addGameWord(result.guess, result.definition ?? '')} disabled={addedWords.has(result.guess)}>{addedWords.has(result.guess) ? 'Added' : 'Add to my words'}</button>
+            </div>)}
+            {finished && game.guesses.at(-1)?.answer && <div className="answer-definition">
+              <div><p className="eyebrow">THE ANSWER</p><strong>{game.guesses.at(-1)!.answer}</strong><span>{game.guesses.at(-1)!.answerDefinition || game.guesses.at(-1)!.definition || 'Definition unavailable.'}</span></div>
+              <button type="button" onClick={() => void addGameWord(game.guesses.at(-1)!.answer!, game.guesses.at(-1)!.answerDefinition ?? game.guesses.at(-1)!.definition ?? '')} disabled={addedWords.has(game.guesses.at(-1)!.answer!)}>{addedWords.has(game.guesses.at(-1)!.answer!) ? 'Added' : 'Add to my words'}</button>
+            </div>}
             {!finished && <>
               <label className="sr-only" htmlFor="guess-input">Type your {lengthName(game.wordLength)} guess one letter at a time</label>
               <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
@@ -239,7 +303,7 @@ export default function App() {
           </div>
         )}
       {message && <p className="notice" role="status">{message}</p>}
-      {finished && <div className="next-game"><button className="primary-button" onClick={startPractice} disabled={busy}>Try another word <span aria-hidden="true">→</span></button></div>}
+      {finished && <div className="next-game"><button className="primary-button" onClick={resetGame}>Return</button></div>}
       </section>
       </>}
       {activeSection === 'library' && <section className="library-page">
