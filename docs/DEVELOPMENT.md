@@ -13,7 +13,7 @@ Keep each feature cohesive. Prefer small modules with explicit exports over cros
 
 Use Node.js 22+, pnpm 10+, and Docker Desktop. Copy `.env.example` to `.env` when service configuration is introduced. Never commit secrets or real user data. Run `pnpm install` from the repository root so the lockfile governs every workspace package.
 
-The initial scaffold does not yet contain application dependencies or runtime services. Add each framework and its configuration with the first implementation milestone, then commit the generated lockfile alongside the package manifest changes.
+Run `pnpm dev` to start the API and web development server. The dev script selects free loopback ports and prints the browser URL, which also works in environments that reserve common fixed development ports. The API uses in-memory practice games for this early slice; restarting it clears active games.
 
 ## GitHub setup
 

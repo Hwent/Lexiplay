@@ -3,11 +3,25 @@
   "version": "0.1.0",
   "private": true,
   "type": "commonjs",
+  "dependencies": {
+    "@nestjs/common": "11.1.6",
+    "@nestjs/core": "11.1.6",
+    "@nestjs/platform-express": "11.1.6",
+    "class-transformer": "0.5.1",
+    "class-validator": "0.14.2",
+    "reflect-metadata": "0.2.2",
+    "rxjs": "7.8.2"
+  },
+  "devDependencies": {
+    "@types/node": "24.3.1",
+    "typescript": "5.9.3",
+    "tsx": "4.20.5",
+    "vitest": "5.0.0"
+  },
   "scripts": {
-    "dev": "nest start --watch",
-    "build": "nest build",
-    "lint": "eslint src",
+    "dev": "tsx watch src/main.ts",
+    "build": "tsc -p tsconfig.build.json",
     "typecheck": "tsc --noEmit",
-    "test": "jest --runInBand"
+    "test": "vitest run --exclude dist/**"
   }
 }

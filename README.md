@@ -11,17 +11,23 @@ LexiPlay is a vocabulary practice game. Product requirements and the initial arc
 
 Keep modules cohesive, expose behavior through narrow interfaces, and place automated checks next to the component they protect. Add cross-component flows in dedicated integration or end-to-end suites as those features arrive.
 
-## Development status
+## Run locally
 
-This repository contains the initial structure and product docs. The web and API entry points are placeholders until the framework dependencies and database migrations are added. Prerequisites for implementation are Node.js 22+, pnpm, and Docker Desktop for PostgreSQL. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for component boundaries and conventions.
+Prerequisites: Node.js 22+ and pnpm 11.25.0. The project pins the package manager and includes a lockfile.
+
+```powershell
+pnpm install
+pnpm dev
+```
+
+The launcher starts the NestJS API and Vite web app on available localhost ports and prints the web URL. In this first playable slice, games and the small practice dictionary are held in API memory; restarting the API clears active games. PostgreSQL is available for the next persistence milestone through `docker compose up -d database`.
+
+Run the checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Tests cover the browser practice flow and the versioned API health endpoint. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for boundaries and conventions.
 
 ## GitHub
 
-Create a private repository named `LexiPlay` in your GitHub account, without adding a README, license, or gitignore (this directory already contains the initial files). Then connect and push:
+The remote is `https://github.com/Hwent/Lexiplay.git`. The `main` branch contains the initial scaffold. Push future work with:
 
 ```powershell
-git remote add origin https://github.com/OWNER/LexiPlay.git
 git push -u origin main
 ```
-
-Replace `OWNER` with your GitHub username or organization. Enable Actions and branch protection after the first push.
