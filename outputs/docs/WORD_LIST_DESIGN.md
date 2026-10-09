@@ -22,7 +22,7 @@ All endpoints require the signed-in session cookie.
 |---|---|
 | `GET /api/v1/word-lists` | Ensure and return the caller's single overall list. |
 | `GET /api/v1/word-lists/:listId` | Return the caller's list and its words. |
-| `GET /api/v1/word-lists/dictionary?q=...` | Search the shared WordNet dictionary by exact term or prefix. |
+| `GET /api/v1/word-lists/dictionary?q=...` | Search the shared Simple English Wiktionary dictionary by exact term or prefix. |
 | `POST /api/v1/word-lists/:listId/dictionary` | Add a dictionary term to the caller's list as Unfamiliar. |
 | `POST /api/v1/word-lists/:listId/words` | Add a manual word as Unfamiliar. |
 | `PATCH /api/v1/word-lists/:listId/words/:wordId` | Edit a personal word or set `status` to `KNOWN` or `UNFAMILIAR`. |
@@ -34,13 +34,13 @@ The API accepts terms containing letters, spaces, apostrophes, and hyphens, up t
 
 ## Shared dictionary
 
-LexiPlay uses Princeton WordNet 3.1, distributed by the pinned `wordnet-db@3.1.12` package. Its data files are seeded into PostgreSQL by running:
+LexiPlay uses Simple English Wiktionary as its single searchable dictionary source. The seed command reads namespace-zero entries and plain-text introductory definitions from the MediaWiki API, excluding redirects and filtering entries to terms supported by LexiPlay:
 
 ```powershell
 pnpm --filter @lexiplay/api dictionary:seed
 ```
 
-Run this once after starting the local database with `docker compose up -d database`; run it again to add/update entries after a source update. The source license notice is preserved in [`apps/api/src/modules/word-lists/WORDNET-LICENSE`](../apps/api/src/modules/word-lists/WORDNET-LICENSE). For the project description and license terms, see [Princeton WordNet](https://wordnet.princeton.edu/) and its [license page](https://wordnet.princeton.edu/license-and-commercial-use).
+Run this after starting the local database with `docker compose up -d database`; the API seeder needs internet access. A refresh stages the complete import and only replaces the existing dictionary after all pages load successfully. Attribution and source terms are documented in [`apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE`](../apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE). The separate static game guess/answer lists are unchanged.
 
 ## Verification seams
 

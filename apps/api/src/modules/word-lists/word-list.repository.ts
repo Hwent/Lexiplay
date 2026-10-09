@@ -179,7 +179,7 @@ export class WordListRepository implements OnModuleDestroy {
         term varchar(100) PRIMARY KEY,
         definition text NOT NULL,
         part_of_speech text[] NOT NULL DEFAULT '{}',
-        source varchar(80) NOT NULL DEFAULT 'Princeton WordNet 3.1'
+        source varchar(80) NOT NULL DEFAULT 'Simple English Wiktionary'
       );
       CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
       UPDATE dictionary_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';

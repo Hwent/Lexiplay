@@ -2,7 +2,7 @@
 
 ## Why “because” is missing
 
-LexiPlay currently seeds its dictionary from Princeton WordNet 3.1. The seed script imports only nouns, verbs, adjectives, and adverbs. WordNet is intentionally a lexical database of those open-class parts of speech; it does not include function words such as conjunctions and prepositions. Princeton’s FAQ explicitly lists “because” among the excluded words. This is a source coverage limitation, not a search failure.
+Before the source update, LexiPlay seeded its dictionary from Princeton WordNet 3.1. The old seed script imported only nouns, verbs, adjectives, and adverbs. WordNet is intentionally a lexical database of those open-class parts of speech; it does not include function words such as conjunctions and prepositions. Princeton’s FAQ explicitly lists “because” among the excluded words. This was a source coverage limitation, not a search failure.
 
 WordNet remains useful for the game’s word pool and semantic relationships, but it is not a complete learner’s dictionary. Princeton says WordNet is no longer actively developed and has no new releases planned.
 
@@ -17,9 +17,9 @@ WordNet remains useful for the game’s word pool and semantic relationships, bu
 
 ## Recommendation
 
-Keep WordNet for the existing game vocabulary and semantic data, and add a separate learner-dictionary definition provider. For an online lookup experience, evaluate the Merriam-Webster Learner’s API first: fetch definitions only after a user selects a result to limit traffic, and confirm the app’s commercial status and current API terms before release. If local/offline definitions are a requirement, evaluate a curated Wiktionary-derived dataset instead, with an explicit attribution and share-alike plan. Avoid replacing WordNet with another WordNet-derived project alone; it is unlikely to address this function-word coverage gap.
+**Decision:** use Simple English Wiktionary as LexiPlay’s one shared searchable dictionary source for now. It covers function words and provides learner-friendly definitions without requiring a commercial API key. The importer uses its public MediaWiki API and stages a complete import before replacing the database rows. Preserve attribution and share-alike terms when redistributing those definitions. The existing static game guess/answer lists remain unchanged and separate from dictionary search.
 
-This review does not change the dictionary integration or add a provider/API key.
+The project does not add Merriam-Webster or another dictionary provider/API key.
 
 ## References
 

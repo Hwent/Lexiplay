@@ -43,9 +43,6 @@ importers:
       rxjs:
         specifier: 7.8.2
         version: 7.8.2
-      wordnet-db:
-        specifier: 3.1.12
-        version: 3.1.12
       xlsx:
         specifier: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
         version: https://cdn.sheetjs.com/xlsx-0.20.3/xlsx-0.20.3.tgz
@@ -1822,10 +1819,6 @@ packages:
     engines: {node: '>=8'}
     hasBin: true
 
-  wordnet-db@3.1.12:
-    resolution: {integrity: sha512-g6Ku18uH/wB70SMPqG59yx5X8IJvF49lPRqNslfNst0/FIU/1nLe6AGpPWCnwHVEpbtLzxYFkfdCuEfClXzGpQ==}
-    engines: {node: '>=0.6.0'}
-
   wrappy@1.0.2:
     resolution: {integrity: sha512-l4Sp/DRseor9wL6EvV2+TuQn63dMkPjZ/sp9XkghTEbV9KlPS1xUsZ3u7/IQO4wxtcFB4bgpQPRcR3QCvezPcQ==}
 
@@ -3318,8 +3311,6 @@ snapshots:
     dependencies:
       siginfo: 2.0.0
       stackback: 0.0.2
-
-  wordnet-db@3.1.12: {}
 
   wrappy@1.0.2: {}
 
