@@ -39,6 +39,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [selectedWordLength, setSelectedWordLength] = useState(5);
+  const [playWithMyWords, setPlayWithMyWords] = useState(false);
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
   const [activeSection, setActiveSection] = useState<Section>(() => pathSections[window.location.pathname] ?? 'home');
   const [quickSearch, setQuickSearch] = useState('');
@@ -78,7 +79,7 @@ export default function App() {
     try {
       const newGame = await api<Game>('/games', {
         method: 'POST',
-        body: JSON.stringify({ wordLength: selectedWordLength }),
+        body: JSON.stringify({ wordLength: selectedWordLength, playWithMyWords }),
       });
       setGame(newGame);
       setGuess('');
@@ -196,6 +197,7 @@ export default function App() {
             <select id="word-length" value={selectedWordLength} onChange={event => setSelectedWordLength(Number(event.target.value))}>
               {[3, 4, 5, 6, 7, 8].map(length => <option value={length} key={length}>{length} letters</option>)}
             </select>
+            <label className="play-my-words"><input type="checkbox" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /> Play with my words</label>
             <button className="primary-button" onClick={startPractice} disabled={busy}>
               {busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
             </button>

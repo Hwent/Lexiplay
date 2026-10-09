@@ -96,7 +96,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .word-lists-content .account-action { align-self: flex-start; min-height: 2.15rem; padding: .35rem .65rem; }
 .word-list-card { margin-top: .65rem; padding: .65rem; border: 1px solid var(--line); border-radius: 5px; }
 .word-list-heading { display: flex; align-items: center; gap: .4rem; }
-.word-list-select { min-width: 0; flex: 1; display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .2rem; border: 0; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.word-list-select { min-width: 0; flex: 1; display: flex; align-items: center; justify-content: space-between; gap: .6rem; padding: .2rem; border: 0; background: transparent; color: var(--text); text-align: left; }
 .word-list-select > span:first-child, .word-entry-list li > span { min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
 .word-list-select small, .word-entry-list small { overflow: hidden; color: var(--muted); font-size: .68rem; text-overflow: ellipsis; white-space: nowrap; }
 .word-list-count { color: var(--muted); font-size: .68rem; white-space: nowrap; }
@@ -109,6 +109,10 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .word-entry-list li > span { flex: 1; }
 .word-edit-form { width: 100%; display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; }
 .word-edit-form .text-action { justify-self: start; }
+.upload-interface { margin-top: .65rem; }
+.remove-word-action { color: #c76464; }
+.play-my-words { display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem; color: var(--soft-text); font-size: .9rem; cursor: pointer; }
+.play-my-words input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
 .game-card { width: 100%; flex: 1; margin: 0 auto; display: flex; flex-direction: column; justify-content: center; }
 .welcome-card { min-height: 25rem; padding: 2.5rem 1rem; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; }
 .sample-grid, .guess-row { display: grid; gap: .45rem; }
@@ -265,6 +269,10 @@ body { background: var(--page); }
 .import-preview-row small { grid-column: 2 / -1; color: #bb7622; font-size: .7rem; }
 .import-summary { font-size: .75rem; font-weight: 700; }
 .word-lists-panel.page-mode .word-entry-list li { padding: .65rem .3rem; }
+.word-lists-panel.page-mode .word-lists-content { margin-inline: auto; max-width: 76rem; }
+.word-lists-panel.page-mode .word-list-card { padding: 1rem 1.1rem; }
+.word-lists-panel.page-mode .word-entry-list li > span strong { color: var(--text); font-size: 1.08rem; }
+.word-lists-panel.page-mode .word-entry-list li > span small { font-size: .82rem; }
 .overview-page { padding: clamp(1rem, 3vw, 2rem) 0; }
 .welcome-banner { min-height: 17rem; padding: clamp(1.5rem, 4vw, 3rem); display: flex; flex-direction: column; align-items: flex-start; justify-content: center; border: 1px solid var(--line); border-radius: 1.2rem; background: radial-gradient(ellipse at 90% 5%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 45%), var(--surface); }
 .welcome-banner .eyebrow { color: var(--accent); font-size: .68rem; font-weight: 800; letter-spacing: .12em; }

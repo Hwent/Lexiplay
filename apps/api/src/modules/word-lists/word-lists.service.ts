@@ -18,6 +18,13 @@ export class WordListsService {
     return this.lists.findAll(user.id);
   }
 
+  async playableWords(cookie: string | undefined, wordLength: number) {
+    const user = await this.accounts.current(cookie);
+    const lists = await this.lists.findAll(user.id);
+    return lists.flatMap(list => list.words.map(word => word.term))
+      .filter(term => term.length === wordLength && /^[a-z]+$/.test(term));
+  }
+
   async get(cookie: string | undefined, listId: string) {
     const user = await this.accounts.current(cookie);
     const list = await this.lists.find(user.id, listId);

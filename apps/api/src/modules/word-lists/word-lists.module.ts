@@ -10,5 +10,6 @@ import { WordListImportService } from './word-list-import';
   imports: [AccountsModule, ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }])],
   controllers: [WordListsController],
   providers: [WordListRepository, WordListsService, WordListImportService],
+  exports: [WordListsService],
 })
 export class WordListsModule {}

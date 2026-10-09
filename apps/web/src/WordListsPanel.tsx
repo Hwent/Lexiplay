@@ -29,9 +29,7 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 }
 
 export default function WordListsPanel({ pageMode = false, searchQuery = '' }: { pageMode?: boolean; searchQuery?: string }) {
-  const [open, setOpen] = useState(pageMode);
   const [lists, setLists] = useState<WordList[]>([]);
-  const [selectedId, setSelectedId] = useState('');
   const [term, setTerm] = useState('');
   const [definition, setDefinition] = useState('');
   const [editingWordId, setEditingWordId] = useState('');
@@ -41,6 +39,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [authenticated, setAuthenticated] = useState(false);
   const [message, setMessage] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
+  const [uploadOpen, setUploadOpen] = useState(false);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [listSearch, setListSearch] = useState(searchQuery);
   const [dictionaryResults, setDictionaryResults] = useState<DictionaryEntry[]>([]);
@@ -217,8 +216,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     || list.name.toLowerCase().includes(normalizedSearch)
     || list.words.some(word => `${word.term} ${word.definition}`.toLowerCase().includes(normalizedSearch)));
 
-  return <details className={`word-lists-panel${pageMode ? ' page-mode' : ''}`} open={pageMode || open} onToggle={event => { if (!pageMode) setOpen(event.currentTarget.open); }}>
-    {!pageMode && <summary>My word lists</summary>}
+  return <section className={`word-lists-panel${pageMode ? ' page-mode' : ''}`}>
     <div className="word-lists-content">
       {pageMode && authenticated && <div className="list-library-heading"><div><p className="eyebrow">YOUR VOCABULARY</p><h2>My word list</h2><p>Search the dictionary and keep track of what you know.</p></div></div>}
 
@@ -237,16 +235,16 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
           : list.words;
         return <article className="word-list-card" key={list.id}>
         <div className="word-list-heading">
-          <button type="button" className="word-list-select" aria-expanded={selectedId === list.id} onClick={() => setSelectedId(current => current === list.id ? '' : list.id)}>
+          <div className="word-list-select">
               <span><h3>{list.name}</h3></span>
             <span className="word-list-count">{list.words.length} words</span>
-          </button>
+          </div>
         </div>
 
-        {selectedId === list.id && <div className="word-list-detail">
+        <div className="word-list-detail">
           <section className="word-import" aria-label="Edit words">
-            <h3>Edit words</h3>
-            <p>Import, add, and update words in your overall word list.</p>
+            <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} onClick={() => setUploadOpen(value => !value)}>{uploadOpen ? 'Close upload' : 'Upload words'}</button>
+            {uploadOpen && <div className="upload-interface">
             <h4>Import a word list</h4>
             <p>Upload TXT, DOCX, CSV, XLSX, or PDF. Use one word per line or include a definition after a dash or colon.</p>
             <label htmlFor={`import-file-${list.id}`}>Choose a file</label>
@@ -264,6 +262,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
               </div>
               <button className="account-action" type="button" onClick={() => void confirmImport(list.id)} disabled={busy || !preview.rows.some(row => row.selected)}>Import {preview.rows.filter(row => row.selected).length} {preview.rows.filter(row => row.selected).length === 1 ? 'word' : 'words'}</button>
             </>}
+            </div>}
 
           <form className="word-add-form" onSubmit={event => submitWord(event, list.id)}>
             <h4>Add a word</h4>
@@ -282,19 +281,19 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
                 <input id={`edit-definition-${word.id}`} value={editingDefinition} onChange={event => setEditingDefinition(event.target.value)} maxLength={500} />
                 <button className="text-action" type="submit">Save</button>
                 <button className="text-action" type="button" onClick={() => setEditingWordId('')}>Cancel</button>
+                <button className="text-action remove-word-action" type="button" onClick={() => { deleteWord(list.id, word.id); setEditingWordId(''); }}>Remove word</button>
               </form> : <>
                 <span><strong>{word.term}</strong><small>{word.definition || 'No definition yet'}</small></span>
                 <button className={`word-status ${word.status === 'KNOWN' ? 'known' : 'unfamiliar'}`} type="button" aria-pressed={word.status === 'KNOWN'} onClick={() => void changeWordStatus(list.id, word)}>{word.status === 'KNOWN' ? 'Known' : 'Unfamiliar'}</button>
                 <button className="text-action" type="button" onClick={() => { setEditingWordId(word.id); setEditingTerm(word.term); setEditingDefinition(word.definition); }}>Edit</button>
-                <button className="text-action" type="button" onClick={() => deleteWord(list.id, word.id)}>Remove</button>
               </>}
             </li>)}
           </ul>
           </section>
-        </div>}
+        </div>
       </article>;
       })}
       {message && <p className="account-message" role="status">{message}</p>}
     </div>
-  </details>;
+  </section>;
 }

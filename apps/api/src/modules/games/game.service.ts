@@ -19,12 +19,13 @@ const ANSWERS = new Map(WORD_LENGTHS.map(length => [length, [...readWords(`answe
 @Injectable()
 export class GameService {
   private readonly games = new Map<string, Game>();
-  start(requestedWordLength: unknown = 5) {
+  start(requestedWordLength: unknown = 5, wordList?: string[]) {
     if (typeof requestedWordLength !== 'number' || !WORD_LENGTHS.includes(requestedWordLength as typeof WORD_LENGTHS[number])) {
       throw new BadRequestException({ code: 'INVALID_WORD_LENGTH', message: 'Choose a word length from three to eight letters.' });
     }
     const wordLength = requestedWordLength as WordLength;
-    const answerWords = ANSWERS.get(wordLength)!;
+    const answerWords = wordList ?? ANSWERS.get(wordLength)!;
+    if (!answerWords.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words yet.` });
     const id = randomUUID();
     const answer = answerWords[randomInt(answerWords.length)]!;
     this.games.set(id, { id, answer, wordLength, attemptLimit: 6, guesses: [], completed: false });
