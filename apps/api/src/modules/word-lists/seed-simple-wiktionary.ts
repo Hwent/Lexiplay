@@ -1,11 +1,13 @@
 import { Pool } from 'pg';
 import { applyContinuation } from './wiktionary-pagination';
+import { parseWiktionaryDefinition } from './wiktionary-definition';
 
 const apiUrl = 'https://simple.wiktionary.org/w/api.php';
 const sourceName = 'Simple English Wiktionary';
 const pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
 
-type WikiPage = { title: string; extract?: string };
+type WikiPage = { title: string; revisions?: Array<{ slots?: { main?: { content?: string } } }> };
+type ImportedEntry = { term: string; definition: string; partOfSpeech: string[] };
 type WikiResponse = {
   continue?: Record<string, string>;
   query?: { pages?: WikiPage[] };
@@ -14,14 +16,6 @@ type WikiResponse = {
 
 class WiktionaryApiError extends Error {
   constructor(message: string, readonly retryable: boolean) { super(message); }
-}
-
-function cleanDefinition(extract: string | undefined) {
-  return (extract ?? '')
-    .replace(/\[\d+\]/g, '')
-    .replace(/\s+/g, ' ')
-    .trim()
-    .slice(0, 2000);
 }
 
 async function fetchPageBatch(params: URLSearchParams): Promise<WikiResponse> {
@@ -67,10 +61,9 @@ async function* wiktionaryEntries() {
     gapnamespace: '0',
     gapfilterredir: 'nonredirects',
     gaplimit: '500',
-    prop: 'extracts',
-    exintro: '1',
-    explaintext: '1',
-    exchars: '2000',
+    prop: 'revisions',
+    rvprop: 'content',
+    rvslots: 'main',
     maxlag: '5',
     format: 'json',
     formatversion: '2',
@@ -87,9 +80,9 @@ async function* wiktionaryEntries() {
     const result = await fetchPageBatch(params);
     for (const page of result.query?.pages ?? []) {
       const term = page.title.toLowerCase();
-      const definition = cleanDefinition(page.extract);
+      const { definition, partOfSpeech } = parseWiktionaryDefinition(page.revisions?.[0]?.slots?.main?.content ?? '');
       if (!/^[a-z][a-z '-]{0,99}$/.test(term) || !definition) continue;
-      yield { term, definition };
+      yield { term, definition, partOfSpeech };
     }
 
     if (!result.continue) break;
@@ -101,7 +94,7 @@ async function* wiktionaryEntries() {
 async function seed() {
   const client = await pool.connect();
   let count = 0;
-  let batch: Array<{ term: string; definition: string }> = [];
+  let batch: ImportedEntry[] = [];
 
   try {
     await client.query(`
@@ -126,25 +119,26 @@ async function seed() {
 
     const insertBatch = async () => {
       if (!batch.length) return;
-      const grouped = new Map<string, string>();
+      const grouped = new Map<string, ImportedEntry>();
       for (const item of batch) {
         const existing = grouped.get(item.term);
-        if (!existing || item.definition.length < existing.length) grouped.set(item.term, item.definition);
+        if (!existing || item.definition.length < existing.definition.length) grouped.set(item.term, item);
       }
       const terms = [...grouped.keys()];
-      const definitions = [...grouped.values()];
+      const definitions = [...grouped.values()].map(item => item.definition);
+      const positions = [...grouped.values()].map(item => item.partOfSpeech.join(','));
       await client.query(
-        `INSERT INTO dictionary_words_stage (term, definition, source)
-         SELECT incoming.term, incoming.definition, $3
-         FROM UNNEST($1::text[], $2::text[]) AS incoming(term, definition)
+        `INSERT INTO dictionary_words_stage (term, definition, part_of_speech, source)
+         SELECT incoming.term, incoming.definition, string_to_array(incoming.positions, ','), $4
+         FROM UNNEST($1::text[], $2::text[], $3::text[]) AS incoming(term, definition, positions)
          ON CONFLICT (term) DO UPDATE SET
            definition = CASE WHEN length(EXCLUDED.definition) < length(dictionary_words_stage.definition)
              THEN EXCLUDED.definition ELSE dictionary_words_stage.definition END`,
-        [terms, definitions, sourceName],
+        [terms, definitions, positions, sourceName],
       );
       count += grouped.size;
       batch = [];
-      if (count > 0 && count % 5000 === 0) console.log(`${count.toLocaleString()} Simple English Wiktionary entries prepared…`);
+      console.log(`${count.toLocaleString()} Simple English Wiktionary entries prepared…`);
     };
 
     for await (const entry of wiktionaryEntries()) {
@@ -156,6 +150,8 @@ async function seed() {
 
     const { rows: countRows } = await client.query<{ count: string }>('SELECT count(*)::text AS count FROM dictionary_words_stage');
     const entryCount = Number(countRows[0]?.count ?? 0);
+    const { rows: sentinel } = await client.query("SELECT term FROM dictionary_words_stage WHERE term = 'because'");
+    if (!sentinel.length) throw new Error('The import is missing the common word because; the existing dictionary was kept.');
     await client.query('DELETE FROM dictionary_words');
     await client.query('INSERT INTO dictionary_words (term, definition, part_of_speech, source) SELECT term, definition, part_of_speech, source FROM dictionary_words_stage');
     await client.query('COMMIT');

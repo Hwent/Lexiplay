@@ -34,7 +34,7 @@ The API accepts terms containing letters, spaces, apostrophes, and hyphens, up t
 
 ## Shared dictionary
 
-LexiPlay uses Simple English Wiktionary as its single searchable dictionary source. The seed command reads namespace-zero entries and plain-text introductory definitions from the MediaWiki API, excluding redirects and filtering entries to terms supported by LexiPlay:
+LexiPlay uses Simple English Wiktionary as its single searchable dictionary source. The seed command reads namespace-zero entry revisions from the MediaWiki API, extracts the first two definition lines and their parts of speech, excludes redirects, and filters entries to terms supported by LexiPlay. Page introductions are not used because many dictionary entries, including “because,” have no introduction:
 
 ```powershell
 pnpm --filter @lexiplay/api dictionary:seed
