@@ -144,7 +144,7 @@ export class WordListRepository implements OnModuleDestroy {
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         list_id uuid NOT NULL REFERENCES user_word_lists(id) ON DELETE CASCADE,
         term varchar(100) NOT NULL CHECK (term ~ '^[a-z][a-z ''-]{0,99}$'),
-        definition varchar(500) NOT NULL DEFAULT '',
+        definition text NOT NULL DEFAULT '',
         part_of_speech varchar(40),
         example varchar(500),
         status varchar(16) NOT NULL DEFAULT 'UNFAMILIAR' CHECK (status IN ('KNOWN', 'UNFAMILIAR')),
@@ -152,6 +152,7 @@ export class WordListRepository implements OnModuleDestroy {
         updated_at timestamptz NOT NULL DEFAULT now(),
         UNIQUE (list_id, term)
       );
+      ALTER TABLE user_words ALTER COLUMN definition TYPE text;
       ALTER TABLE user_words ALTER COLUMN term TYPE varchar(100);
       ALTER TABLE user_words DROP CONSTRAINT IF EXISTS user_words_term_check;
       ALTER TABLE user_words ADD CONSTRAINT user_words_term_check CHECK (term ~ '^[a-z][a-z ''-]{0,99}$');

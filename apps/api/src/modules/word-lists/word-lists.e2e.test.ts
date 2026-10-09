@@ -56,7 +56,9 @@ class MemoryWordListRepository {
     return saved;
   }
   async searchDictionary(query: string) {
-    return query === 'apple' ? [{ term: 'apple', definition: 'The round fruit of a tree of the rose family.', partOfSpeech: ['noun'] }] : [];
+    if (query === 'apple') return [{ term: 'apple', definition: 'The round fruit of a tree of the rose family.', partOfSpeech: ['noun'] }];
+    if (query === 'longword') return [{ term: 'longword', definition: 'A'.repeat(650), partOfSpeech: ['noun'] }];
+    return [];
   }
   async addDictionaryWord(ownerId: string, listId: string, term: string) {
     const entry = (await this.searchDictionary(term)).find(item => item.term === term);
@@ -144,6 +146,12 @@ describe('owned vocabulary list HTTP endpoints', () => {
     const duplicateWord = await fetch(`${baseUrl}/${list.id}/dictionary`, { method: 'POST', headers, body: JSON.stringify({ term: 'apple' }) });
     expect(await duplicateWord.json()).toMatchObject({ id: word.id, status: 'UNFAMILIAR' });
 
+    const addedLongDictionaryWord = await fetch(`${baseUrl}/${list.id}/dictionary`, {
+      method: 'POST', headers, body: JSON.stringify({ term: 'longword' }),
+    });
+    expect(addedLongDictionaryWord.status).toBe(201);
+    expect((await addedLongDictionaryWord.json() as { definition: string }).definition).toHaveLength(650);
+
     const update = await fetch(`${baseUrl}/${list.id}/words/${word.id}`, {
       method: 'PATCH', headers, body: JSON.stringify({ definition: 'A crisp fruit' }),
     });
@@ -154,7 +162,10 @@ describe('owned vocabulary list HTTP endpoints', () => {
     const listForOtherUser = await fetch(`${baseUrl}/${list.id}`, { headers: { cookie: `lexiplay_session=${otherToken}` } });
     expect(listForOtherUser.status).toBe(404);
     const listForOwner = await fetch(baseUrl, { headers });
-    expect(await listForOwner.json()).toMatchObject([{ id: list.id, name: 'My words', words: [{ term: 'apple', definition: 'A crisp fruit', status: 'KNOWN' }] }]);
+    expect(await listForOwner.json()).toMatchObject([{ id: list.id, name: 'My words', words: [
+      { term: 'apple', definition: 'A crisp fruit', status: 'KNOWN' },
+      { term: 'longword', definition: 'A'.repeat(650), status: 'UNFAMILIAR' },
+    ] }]);
 
     expect((await fetch(`${baseUrl}/${list.id}/words/${word.id}`, { method: 'DELETE', headers })).status).toBe(204);
   });
