@@ -6,7 +6,7 @@ import { resolve } from 'node:path';
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type WordLength = 3 | 4 | 5 | 6 | 7 | 8;
 type Guess = { guess: string; feedback: Feedback[]; attemptsRemaining: number; completed: boolean; outcome?: 'WON' | 'LOST'; answer?: string };
-type Game = { id: string; answer: string; wordLength: WordLength; attemptLimit: number; guesses: Guess[]; completed: boolean; unusedHints: number; greenHints: number; revealedAbsent: Set<string>; revealedGreen: Set<number> };
+type Game = { id: string; answer: string; wordLength: WordLength; attemptLimit: number; guesses: Guess[]; completed: boolean; unusedHints: number; greenHints: number; revealedAbsent: Set<string>; revealedPresent: Set<string> };
 
 const WORD_LENGTHS = [3, 4, 5, 6, 7, 8] as const;
 const vocabularyPath = resolve(__dirname, '../../../../../packages/shared/vocabulary');
@@ -28,8 +28,8 @@ export class GameService {
     if (!answerWords.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words yet.` });
     const id = randomUUID();
     const answer = answerWords[randomInt(answerWords.length)]!;
-    this.games.set(id, { id, answer, wordLength, attemptLimit: 6, guesses: [], completed: false, unusedHints: 3, greenHints: 3, revealedAbsent: new Set(), revealedGreen: new Set() });
-    return { id, wordLength, attemptLimit: 6, guesses: [], hints: { unused: 3, green: 3 }, revealedAbsent: [], revealedGreen: [] };
+    this.games.set(id, { id, answer, wordLength, attemptLimit: 6, guesses: [], completed: false, unusedHints: 3, greenHints: 3, revealedAbsent: new Set(), revealedPresent: new Set() });
+    return { id, wordLength, attemptLimit: 6, guesses: [], hints: { unused: 3, present: 3 }, revealedAbsent: [], revealedPresent: [] };
   }
 
   hint(gameId: string, type: unknown) {
@@ -44,17 +44,17 @@ export class GameService {
       const letters = candidates.sort(() => Math.random() - 0.5).slice(0, 3);
       letters.forEach(letter => game.revealedAbsent.add(letter));
       game.unusedHints -= 1;
-      return { type, letters, hints: { unused: game.unusedHints, green: game.greenHints } };
+      return { type, letters, hints: { unused: game.unusedHints, present: game.greenHints } };
     }
-    if (type === 'green') {
-      if (!game.greenHints) throw new BadRequestException({ code: 'NO_HINTS_LEFT', message: 'You have used all your green letter hints.' });
-      const known = new Set(game.guesses.flatMap(item => item.feedback.flatMap((feedback, index) => feedback === 'CORRECT' ? [index] : [])));
-      const candidates = game.answer.split('').map((letter, index) => ({ letter, index })).filter(item => !known.has(item.index) && !game.revealedGreen.has(item.index));
+    if (type === 'present') {
+      if (!game.greenHints) throw new BadRequestException({ code: 'NO_HINTS_LEFT', message: 'You have used all your letter reveal hints.' });
+      const known = new Set(game.guesses.flatMap(item => item.feedback.flatMap((feedback, index) => feedback !== 'ABSENT' ? [item.guess[index]!] : [])));
+      const candidates = [...new Set(game.answer)].filter(letter => !known.has(letter) && !game.revealedPresent.has(letter));
       if (!candidates.length) throw new BadRequestException({ code: 'NO_HINTS_AVAILABLE', message: 'Every answer position is already known.' });
       const revealed = candidates[randomInt(candidates.length)]!;
-      game.revealedGreen.add(revealed.index);
+      game.revealedPresent.add(revealed);
       game.greenHints -= 1;
-      return { type, letter: revealed.letter, index: revealed.index, hints: { unused: game.unusedHints, green: game.greenHints } };
+      return { type, letter: revealed, hints: { unused: game.unusedHints, present: game.greenHints } };
     }
     throw new BadRequestException({ code: 'INVALID_HINT', message: 'Choose a valid hint.' });
   }

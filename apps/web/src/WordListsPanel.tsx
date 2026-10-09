@@ -265,7 +265,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
             </>}
             </div>}
 
-          <button className="account-action add-word-toggle" type="button" aria-expanded={addOpen} onClick={() => setAddOpen(value => !value)}>{addOpen ? 'Cancel' : 'Add'}</button>
+          <button className="account-action add-word-toggle" type="button" aria-expanded={addOpen} onClick={() => setAddOpen(value => !value)}>{addOpen ? 'Cancel' : 'Add words'}</button>
           {addOpen && <form className="word-add-form" onSubmit={event => { void submitWord(event, list.id); setAddOpen(false); }}>
             <h4>Add a word</h4>
             <label htmlFor={`word-term-${list.id}`}>Word</label>
