@@ -7,8 +7,8 @@ export class GameController {
   constructor(@Inject(GameService) private readonly games: GameService) {}
 
   @Post()
-  start() {
-    return this.games.start();
+  start(@Body() body: { wordLength?: unknown }) {
+    return this.games.start(body?.wordLength);
   }
 
   @Post(':gameId/guesses')

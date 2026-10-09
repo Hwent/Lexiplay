@@ -6,7 +6,7 @@ LexiPlay is a vocabulary practice game. Product requirements and the initial arc
 
 - `apps/web` — browser experience (React)
 - `apps/api` — HTTP API and application services (NestJS)
-- `packages/shared` — versioned API contracts shared by the apps; domain rules remain in the API
+- `packages/shared` — stable shared contracts and sourced vocabulary data
 - `outputs/docs` — product and technical design source documents
 
 Keep modules cohesive, expose behavior through narrow interfaces, and place automated checks next to the component they protect. Add cross-component flows in dedicated integration or end-to-end suites as those features arrive.
@@ -20,9 +20,9 @@ pnpm install
 pnpm dev
 ```
 
-The launcher starts the NestJS API and Vite web app on available localhost ports and prints the web URL. In this first playable slice, games and the small practice dictionary are held in API memory; restarting the API clears active games. PostgreSQL is available for the next persistence milestone through `docker compose up -d database`.
+The launcher starts the NestJS API and Vite web app on available localhost ports and prints the web URL. Players can choose 3–8 letter games and enter guesses one letter at a time. The length-specific guess and answer lists are in `packages/shared/vocabulary`; provenance and license notes are in that directory. Active games are held in API memory, so restarting the API clears them. PostgreSQL is available for the next persistence milestone through `docker compose up -d database`.
 
-Run the checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Tests cover the browser practice flow and the versioned API health endpoint. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for boundaries and conventions.
+Run the checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Tests cover the browser practice flow, versioned health endpoint, and two randomly selected guesses from each 3–6 letter vocabulary file. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for boundaries and conventions.
 
 ## GitHub
 

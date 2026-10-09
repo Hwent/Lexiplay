@@ -1,10 +1,34 @@
-import { render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 describe('practice puzzle', () => {
-  afterEach(() => vi.unstubAllGlobals());
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it('lets players choose a four-letter game and requires one character per keystroke', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-4', wordLength: 4, attemptLimit: 6, guesses: [] }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'word', feedback: ['ABSENT', 'PRESENT', 'ABSENT', 'CORRECT'], attemptsRemaining: 5, completed: false }), { status: 201 }));
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+
+    render(<App />);
+    await user.selectOptions(screen.getByRole('combobox', { name: /word length/i }), '4');
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    const guessInput = await screen.findByRole('textbox', { name: /four-letter guess/i });
+    await user.paste('word');
+    expect(guessInput).toHaveValue('');
+    await user.type(guessInput, 'word');
+    await user.keyboard('{Enter}');
+
+    expect(await screen.findByText('word')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(JSON.parse(fetchMock.mock.calls[0]![1]!.body as string)).toEqual({ wordLength: 4 });
+  });
 
   it('starts a game and submits a guess with server feedback', async () => {
     const fetchMock = vi.fn()

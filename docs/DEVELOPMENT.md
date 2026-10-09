@@ -9,6 +9,10 @@
 
 Keep each feature cohesive. Prefer small modules with explicit exports over cross-importing another module's internals. Add unit tests for deterministic rules, API integration tests for persistence/authorization, and end-to-end tests for user journeys. Use fixed fixtures and avoid external services in routine checks.
 
+## Vocabulary lists
+
+Guess and answer words are stored separately by length in `packages/shared/vocabulary`. The API validates each guess against the matching length bucket and chooses answers only from the answer bucket. Keep the source snapshot and required notices with any list update; see `packages/shared/vocabulary/README.md` before redistributing the five-letter guess list.
+
 ## Local setup
 
 Use Node.js 22+, pnpm 10+, and Docker Desktop. Copy `.env.example` to `.env` when service configuration is introduced. Never commit secrets or real user data. Run `pnpm install` from the repository root so the lockfile governs every workspace package.

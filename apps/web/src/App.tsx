@@ -1,6 +1,7 @@
-import { FormEvent, useState } from 'react';
+import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
+type Theme = 'dark' | 'light';
 type GuessResult = {
   guess: string;
   feedback: Feedback[];
@@ -21,17 +22,39 @@ const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
   return payload as T;
 };
 
+const lengthName = (length: number) => `${['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'][length]}-letter`;
+const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
+const feedbackRank: Record<Feedback, number> = { ABSENT: 1, PRESENT: 2, CORRECT: 3 };
+
 export default function App() {
   const [game, setGame] = useState<Game | null>(null);
   const [guess, setGuess] = useState('');
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
+  const [selectedWordLength, setSelectedWordLength] = useState(5);
+  const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
+  const inputRef = useRef<HTMLInputElement>(null);
+
+  const finished = game?.guesses.at(-1)?.completed ?? false;
+  const attemptsRemaining = game?.guesses.at(-1)?.attemptsRemaining ?? game?.attemptLimit ?? 0;
+
+  useEffect(() => {
+    if (game && !finished) inputRef.current?.focus({ preventScroll: true });
+  }, [game?.id, game?.guesses.length, finished]);
+
+  useEffect(() => {
+    document.documentElement.dataset.theme = theme;
+    window.localStorage.setItem('lexiplay-theme', theme);
+  }, [theme]);
 
   async function startPractice() {
     setBusy(true);
     setMessage('');
     try {
-      const newGame = await api<Game>('/games', { method: 'POST' });
+      const newGame = await api<Game>('/games', {
+        method: 'POST',
+        body: JSON.stringify({ wordLength: selectedWordLength }),
+      });
       setGame(newGame);
       setGuess('');
     } catch (error) {
@@ -41,9 +64,8 @@ export default function App() {
     }
   }
 
-  async function submitGuess(event: FormEvent<HTMLFormElement>) {
-    event.preventDefault();
-    if (!game || busy) return;
+  async function submitGuess() {
+    if (!game || busy || finished || guess.length !== game.wordLength) return;
     setBusy(true);
     setMessage('');
     try {
@@ -65,20 +87,54 @@ export default function App() {
     }
   }
 
-  const finished = game?.guesses.at(-1)?.completed ?? false;
-  const attemptsRemaining = game?.guesses.at(-1)?.attemptsRemaining ?? game?.attemptLimit ?? 0;
+  function addLetter(letter: string) {
+    if (!game || busy || finished) return;
+    setGuess(current => current.length < game.wordLength ? `${current}${letter}` : current);
+    inputRef.current?.focus({ preventScroll: true });
+  }
+
+  function deleteLetter() {
+    if (!game || busy || finished) return;
+    setGuess(current => current.slice(0, -1));
+    inputRef.current?.focus({ preventScroll: true });
+  }
+
+  function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (/^[a-z]$/i.test(event.key) && event.key.length === 1) {
+      event.preventDefault();
+      addLetter(event.key.toLowerCase());
+    } else if (event.key === 'Backspace') {
+      event.preventDefault();
+      deleteLetter();
+    } else if (event.key === 'Enter') {
+      event.preventDefault();
+      void submitGuess();
+    } else if (event.key.length === 1) {
+      event.preventDefault();
+    }
+  }
+
+  const keyboardFeedback = new Map<string, Feedback>();
+  for (const result of game?.guesses ?? []) {
+    result.guess.split('').forEach((letter, index) => {
+      const key = letter.toUpperCase();
+      const feedback = result.feedback[index]!;
+      const previous = keyboardFeedback.get(key);
+      if (!previous || feedbackRank[feedback] > feedbackRank[previous]) keyboardFeedback.set(key, feedback);
+    });
+  }
 
   return (
     <main className="page-shell">
       <header className="topbar">
         <a className="brand" href="/" aria-label="LexiPlay home"><span className="brand-mark">L</span> LexiPlay</a>
-        <span className="top-note">A little practice, every day</span>
+        <div className="header-actions">
+          <span className="top-note">A little practice, every day</span>
+          <button className="theme-toggle" type="button" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>
+            <span aria-hidden="true">{theme === 'dark' ? '☼' : '☾'}</span> {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          </button>
+        </div>
       </header>
-      <section className="hero" aria-labelledby="page-title">
-        <p className="eyebrow">Your daily word garden</p>
-        <h1 id="page-title">Make words<br /><em>stick.</em></h1>
-        <p className="intro">A calm little challenge to grow your vocabulary, one guess at a time.</p>
-      </section>
 
       <section className="game-card" aria-label="Vocabulary puzzle">
         {!game ? (
@@ -87,7 +143,11 @@ export default function App() {
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
             <h2>A fresh word is waiting.</h2>
-            <p>Guess a five-letter word in six tries. You’ll get a hint after each guess.</p>
+            <p>Choose a word length, then solve it in six tries. You’ll get a hint after each guess.</p>
+            <label className="length-picker" htmlFor="word-length">Word length</label>
+            <select id="word-length" value={selectedWordLength} onChange={event => setSelectedWordLength(Number(event.target.value))}>
+              {[3, 4, 5, 6, 7, 8].map(length => <option value={length} key={length}>{length} letters</option>)}
+            </select>
             <button className="primary-button" onClick={startPractice} disabled={busy}>
               {busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
             </button>
@@ -96,34 +156,42 @@ export default function App() {
           <div className="puzzle">
             <div className="puzzle-heading">
               <div><p className="eyebrow">Today’s practice</p><h2>Find the word</h2></div>
-              <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} remaining</span>
+              <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
             </div>
-            <div className="guess-board" role="list" aria-label="Puzzle board">
+            <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `${game.wordLength * 5.2 + (game.wordLength - 1) * 0.45}rem` }}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
                 const result = game.guesses[row];
-                return <div className="guess-row" role="listitem" aria-label={result?.guess ?? `Guess ${row + 1}`} key={row}>
+                const activeGuess = !result && row === game.guesses.length ? guess : '';
+                return <div className="guess-row" role="row" aria-label={result?.guess ?? `Guess ${row + 1}`} key={row} style={{ gridTemplateColumns: `repeat(${game.wordLength}, minmax(0, 1fr))` }}>
                   {Array.from({ length: game.wordLength }, (_, column) => {
-                    const letter = result?.guess[column] ?? '';
+                    const letter = result?.guess[column] ?? activeGuess[column] ?? '';
                     const state = result?.feedback[column]?.toLowerCase() ?? '';
-                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state}` : 'Empty'} className={`letter-tile ${state}`} key={column}>{letter}</span>;
+                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} key={column}>{letter}</span>;
                   })}
-                  {result && <span className="sr-only">{result.guess}</span>}
                 </div>;
               })}
             </div>
-            {!finished && <form className="guess-form" onSubmit={submitGuess}>
-              <label htmlFor="guess-input">Your five-letter guess</label>
-              <div className="guess-controls">
-                <input id="guess-input" aria-label="Your five-letter guess" value={guess} onChange={event => setGuess(event.target.value.replace(/[^a-z]/gi, '').slice(0, game.wordLength))} maxLength={game.wordLength} autoComplete="off" autoCapitalize="none" />
-                <button className="primary-button submit-button" type="submit" disabled={busy || guess.length !== game.wordLength}>{busy ? 'Checking…' : 'Guess'}</button>
+            {!finished && <>
+              <label className="sr-only" htmlFor="guess-input">Type your {lengthName(game.wordLength)} guess one letter at a time</label>
+              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
+              <div className="game-keyboard" role="group" aria-label="On-screen keyboard">
+                {keyboardRows.map((row, rowIndex) => <div className={`keyboard-row keyboard-row-${rowIndex + 1}`} key={row}>
+                  {rowIndex === 2 && <button className="keyboard-key special-key enter-key" type="button" onMouseDown={event => event.preventDefault()} onClick={() => void submitGuess()} disabled={busy || finished || guess.length !== game.wordLength}>Enter</button>}
+                  {row.split('').map(letter => {
+                    const state = keyboardFeedback.get(letter.toUpperCase())?.toLowerCase() ?? '';
+                    return <button className={`keyboard-key ${state}`} key={letter} type="button" aria-label={`${letter.toUpperCase()}${state ? `, ${state}` : ''}`} onMouseDown={event => event.preventDefault()} onClick={() => addLetter(letter)} disabled={busy || finished}>{letter}</button>;
+                  })}
+                  {rowIndex === 2 && <button className="keyboard-key special-key delete-key" type="button" aria-label="Delete letter" onMouseDown={event => event.preventDefault()} onClick={deleteLetter} disabled={busy || finished}>⌫</button>}
+                </div>)}
               </div>
-            </form>}
+              <p className="input-hint">Type one letter at a time or use the on-screen keyboard.</p>
+            </>}
           </div>
         )}
       {message && <p className="notice" role="status">{message}</p>}
       {finished && <div className="next-game"><button className="primary-button" onClick={startPractice} disabled={busy}>Try another word <span aria-hidden="true">→</span></button></div>}
       </section>
-      <footer><span>Thoughtful practice, one word at a time.</span><span className="footer-seed" aria-hidden="true">✳</span></footer>
+      <footer className={game ? 'game-footer' : undefined}><span>Thoughtful practice, one word at a time.</span><span className="footer-seed" aria-hidden="true">✳</span></footer>
     </main>
   );
 }
