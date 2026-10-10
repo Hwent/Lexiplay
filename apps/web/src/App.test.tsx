@@ -2,10 +2,12 @@ import { cleanup, render, screen, waitFor, within } from '@testing-library/react
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
+import { cachedDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 
 describe('practice puzzle', () => {
   afterEach(() => {
     cleanup();
+    clearDictionaryCache();
     vi.unstubAllGlobals();
   });
 
@@ -39,8 +41,8 @@ describe('practice puzzle', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-1', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Enter a valid five-letter word from the practice dictionary.' }), { status: 400 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'crane', feedback: ['ABSENT', 'ABSENT', 'CORRECT', 'CORRECT', 'ABSENT'], attemptsRemaining: 5, completed: false }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'plant', feedback: ['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT', 'CORRECT'], attemptsRemaining: 4, completed: true, outcome: 'WON', answer: 'plant' }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'crane', definition: 'A large bird.', feedback: ['ABSENT', 'ABSENT', 'CORRECT', 'CORRECT', 'ABSENT'], attemptsRemaining: 5, completed: false }), { status: 201 }))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'plant', definition: 'A living organism.', answerDefinition: 'A living organism.', feedback: ['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT', 'CORRECT'], attemptsRemaining: 4, completed: true, outcome: 'WON', answer: 'plant' }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-2', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }));
     vi.stubGlobal('fetch', fetchMock);
@@ -65,6 +67,8 @@ describe('practice puzzle', () => {
     await user.type(guessInput, 'plant');
     await user.keyboard('{Enter}');
     expect(await screen.findByText(/you found it/i)).toBeInTheDocument();
+    expect(cachedDictionaryDefinition('crane')).toBe('A large bird.');
+    expect(cachedDictionaryDefinition('plant')).toBe('A living organism.');
     await user.click(screen.getByRole('button', { name: /^return$/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /start practice/i }));

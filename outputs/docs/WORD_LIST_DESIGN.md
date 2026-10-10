@@ -8,6 +8,8 @@ Each account has one overall personal list named **My words**. The list has no d
 
 The Word List page combines the user's saved words with dictionary search results. Dictionary matches show the headword, definition, and available part of speech. Adding a result stores a personal copy with its dictionary definition; removing or changing the personal copy does not modify the shared dictionary. Word status is visible next to each saved word and can be toggled between Known and Unfamiliar.
 
+Dictionary searches use the API after a 400 ms typing pause, with at least two characters. Click the headword itself to show its definition. Searches and canonical definitions share a browser cache across pages and reloads, including definitions returned during games. The cache keeps up to 100 search queries and 300 definitions for 24 hours; expired or missing entries use the API. Storage failures fall back to memory. Personal definitions are never placed in this cache or replaced by dictionary results. Duplicate additions are skipped; edits cannot rename a word to another existing term, and local imports skip repeated terms.
+
 ## Import flow
 
 Supported formats are `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf`. The user selects a file, previews parsed words, then confirms the import. The preview reports duplicates and invalid rows. Imported words receive the Unfamiliar status by default. Definitions and examples are stored as plain text; uploaded files are not retained.

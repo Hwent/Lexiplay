@@ -178,6 +178,10 @@ describe('owned vocabulary list HTTP endpoints', () => {
       method: 'PATCH', headers, body: JSON.stringify({ definition: 'A crisp fruit' }),
     });
     expect(await update.json()).toMatchObject({ definition: 'A crisp fruit' });
+    const conflictingDictionaryWord = await fetch(`${baseUrl}/${list.id}/dictionary`, {
+      method: 'POST', headers, body: JSON.stringify({ term: 'apple' }),
+    });
+    expect(await conflictingDictionaryWord.json()).toMatchObject({ id: word.id, definition: 'A crisp fruit' });
     const known = await fetch(`${baseUrl}/${list.id}/words/${word.id}`, { method: 'PATCH', headers, body: JSON.stringify({ status: 'KNOWN' }) });
     expect(await known.json()).toMatchObject({ status: 'KNOWN' });
 

@@ -2,12 +2,14 @@ import { act, cleanup, render, screen, waitFor, within } from '@testing-library/
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WordListsPanel from './WordListsPanel';
+import { clearDictionaryCache, rememberDictionaryDefinition } from './dictionary-cache';
 
 const list = { id: 'list-1', name: 'Cloud words', words: [] };
 
 describe('vocabulary list panel', () => {
   afterEach(() => {
     cleanup();
+    clearDictionaryCache();
     vi.unstubAllGlobals();
     window.localStorage.clear();
   });
@@ -72,6 +74,62 @@ describe('vocabulary list panel', () => {
       method: 'POST',
       body: JSON.stringify({ term: 'apple' }),
     })));
+  });
+
+  it('reuses API search results and definitions after navigating to another page', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/word-lists')) return new Response(JSON.stringify([list]));
+      if (path.includes('/dictionary?q=apple')) return new Response(JSON.stringify([{ term: 'apple', partOfSpeech: ['noun'] }]));
+      if (path.endsWith('/dictionary/apple/definition')) return new Response(JSON.stringify({ definition: 'A dictionary fruit.' }));
+      throw new Error(`Unexpected request ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    const page = render(<WordListsPanel pageMode searchQuery="apple" />);
+    await user.click(await screen.findByRole('button', { name: 'apple' }));
+    expect(await screen.findByText('A dictionary fruit.')).toBeInTheDocument();
+    page.unmount();
+    render(<WordListsPanel searchQuery=" APPLE " />);
+    expect(await screen.findByText('A dictionary fruit.')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.filter(([path]) => String(path).includes('/dictionary?q='))).toHaveLength(1);
+    expect(fetchMock.mock.calls.filter(([path]) => String(path).endsWith('/definition'))).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: /load definition/i })).not.toBeInTheDocument();
+  });
+
+  it('uses game-cached definitions while preserving a conflicting personal definition', async () => {
+    rememberDictionaryDefinition('apple', 'The canonical dictionary fruit.');
+    const saved = { ...list, words: [{ id: 'word-1', term: 'apple', definition: 'My own definition.', status: 'KNOWN' }] };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/word-lists')) return new Response(JSON.stringify([saved]));
+      return new Response(JSON.stringify([{ term: 'apple', partOfSpeech: ['noun'] }]));
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<WordListsPanel pageMode searchQuery="apple" />);
+    expect(await screen.findByText('The canonical dictionary fruit.')).toBeInTheDocument();
+    expect(screen.getByText('My own definition.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Already in word list' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'apple' }));
+    await act(async () => { window.dispatchEvent(new Event('lexiplay:before-route-change')); });
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+    expect(screen.getByText('My own definition.')).toBeInTheDocument();
+  });
+
+  it('rejects a repeated manual word without overwriting its definition', async () => {
+    const saved = { ...list, words: [{ id: 'word-1', term: 'apple', definition: 'My own definition.', status: 'KNOWN' }] };
+    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify([saved]))));
+    const user = userEvent.setup();
+    render(<WordListsPanel pageMode />);
+    await screen.findByText('My own definition.');
+    await waitFor(() => expect(screen.getByRole('button', { name: /^add$/i })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: /^add$/i }));
+    await user.type(screen.getByRole('textbox', { name: /^word$/i }), 'APPLE');
+    await user.type(screen.getByRole('textbox', { name: /definition/i }), 'A conflicting definition.');
+    await user.click(within(screen.getByRole('textbox', { name: /definition/i }).closest('form')!).getByRole('button', { name: /^add$/i }));
+    expect(await screen.findByText(/saved definition has been kept/i)).toBeInTheDocument();
+    expect(screen.getAllByText('apple')).toHaveLength(1);
+    expect(screen.getByText('My own definition.')).toBeInTheDocument();
   });
 
   it('keeps signed-out additions on this device and restores them after remounting', async () => {

@@ -1,0 +1,79 @@
+import { afterEach, describe, expect, it, vi } from 'vitest';
+import { cachedDictionaryDefinition, clearDictionaryCache, dictionaryDefinition, rememberDictionaryDefinition, searchDictionary } from './dictionary-cache';
+
+describe('shared browser dictionary cache', () => {
+  afterEach(() => {
+    clearDictionaryCache();
+    vi.restoreAllMocks();
+    vi.unstubAllGlobals();
+  });
+
+  it('shares simultaneous requests and normalizes repeated searches and definitions', async () => {
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(
+      String(input).includes('?q=')
+        ? [{ term: 'apple', partOfSpeech: ['noun'] }, { term: 'apple', partOfSpeech: ['noun'] }]
+        : { definition: 'A fruit.' },
+    )));
+    vi.stubGlobal('fetch', fetchMock);
+    const [first, second] = await Promise.all([searchDictionary(' APPLE '), searchDictionary('apple')]);
+    expect(first).toEqual([{ term: 'apple', partOfSpeech: ['noun'] }]);
+    expect(second).toEqual(first);
+    await searchDictionary('Apple');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    expect(await Promise.all([dictionaryDefinition(' APPLE '), dictionaryDefinition('apple')])).toEqual(['A fruit.', 'A fruit.']);
+    expect(await dictionaryDefinition('apple')).toBe('A fruit.');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('restores cached data after a page reload without calling the API', async () => {
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ term: 'apple', partOfSpeech: ['noun'] }])));
+    vi.stubGlobal('fetch', fetchMock);
+    await searchDictionary('apple');
+    rememberDictionaryDefinition('apple', 'A fruit.');
+    vi.resetModules();
+    const reloaded = await import('./dictionary-cache');
+    expect(await reloaded.searchDictionary('apple')).toHaveLength(1);
+    expect(await reloaded.dictionaryDefinition('apple')).toBe('A fruit.');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+    reloaded.clearDictionaryCache();
+  });
+
+  it('refreshes expired entries through the API after 24 hours', async () => {
+    const clock = vi.spyOn(Date, 'now').mockReturnValue(1000);
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(
+      String(input).includes('?q=') ? [] : { definition: 'A refreshed fruit.' },
+    )));
+    vi.stubGlobal('fetch', fetchMock);
+    await searchDictionary('apple');
+    rememberDictionaryDefinition('apple', 'The old fruit.');
+    clock.mockReturnValue(1000 + 24 * 60 * 60 * 1000);
+    expect(cachedDictionaryDefinition('apple')).toBeUndefined();
+    expect(await dictionaryDefinition('apple')).toBe('A refreshed fruit.');
+    await searchDictionary('apple');
+    expect(fetchMock).toHaveBeenCalledTimes(3);
+  });
+
+  it('retries failed requests and does not cache empty definitions', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'Try again.' }), { status: 429 }))
+      .mockResolvedValueOnce(new Response('[]'))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ definition: '' })))
+      .mockResolvedValueOnce(new Response(JSON.stringify({ definition: 'A fruit.' })));
+    vi.stubGlobal('fetch', fetchMock);
+    await expect(searchDictionary('apple')).rejects.toThrow('Try again.');
+    expect(await searchDictionary('apple')).toEqual([]);
+    expect(await dictionaryDefinition('apple')).toBe('');
+    expect(await dictionaryDefinition('apple')).toBe('A fruit.');
+    expect(fetchMock).toHaveBeenCalledTimes(4);
+  });
+
+  it('continues to cache in memory when browser storage is disabled', async () => {
+    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Storage disabled'); });
+    vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Storage disabled'); });
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ definition: 'A fruit.' })));
+    vi.stubGlobal('fetch', fetchMock);
+    expect(await dictionaryDefinition('apple')).toBe('A fruit.');
+    expect(await dictionaryDefinition('apple')).toBe('A fruit.');
+    expect(fetchMock).toHaveBeenCalledTimes(1);
+  });
+});

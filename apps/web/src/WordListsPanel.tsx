@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
+import { cachedDictionaryDefinition, dictionaryDefinition, DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
 
 type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; example?: string | null; status: WordStatus };
@@ -8,7 +9,6 @@ type PendingWordOperation =
   | { kind: 'update'; listId: string; term: string; definition: string }
   | { kind: 'delete'; listId: string };
 type WordList = { id: string; name: string; words: WordEntry[] };
-type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[] };
 type ImportRow = { rowNumber: number; term: string; definition: string; partOfSpeech: string | null; example: string | null; selected: boolean; issues: string[] };
 type ImportPreview = { rows: ImportRow[]; totals: { ready: number; warnings: number; rejected: number } };
 const LOCAL_WORD_LISTS_KEY = 'lexiplay-local-word-lists';
@@ -72,24 +72,24 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [dictionaryResults, setDictionaryResults] = useState<DictionaryEntry[]>([]);
   const [dictionaryBusy, setDictionaryBusy] = useState(false);
   const [dictionaryDefinitions, setDictionaryDefinitions] = useState<Record<string, string>>({});
-  const [definitionBusyTerm, setDefinitionBusyTerm] = useState('');
+  const [definitionBusyTerms, setDefinitionBusyTerms] = useState<Set<string>>(() => new Set());
   const pendingStatuses = useRef(new Map<string, { listId: string; status: WordStatus }>());
   const pendingWordOperations = useRef(new Map<string, PendingWordOperation>());
 
   useEffect(() => setListSearch(searchQuery), [searchQuery]);
   useEffect(() => {
-    const query = searchQuery.trim();
+    const query = normalizeTerm(searchQuery);
     let active = true;
     if (query.length < 2) { setDictionaryResults([]); setDictionaryBusy(false); return; }
-    const controller = new AbortController();
     setDictionaryBusy(true);
+    setDictionaryResults([]);
     const timer = window.setTimeout(() => {
-      request<DictionaryEntry[]>(`/word-lists/dictionary?q=${encodeURIComponent(query)}`, { signal: controller.signal })
+      searchDictionary(query)
         .then(results => { if (active) setDictionaryResults(results); })
         .catch(error => { if (active) setMessage(error instanceof Error ? error.message : 'Could not search the dictionary.'); })
         .finally(() => { if (active) setDictionaryBusy(false); });
     }, 400);
-    return () => { active = false; window.clearTimeout(timer); controller.abort(); };
+    return () => { active = false; window.clearTimeout(timer); };
   }, [searchQuery]);
   useEffect(() => {
     let active = true;
@@ -163,6 +163,10 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   async function submitWord(event: FormEvent<HTMLFormElement>, listId: string) {
     event.preventDefault();
+    if (lists.some(list => list.id === listId && list.words.some(word => normalizeTerm(word.term) === normalizeTerm(term)))) {
+      setMessage('This word is already in your list. Your saved definition has been kept.');
+      return;
+    }
     const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     const word: WordEntry = { id, term: term.trim().toLowerCase(), definition: savedDefinition(definition), status: 'UNFAMILIAR' };
     if (!localOnly) pendingWordOperations.current.set(id, { kind: 'create', listId, term: word.term, definition: word.definition });
@@ -173,6 +177,10 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   function saveWord(event: FormEvent<HTMLFormElement>, listId: string, wordId: string) {
     event.preventDefault();
+    if (lists.some(list => list.id === listId && list.words.some(word => word.id !== wordId && normalizeTerm(word.term) === normalizeTerm(editingTerm)))) {
+      setMessage('This word is already in your list. Choose a different word.');
+      return;
+    }
     const currentOperation = pendingWordOperations.current.get(wordId);
     if (localOnly) {
       pendingWordOperations.current.delete(wordId);
@@ -188,7 +196,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   }
 
   function addDictionaryWord(listId: string, entry: DictionaryEntry) {
-    if (lists.some(list => list.id === listId && list.words.some(word => word.term === entry.term))) return;
+    if (lists.some(list => list.id === listId && list.words.some(word => normalizeTerm(word.term) === normalizeTerm(entry.term)))) return;
     const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     if (!localOnly) pendingWordOperations.current.set(id, { kind: 'dictionary-create', listId, term: entry.term });
     setLists(current => current.map(list => list.id === listId
@@ -198,15 +206,15 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   }
 
   async function loadDictionaryDefinition(term: string) {
-    if (dictionaryDefinitions[term] !== undefined || definitionBusyTerm) return;
-    setDefinitionBusyTerm(term);
+    if (dictionaryDefinitions[term] !== undefined || definitionBusyTerms.has(term)) return;
+    setDefinitionBusyTerms(current => new Set(current).add(term));
     try {
-      const result = await request<{ definition: string }>(`/word-lists/dictionary/${encodeURIComponent(term)}/definition`);
-      setDictionaryDefinitions(current => ({ ...current, [term]: result.definition }));
+      const definition = await dictionaryDefinition(term);
+      setDictionaryDefinitions(current => ({ ...current, [term]: definition }));
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not load this definition.');
     } finally {
-      setDefinitionBusyTerm('');
+      setDefinitionBusyTerms(current => { const next = new Set(current); next.delete(term); return next; });
     }
   }
   async function changeWordStatus(listId: string, word: WordEntry) {
@@ -248,8 +256,13 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       let added = 0;
       const updatedLists = lists.map(list => {
         if (list.id !== listId) return list;
-        const existingTerms = new Set(list.words.map(word => word.term.toLowerCase()));
-        const addedWords = selectedRows.filter(row => !existingTerms.has(row.term.toLowerCase())).map(row => ({
+        const existingTerms = new Set(list.words.map(word => normalizeTerm(word.term)));
+        const addedWords = selectedRows.filter(row => {
+          const term = normalizeTerm(row.term);
+          if (existingTerms.has(term)) return false;
+          existingTerms.add(term);
+          return true;
+        }).map(row => ({
           id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           term: row.term.trim().toLowerCase(), definition: savedDefinition(row.definition),
           partOfSpeech: row.partOfSpeech, example: row.example, status: 'UNFAMILIAR' as const,
@@ -294,10 +307,10 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       {normalizedSearch && lists.length > 0 && visibleLists.length === 0 && <p className="account-message" role="status">No saved words match “{listSearch}”.</p>}
       {normalizedSearch.length >= 2 && <section className="dictionary-results" aria-label="Dictionary search results"><h3>Dictionary</h3><p className="account-message">Definitions from <a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">Simple English Wiktionary</a>, licensed under CC BY-SA.</p>{dictionaryBusy && <p className="account-message">Searching…</p>}{!dictionaryBusy && dictionaryResults.length === 0 && <p className="account-message">No dictionary matches.</p>}{dictionaryResults.map(entry => {
         const list = lists[0];
-        const alreadyAdded = list?.words.some(word => word.term === entry.term) ?? false;
-        const definition = entry.definition ?? dictionaryDefinitions[entry.term];
+        const alreadyAdded = list?.words.some(word => normalizeTerm(word.term) === normalizeTerm(entry.term)) ?? false;
+        const definition = entry.definition ?? dictionaryDefinitions[entry.term] ?? cachedDictionaryDefinition(entry.term);
         const sourceUrl = `https://simple.wiktionary.org/wiki/${encodeURIComponent(entry.term.replaceAll(' ', '_'))}`;
-        return <article className="dictionary-result" key={entry.term}><div><button className="dictionary-term" type="button" onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerm === entry.term}>{entry.term}</button><span>{definition ?? (definitionBusyTerm === entry.term ? 'Loading definition…' : 'Select the word to load its definition.')}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}<small><a href={sourceUrl} target="_blank" rel="noreferrer">Source: Simple English Wiktionary (CC BY-SA)</a></small></div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
+        return <article className="dictionary-result" key={entry.term}><div><button className="dictionary-term" type="button" aria-expanded={definition !== undefined} onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerms.has(entry.term)}>{entry.term}</button><span>{definition ?? (definitionBusyTerms.has(entry.term) ? 'Loading definition…' : 'Select the word to view its definition.')}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}<small><a href={sourceUrl} target="_blank" rel="noreferrer">Source: Simple English Wiktionary (CC BY-SA)</a></small></div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
       })}</section>}
       {visibleLists.map(list => {
         const listMatches = list.name.toLowerCase().includes(normalizedSearch);

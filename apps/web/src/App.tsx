@@ -1,6 +1,7 @@
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import AccountPanel from './AccountPanel';
 import WordListsPanel from './WordListsPanel';
+import { normalizeTerm, rememberDictionaryDefinition } from './dictionary-cache';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
@@ -158,7 +159,7 @@ export default function App() {
       const lists = await api<WordListSummary[]>('/word-lists');
       const list = lists[0];
       if (!list) throw new Error('Your word list is unavailable.');
-      if (!list.words.some(word => word.term === term)) {
+      if (!list.words.some(word => normalizeTerm(word.term) === normalizeTerm(term))) {
         await api(`/word-lists/${list.id}/words`, { method: 'POST', body: JSON.stringify({ term, definition: savedDefinition(definition) }) });
       }
       setAddedWords(current => new Set(current).add(term));
@@ -168,7 +169,7 @@ export default function App() {
           const stored = window.localStorage.getItem(LOCAL_WORD_LISTS_KEY);
           const lists = stored ? JSON.parse(stored) as { id: string; name: string; words: { id: string; term: string; definition: string; status: 'KNOWN' | 'UNFAMILIAR' }[] }[] : [];
           const localList = lists[0] ?? { id: '00000000-0000-4000-8000-000000000001', name: 'My words', words: [] };
-          if (!localList.words.some(word => word.term === term)) {
+          if (!localList.words.some(word => normalizeTerm(word.term) === normalizeTerm(term))) {
             localList.words.push({
               id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
               term, definition: savedDefinition(definition),
@@ -193,6 +194,8 @@ export default function App() {
         method: 'POST',
         body: JSON.stringify({ guess: guess.trim().toLowerCase() }),
       });
+      if (result.definition) rememberDictionaryDefinition(result.guess, result.definition);
+      if (result.answer && result.answerDefinition) rememberDictionaryDefinition(result.answer, result.answerDefinition);
       setGame({ ...game, guesses: [...game.guesses, result] });
       setGuess('');
       if (result.completed) {
