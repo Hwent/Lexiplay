@@ -1,5 +1,7 @@
 # Development guide
 
+For a guided tour of the current code, file responsibilities, data structures, and technologies, start with [learn.md](learn.md).
+
 ## Component boundaries
 
 - **Web** owns presentation, navigation, accessibility, and transient input state. It calls the API through a typed client/contract boundary.
@@ -29,7 +31,7 @@ Word-list uploads support `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf
 
 ## Local setup
 
-Use Node.js 22+, pnpm 10+, and Docker Desktop. Copy `.env.example` to `.env` when service configuration is introduced. Never commit secrets or real user data. Run `pnpm install` from the repository root so the lockfile governs every workspace package.
+Use Node.js 22+, the pinned pnpm 11.25.0, and Docker Desktop. `.env.example` documents sample settings; the current launcher and API read `process.env` and do not automatically load `.env`. Set custom values such as `DATABASE_URL` in the shell before running commands. Never commit secrets or real user data. Run `pnpm install` from the repository root so the lockfile governs every workspace package.
 
 Run `pnpm dev` to start the API and web development server. The dev script selects free loopback ports and prints the browser URL, which also works in environments that reserve common fixed development ports. Active practice games are held in API memory, so restarting the API clears them.
 
