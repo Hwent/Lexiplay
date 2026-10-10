@@ -10,6 +10,8 @@ The Word List page combines the user's saved words with dictionary search result
 
 Dictionary searches use the API after a 400 ms typing pause, with at least two characters. Click the headword itself to show its definition. Searches and canonical definitions share a browser cache across pages and reloads, including definitions returned during games. The cache keeps up to 100 search queries and 300 definitions for 24 hours; expired or missing entries use the API. Storage failures fall back to memory. Personal definitions are never placed in this cache or replaced by dictionary results. Duplicate additions are skipped; edits cannot rename a word to another existing term, and local imports skip repeated terms.
 
+Search matches initially show only clickable headwords and bookmark controls; definitions and parts of speech appear when a word is selected. Attribution lives on `/licenses`, linked from every page footer. Saved words have Previous/Next pagination with 20 entries per page; searches reset the page. Changing app pages clears the search field, while submitting a search explicitly carries that query to the Word List page. Play setup uses six radio tiles for word length and a switch for personal-word mode.
+
 ## Import flow
 
 Supported formats are `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf`. The user selects a file, previews parsed words, then confirms the import. The preview reports duplicates and invalid rows. Imported words receive the Unfamiliar status by default. Definitions and examples are stored as plain text; uploaded files are not retained.

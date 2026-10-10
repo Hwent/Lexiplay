@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -22,7 +22,7 @@ describe('practice puzzle', () => {
 
     render(<App />);
     await user.click(screen.getByRole('button', { name: /^play$/i }));
-    await user.selectOptions(screen.getByRole('combobox', { name: /word length/i }), '4');
+    await user.click(screen.getByRole('radio', { name: '4 letters' }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     const guessInput = await screen.findByRole('textbox', { name: /four-letter guess/i });
     await user.paste('word');
@@ -145,5 +145,38 @@ describe('practice puzzle', () => {
     await user.click(screen.getByRole('button', { name: /play/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/play');
+    expect(screen.getByRole('searchbox', { name: /search your words/i })).toHaveValue('');
+  });
+
+  it('clears search on page navigation and keeps attribution on the footer licenses page', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => new Response(String(input).endsWith('/auth/me') ? '{}' : '[]')));
+    const user = userEvent.setup();
+    render(<App />);
+    const search = screen.getByRole('searchbox', { name: /search your words/i });
+    await user.type(search, 'because');
+    await user.click(screen.getByRole('link', { name: 'Licenses' }));
+    expect(search).toHaveValue('');
+    expect(window.location.pathname).toBe('/licenses');
+    expect(screen.getByRole('region', { name: 'Licenses and attribution' })).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Simple English Wiktionary' })).toBeInTheDocument();
+    await user.type(search, 'apple');
+    act(() => { window.history.pushState({}, '', '/library'); window.dispatchEvent(new PopStateEvent('popstate')); });
+    expect(search).toHaveValue('');
+    expect(screen.queryByText(/definitions are adapted/i)).not.toBeInTheDocument();
+  });
+
+  it('selects word lengths and the personal pool with the redesigned controls', async () => {
+    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 401 })));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: /^play$/i }));
+    expect(screen.getByRole('radio', { name: '5 letters' })).toBeChecked();
+    await user.click(screen.getByRole('radio', { name: '8 letters' }));
+    expect(screen.getByRole('radio', { name: '8 letters' })).toBeChecked();
+    expect(screen.getByRole('radio', { name: '5 letters' })).not.toBeChecked();
+    const personalPool = screen.getByRole('switch', { name: 'Play with my words' });
+    await user.click(personalPool);
+    expect(personalPool).toBeChecked();
+    expect(screen.getByText('Answers from your saved vocabulary.')).toBeInTheDocument();
   });
 });

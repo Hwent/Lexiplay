@@ -62,6 +62,9 @@ describe('vocabulary list panel', () => {
 
     render(<WordListsPanel pageMode searchQuery="apple" />);
     await screen.findByRole('button', { name: 'apple' });
+    expect(screen.queryByText(/select the word to/i)).not.toBeInTheDocument();
+    expect(screen.queryByText('noun')).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: /wiktionary/i })).not.toBeInTheDocument();
     expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary/apple/definition'))).toBe(false);
     await user.click(screen.getByRole('button', { name: 'apple' }));
     expect(await screen.findByText('The round fruit of a tree of the rose family.')).toBeInTheDocument();
@@ -91,6 +94,7 @@ describe('vocabulary list panel', () => {
     expect(await screen.findByText('A dictionary fruit.')).toBeInTheDocument();
     page.unmount();
     render(<WordListsPanel searchQuery=" APPLE " />);
+    await user.click(await screen.findByRole('button', { name: 'apple' }));
     expect(await screen.findByText('A dictionary fruit.')).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(([path]) => String(path).includes('/dictionary?q='))).toHaveLength(1);
     expect(fetchMock.mock.calls.filter(([path]) => String(path).endsWith('/definition'))).toHaveLength(1);
@@ -107,6 +111,7 @@ describe('vocabulary list panel', () => {
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     render(<WordListsPanel pageMode searchQuery="apple" />);
+    await user.click(await screen.findByRole('button', { name: 'apple' }));
     expect(await screen.findByText('The canonical dictionary fruit.')).toBeInTheDocument();
     expect(screen.getByText('My own definition.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Already in word list' })).toBeDisabled();
@@ -152,6 +157,30 @@ describe('vocabulary list panel', () => {
     firstRender.unmount();
     render(<WordListsPanel pageMode />);
     expect(await screen.findByText('localword')).toBeInTheDocument();
+  });
+
+  it('shows 20 saved words per page and returns to the first page when searching', async () => {
+    const words = Array.from({ length: 45 }, (_, index) => ({
+      id: `word-${index}`, term: `word${String.fromCharCode(97 + Math.floor(index / 26), 97 + index % 26)}`,
+      definition: 'A saved word.', status: 'UNFAMILIAR',
+    }));
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => new Response(JSON.stringify(String(input).endsWith('/word-lists') ? [{ ...list, words }] : []))));
+    const user = userEvent.setup();
+    const page = render(<WordListsPanel pageMode />);
+    await screen.findByText('wordaa');
+    expect(screen.getAllByRole('listitem')).toHaveLength(20);
+    expect(screen.getByRole('button', { name: 'Previous' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getByText('wordau')).toBeInTheDocument();
+    expect(screen.queryByText('wordaa')).not.toBeInTheDocument();
+    expect(screen.getByText('Page 2 of 3')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Next' }));
+    expect(screen.getAllByRole('listitem')).toHaveLength(5);
+    expect(screen.getByRole('button', { name: 'Next' })).toBeDisabled();
+    page.rerender(<WordListsPanel pageMode searchQuery="wordaa" />);
+    expect(await screen.findByText('wordaa')).toBeInTheDocument();
+    expect(screen.getAllByRole('listitem')).toHaveLength(1);
+    expect(screen.queryByRole('navigation', { name: 'Word list pages' })).not.toBeInTheDocument();
   });
 
   it('truncates a long dictionary definition when a signed-out user saves it locally', async () => {

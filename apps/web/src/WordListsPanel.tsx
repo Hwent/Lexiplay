@@ -1,5 +1,5 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
-import { cachedDictionaryDefinition, dictionaryDefinition, DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
+import { dictionaryDefinition, DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
 
 type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; example?: string | null; status: WordStatus };
@@ -69,6 +69,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [uploadOpen, setUploadOpen] = useState(false);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [listSearch, setListSearch] = useState(searchQuery);
+  const [wordPage, setWordPage] = useState(1);
   const [dictionaryResults, setDictionaryResults] = useState<DictionaryEntry[]>([]);
   const [dictionaryBusy, setDictionaryBusy] = useState(false);
   const [dictionaryDefinitions, setDictionaryDefinitions] = useState<Record<string, string>>({});
@@ -77,6 +78,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const pendingWordOperations = useRef(new Map<string, PendingWordOperation>());
 
   useEffect(() => setListSearch(searchQuery), [searchQuery]);
+  useEffect(() => { setWordPage(1); setDictionaryDefinitions({}); }, [searchQuery]);
   useEffect(() => {
     const query = normalizeTerm(searchQuery);
     let active = true;
@@ -305,18 +307,20 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       {busy && !lists.length && <p className="account-message">Loading your lists…</p>}
       {!busy && authenticated && !lists.length && !message && <p className="account-message">Your lists will appear here.</p>}
       {normalizedSearch && lists.length > 0 && visibleLists.length === 0 && <p className="account-message" role="status">No saved words match “{listSearch}”.</p>}
-      {normalizedSearch.length >= 2 && <section className="dictionary-results" aria-label="Dictionary search results"><h3>Dictionary</h3><p className="account-message">Definitions from <a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">Simple English Wiktionary</a>, licensed under CC BY-SA.</p>{dictionaryBusy && <p className="account-message">Searching…</p>}{!dictionaryBusy && dictionaryResults.length === 0 && <p className="account-message">No dictionary matches.</p>}{dictionaryResults.map(entry => {
+      {normalizedSearch.length >= 2 && <section className="dictionary-results" aria-label="Dictionary search results"><h3>Dictionary</h3>{dictionaryBusy && <p className="account-message">Searching…</p>}{!dictionaryBusy && dictionaryResults.length === 0 && <p className="account-message">No dictionary matches.</p>}{dictionaryResults.map(entry => {
         const list = lists[0];
         const alreadyAdded = list?.words.some(word => normalizeTerm(word.term) === normalizeTerm(entry.term)) ?? false;
-        const definition = entry.definition ?? dictionaryDefinitions[entry.term] ?? cachedDictionaryDefinition(entry.term);
-        const sourceUrl = `https://simple.wiktionary.org/wiki/${encodeURIComponent(entry.term.replaceAll(' ', '_'))}`;
-        return <article className="dictionary-result" key={entry.term}><div><button className="dictionary-term" type="button" aria-expanded={definition !== undefined} onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerms.has(entry.term)}>{entry.term}</button><span>{definition ?? (definitionBusyTerms.has(entry.term) ? 'Loading definition…' : 'Select the word to view its definition.')}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}<small><a href={sourceUrl} target="_blank" rel="noreferrer">Source: Simple English Wiktionary (CC BY-SA)</a></small></div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
+        const definition = dictionaryDefinitions[entry.term];
+        return <article className="dictionary-result" key={entry.term}><div><button className="dictionary-term" type="button" aria-expanded={definition !== undefined} onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerms.has(entry.term)}>{entry.term}</button>{definition !== undefined && <><span>{definition || 'Definition unavailable.'}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</>}{definitionBusyTerms.has(entry.term) && <span role="status">Loading definition…</span>}</div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
       })}</section>}
       {visibleLists.map(list => {
         const listMatches = list.name.toLowerCase().includes(normalizedSearch);
         const visibleWords = normalizedSearch && !listMatches
           ? list.words.filter(word => `${word.term} ${word.definition}`.toLowerCase().includes(normalizedSearch))
           : list.words;
+        const pageCount = Math.max(1, Math.ceil(visibleWords.length / 20));
+        const currentPage = Math.min(wordPage, pageCount);
+        const pageWords = visibleWords.slice((currentPage - 1) * 20, currentPage * 20);
         return <article className="word-list-card" key={list.id}>
         <div className="word-list-heading">
           <div className="word-list-select">
@@ -360,7 +364,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
             <button className="account-action" type="submit">Add</button>
           </form>}
           <ul className="word-entry-list">
-            {visibleWords.map(word => <li key={word.id}>
+            {pageWords.map(word => <li key={word.id}>
               {editingWordId === word.id ? <form className="word-edit-form" onSubmit={event => saveWord(event, list.id, word.id)}>
                 <label htmlFor={`edit-term-${word.id}`}>Word</label>
                 <input id={`edit-term-${word.id}`} value={editingTerm} onChange={event => setEditingTerm(event.target.value)} required maxLength={100} pattern="[A-Za-z][A-Za-z '-]{0,99}" />
@@ -376,6 +380,12 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
               </>}
             </li>)}
           </ul>
+          {visibleWords.length > 20 && <nav className="word-pagination" aria-label="Word list pages">
+            <span>{(currentPage - 1) * 20 + 1}–{Math.min(currentPage * 20, visibleWords.length)} of {visibleWords.length} words</span>
+            <div><button type="button" disabled={currentPage === 1} onClick={() => { setWordPage(currentPage - 1); setEditingWordId(''); }}>Previous</button>
+              <span aria-live="polite">Page {currentPage} of {pageCount}</span>
+              <button type="button" disabled={currentPage === pageCount} onClick={() => { setWordPage(currentPage + 1); setEditingWordId(''); }}>Next</button></div>
+          </nav>}
           </section>
         </div>
       </article>;

@@ -5,9 +5,10 @@ import { normalizeTerm, rememberDictionaryDefinition } from './dictionary-cache'
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
-type Section = 'home' | 'play' | 'library' | 'progress' | 'community' | 'settings';
+type Section = 'home' | 'play' | 'library' | 'progress' | 'community' | 'settings' | 'licenses';
 const sectionPaths: Record<Section, string> = {
   home: '/', play: '/play', library: '/library', progress: '/progress', community: '/community', settings: '/settings',
+  licenses: '/licenses',
 };
 const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
 type GuessResult = {
@@ -80,6 +81,7 @@ export default function App() {
     const syncSection = () => {
       window.dispatchEvent(new Event('lexiplay:before-route-change'));
       const nextSection = pathSections[window.location.pathname] ?? 'home';
+      setQuickSearch('');
       if (nextSection !== 'play') resetGame();
       setActiveSection(nextSection);
     };
@@ -87,11 +89,12 @@ export default function App() {
     return () => window.removeEventListener('popstate', syncSection);
   }, []);
 
-  function navigateTo(section: Section) {
+  function navigateTo(section: Section, search?: string) {
     const path = sectionPaths[section];
     if (section !== 'play') resetGame();
     if (window.location.pathname !== path) window.dispatchEvent(new Event('lexiplay:before-route-change'));
     if (window.location.pathname !== path) window.history.pushState({}, '', path);
+    if (section !== activeSection) setQuickSearch(search ?? '');
     setActiveSection(section);
   }
 
@@ -255,7 +258,7 @@ export default function App() {
 
   const sectionTitle: Record<Section, string> = {
     home: 'Home', play: 'Play', library: 'Word List',
-    progress: 'Statistics', community: 'Community', settings: 'Settings',
+    progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses',
   };
   const navigation: { key: Section; icon: string }[] = [
     { key: 'home', icon: '⌂' }, { key: 'play', icon: '▦' }, { key: 'library', icon: '▤' },
@@ -275,7 +278,7 @@ export default function App() {
       <header className="topbar">
         <div className="page-title"><p className="eyebrow">YOUR LEARNING SPACE</p><h1>{sectionTitle[activeSection]}</h1></div>
         <div className="header-actions">
-          <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('library'); }}>
+          <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('library', quickSearch); }}>
             <label className="sr-only" htmlFor="quick-search">Search your words</label>
             <input id="quick-search" type="search" value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search words" />
             <button type="submit" aria-label="Search words">⌕</button>
@@ -299,12 +302,20 @@ export default function App() {
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
             <h2>A fresh word is waiting.</h2>
-            <p>Choose a word length, then solve it in six tries. You’ll get a hint after each guess.</p>
-            <label className="length-picker" htmlFor="word-length">Word length</label>
-            <select id="word-length" value={selectedWordLength} onChange={event => setSelectedWordLength(Number(event.target.value))}>
-              {[3, 4, 5, 6, 7, 8].map(length => <option value={length} key={length}>{length} letters</option>)}
-            </select>
-            <label className="play-my-words"><input type="checkbox" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /> Play with my words</label>
+            <p>Make it your kind of practice. Pick a word length and find the answer in six tries.</p>
+            <div className="practice-options">
+              <fieldset className="length-options"><legend>Word length</legend><p>A little shorter, or a little more challenging.</p>
+                <div className="length-segments">
+                  {[3, 4, 5, 6, 7, 8].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
+                    <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={`${length} letters`} />
+                    <span>{length}</span><small>letters</small>
+                  </label>)}
+                </div>
+              </fieldset>
+              <label className="word-pool-option"><span className="word-pool-icon" aria-hidden="true">▤</span><span><strong>Play with my words</strong><small>{playWithMyWords ? 'Answers from your saved vocabulary.' : 'Explore the full game dictionary.'}</small></span>
+                <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /><span className="option-switch" aria-hidden="true" />
+              </label>
+            </div>
             <button className="primary-button" onClick={startPractice} disabled={busy}>
               {busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
             </button>
@@ -381,7 +392,14 @@ export default function App() {
       {activeSection === 'progress' && <section className="section-placeholder"><span aria-hidden="true">▥</span><h2>Your learning history will live here.</h2><p>Practice with words from your own lists to build a record of what you’ve learned.</p><button type="button" className="primary-button" onClick={() => navigateTo('library')}>Open your word list <span aria-hidden="true">→</span></button></section>}
       {activeSection === 'community' && <section className="section-placeholder"><span aria-hidden="true">♧</span><h2>Learn alongside others.</h2><p>Community features are being planned. Your private word lists stay yours.</p></section>}
       {activeSection === 'settings' && <section className="settings-page"><h2>Appearance</h2><p>Choose the theme that feels comfortable.</p><button className="theme-toggle" type="button" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '☾ Dark mode'}</button></section>}
-      <footer className="workspace-footer"><span>Thoughtful practice, one word at a time.</span><span className="footer-seed" aria-hidden="true">✳</span></footer>
+      {activeSection === 'licenses' && <section className="licenses-page" aria-label="Licenses and attribution">
+        <p className="eyebrow">SOURCES & ATTRIBUTION</p><h2>Words with a shared history.</h2><p>Our dictionary starts with the work of the Simple English Wiktionary community.</p>
+        <article><h3>Dictionary definitions</h3><p>Definitions are adapted from <a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">Simple English Wiktionary</a>, under the <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">Creative Commons Attribution-ShareAlike 3.0 license</a>, as described in the project’s <a href="https://simple.wiktionary.org/wiki/Wiktionary:Rules" target="_blank" rel="noreferrer">rules</a> and <a href="https://simple.wiktionary.org/wiki/Wiktionary:Copyrights" target="_blank" rel="noreferrer">copyright notice</a>.</p>
+          <p>LexiPlay removes markup, normalizes spacing, and shortens definitions to the first two senses. Community definitions may vary in accuracy.</p>
+          <p>Use <a href="https://simple.wiktionary.org/wiki/Special:Search" target="_blank" rel="noreferrer">Wiktionary’s entry search</a> to find an original word page and its contributors in the revision history. Shared adaptations remain subject to the applicable attribution and ShareAlike terms.</p>
+        </article>
+      </section>}
+      <footer className="workspace-footer"><span>Thoughtful practice, one word at a time.</span><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>Licenses</a><span className="footer-seed" aria-hidden="true">✳</span></footer>
       </div>
     </main>
   );

@@ -288,11 +288,16 @@ body { background: var(--page); }
 .dictionary-results h3 { margin: 0 0 .5rem; font-family: inherit; font-size: .95rem; }
 .dictionary-result { padding: .65rem 0; display: flex; align-items: center; justify-content: space-between; gap: .8rem; border-top: 1px solid var(--line); }
 .dictionary-result > div { min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
-.dictionary-term { width: fit-content; padding: 0; border: 0; background: transparent; color: var(--text); cursor: pointer; font-size: .9rem; font-weight: 700; text-align: left; text-decoration: underline; text-underline-offset: .15em; }
+.dictionary-term { width: fit-content; padding: .2rem 0; border: 0; background: transparent; color: var(--text); cursor: pointer; font: inherit; font-size: 1rem; font-weight: 650; text-align: left; }
+.dictionary-term:hover { color: var(--accent); }
+.dictionary-term:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; border-radius: .2rem; }
 .dictionary-term:disabled { opacity: .65; cursor: wait; }
 .dictionary-result span { color: var(--soft-text); font-size: .78rem; line-height: 1.4; }
 .dictionary-result small { color: var(--muted); font-size: .7rem; }
 .dictionary-result .account-action { flex: 0 0 auto; margin: 0; min-height: 2.2rem; }
+.dictionary-result .bookmark-button { padding: .5rem; border: 1px solid var(--line); border-radius: .6rem; background: transparent; color: var(--accent); cursor: pointer; }
+.dictionary-result .bookmark-button:hover:not(:disabled) { border-color: var(--accent); background: var(--accent-soft); }
+.dictionary-result .bookmark-button:disabled { opacity: .5; cursor: default; }
 .word-status { flex: 0 0 auto; padding: .3rem .5rem; border: 1px solid var(--line); border-radius: 99px; background: transparent; color: var(--muted); cursor: pointer; font-size: .68rem; }
 .word-status.known { border-color: #3f9d78; background: color-mix(in srgb, #3f9d78 15%, transparent); color: #51bd91; }
 .word-status.unfamiliar { border-color: var(--present); background: color-mix(in srgb, var(--present) 15%, transparent); color: var(--present); }
@@ -326,6 +331,47 @@ body { background: var(--page); }
 .section-placeholder .primary-button { margin-top: 1.2rem; }
 .settings-page { margin-top: 1rem; padding: 1.2rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--surface); }
 .settings-page .theme-toggle { margin-top: 1rem; }
+
+.word-pagination { margin-top: .8rem; padding-top: 1rem; display: flex; align-items: center; justify-content: space-between; gap: .8rem; border-top: 1px solid var(--line); color: var(--muted); font-size: .78rem; }
+.word-pagination > div { display: flex; align-items: center; gap: .75rem; }
+.word-pagination button { padding: .5rem .7rem; border: 1px solid var(--line); border-radius: .55rem; background: var(--surface-soft); color: var(--text); cursor: pointer; }
+.word-pagination button:hover:not(:disabled) { border-color: var(--accent); color: var(--accent); }
+.word-pagination button:disabled { opacity: .4; cursor: default; }
+.practice-options { width: min(100%, 29rem); margin: 1.2rem auto 0; text-align: left; }
+.length-options { margin: 0; padding: 0; border: 0; }
+.length-options legend { padding: 0; font-size: .9rem; font-weight: 700; }
+.welcome-card .length-options p { margin: .3rem 0 .8rem; font-size: .78rem; }
+.length-segments { padding: .3rem; display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .25rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--surface-soft); }
+.length-segments label { position: relative; min-height: 3.8rem; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: .15rem; border: 1px solid transparent; border-radius: .65rem; color: var(--muted); cursor: pointer; }
+.length-segments label:hover { background: var(--accent-soft); }
+.length-segments label.selected { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.length-segments label.selected > span { color: var(--text); }
+.length-segments label:focus-within { outline: 2px solid var(--accent); outline-offset: 2px; }
+.length-segments input, .word-pool-option input { position: absolute; width: 1px; height: 1px; opacity: 0; }
+.length-segments label > span { font-size: 1.3rem; font-weight: 750; }
+.length-segments small { font-size: .65rem; }
+.word-pool-option { position: relative; margin-top: 1rem; padding: 1rem; display: flex; align-items: center; gap: .8rem; border: 1px solid var(--line); border-radius: .9rem; cursor: pointer; }
+.word-pool-option:has(input:checked) { border-color: var(--accent); background: var(--accent-soft); }
+.word-pool-option:focus-within { outline: 2px solid var(--accent); outline-offset: 3px; }
+.word-pool-icon { color: var(--accent); font-size: 1.4rem; }
+.word-pool-option strong, .word-pool-option small { display: block; }
+.word-pool-option strong { font-size: .85rem; }
+.word-pool-option small { margin-top: .25rem; color: var(--muted); font-size: .73rem; line-height: 1.4; }
+.option-switch { width: 2.5rem; height: 1.5rem; margin-left: auto; flex: 0 0 auto; padding: .2rem; border-radius: 99px; background: var(--control-border); transition: background .15s; }
+.option-switch::after { display: block; width: 1.1rem; height: 1.1rem; border-radius: 50%; background: var(--surface); box-shadow: 0 1px 3px #0003; content: ''; transition: transform .15s; }
+.word-pool-option input:checked + .option-switch { background: var(--accent); }
+.word-pool-option input:checked + .option-switch::after { transform: translateX(1rem); }
+.welcome-card .practice-options + .primary-button { margin-top: 1.2rem; min-width: min(100%, 29rem); border-radius: .75rem; }
+.workspace-footer a, .licenses-page a { color: var(--accent); text-underline-offset: .2em; }
+.licenses-page { width: min(100%, 46rem); margin: 1rem auto 2rem; padding: clamp(1.2rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
+.licenses-page h2 { margin-top: .4rem; font-size: clamp(1.5rem, 3vw, 2rem); letter-spacing: -.04em; }
+.licenses-page p { color: var(--muted); line-height: 1.7; font-size: .9rem; }
+.licenses-page article { margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid var(--line); }
+@media (max-width: 520px) {
+  .word-pagination { align-items: flex-start; flex-direction: column; }
+  .word-pagination > div { width: 100%; justify-content: space-between; gap: .4rem; }
+  .word-pool-option { padding: .8rem; gap: .6rem; }
+}
 
 @media (max-width: 800px) {
   .app-shell { grid-template-columns: 4.5rem minmax(0, 1fr); }
