@@ -49,7 +49,7 @@ Use UUID primary keys, UTC timestamps (`createdAt`, `updatedAt`), foreign keys, 
 |---|---|
 | `User` | `id`, unique normalized `email`, `passwordHash` or external auth identity, `createdAt`; owns lists and games. Keep profile fields minimal. |
 | `WordList` | `id`, `ownerId` nullable for system lists, `name`, `description`, `visibility` (`PRIVATE`/`SYSTEM`), `source`, timestamps; index owner/name. |
-| `Word` | `id`, `listId`, normalized `term`, `definition`, nullable `partOfSpeech`, `example`, `language`, `source`, `isPlayable`, timestamps; unique `(listId, term)`, index `(listId, isPlayable)`. |
+| `Word` | `id`, `listId`, normalized `term`, `definition`, nullable `partOfSpeech`, `language`, `isPlayable`, timestamps; unique `(listId, term)`, index `(listId, isPlayable)`. |
 | `Game` | `id`, `userId` nullable for guest preview, `listId`, `status`, `answerWordId` nullable plus `answerSnapshot`, `attemptLimit`, `startedAt`, nullable `completedAt`, `outcome`; index `(userId, startedAt)`. Protect answer fields from ordinary read DTOs. |
 | `Guess` | `id`, `gameId`, `position`, normalized `term`, `feedback` JSON or per-letter rows, `createdAt`; unique `(gameId, position)`. Persist only accepted guesses. |
 | `ReviewItem` | `id`, `userId`, `wordId`, `sourceGameId`, `dueAt`, nullable `lastReviewedAt`, `reviewCount`; unique `(userId, wordId)` for MVP, index `(userId, dueAt)`. |

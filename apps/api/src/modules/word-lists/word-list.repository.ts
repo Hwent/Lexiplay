@@ -2,7 +2,7 @@ import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
 
 export type WordStatus = 'KNOWN' | 'UNFAMILIAR';
-export type WordEntry = { id: string; term: string; definition: string; partOfSpeech: string | null; example: string | null; status: WordStatus };
+export type WordEntry = { id: string; term: string; definition: string; partOfSpeech: string | null; status: WordStatus };
 export type WordList = { id: string; name: string; words: WordEntry[] };
 type WordListRow = Omit<WordList, 'words'>;
 export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[] };
@@ -61,17 +61,17 @@ export class WordListRepository implements OnModuleDestroy {
   async addDictionaryWord(ownerId: string, listId: string, term: string): Promise<WordEntry | null> {
     await this.ensureSchema();
     const { rows } = await this.pool.query<WordEntry>(
-      `INSERT INTO user_words (list_id, term, definition, part_of_speech, example)
+      `INSERT INTO user_words (list_id, term, definition, part_of_speech)
        SELECT lists.id, dictionary.term,
               CASE WHEN char_length(dictionary.definition) > 500
                 THEN left(dictionary.definition, 499) || '…'
                 ELSE dictionary.definition
               END,
-              dictionary.part_of_speech[1], NULL
+              dictionary.part_of_speech[1]
        FROM user_word_lists AS lists CROSS JOIN dictionary_words AS dictionary
        WHERE lists.owner_id = $1 AND lists.id = $2 AND dictionary.term = $3
        ON CONFLICT (list_id, term) DO UPDATE SET term = EXCLUDED.term
-       RETURNING id, term, definition, part_of_speech AS "partOfSpeech", example, status`,
+       RETURNING id, term, definition, part_of_speech AS "partOfSpeech", status`,
       [ownerId, listId, term],
     );
     return rows[0] ?? null;
@@ -80,10 +80,10 @@ export class WordListRepository implements OnModuleDestroy {
   async addWord(ownerId: string, listId: string, word: Omit<WordEntry, 'id' | 'status'>): Promise<WordEntry | null> {
     await this.ensureSchema();
     const { rows } = await this.pool.query<WordEntry>(
-      `INSERT INTO user_words (list_id, term, definition, part_of_speech, example)
-       SELECT id, $3, $4, $5, $6 FROM user_word_lists WHERE owner_id = $1 AND id = $2
-       RETURNING id, term, definition, part_of_speech AS "partOfSpeech", example, status`,
-      [ownerId, listId, word.term, word.definition, word.partOfSpeech, word.example],
+      `INSERT INTO user_words (list_id, term, definition, part_of_speech)
+       SELECT id, $3, $4, $5 FROM user_word_lists WHERE owner_id = $1 AND id = $2
+       RETURNING id, term, definition, part_of_speech AS "partOfSpeech", status`,
+      [ownerId, listId, word.term, word.definition, word.partOfSpeech],
     );
     return rows[0] ?? null;
   }
@@ -94,17 +94,16 @@ export class WordListRepository implements OnModuleDestroy {
     const terms = words.map(word => word.term);
     const definitions = words.map(word => word.definition);
     const partsOfSpeech = words.map(word => word.partOfSpeech);
-    const examples = words.map(word => word.example);
     const { rows } = await this.pool.query<{ id: string }>(
-      `INSERT INTO user_words (list_id, term, definition, part_of_speech, example)
-       SELECT lists.id, incoming.term, incoming.definition, incoming.part_of_speech, incoming.example
+      `INSERT INTO user_words (list_id, term, definition, part_of_speech)
+       SELECT lists.id, incoming.term, incoming.definition, incoming.part_of_speech
        FROM user_word_lists AS lists
-       CROSS JOIN UNNEST($3::text[], $4::text[], $5::text[], $6::text[])
-         AS incoming(term, definition, part_of_speech, example)
+       CROSS JOIN UNNEST($3::text[], $4::text[], $5::text[])
+         AS incoming(term, definition, part_of_speech)
        WHERE lists.owner_id = $1 AND lists.id = $2
        ON CONFLICT (list_id, term) DO NOTHING
        RETURNING id`,
-      [ownerId, listId, terms, definitions, partsOfSpeech, examples],
+      [ownerId, listId, terms, definitions, partsOfSpeech],
     );
     return { added: rows.length, duplicates: words.length - rows.length };
   }
@@ -115,17 +114,16 @@ export class WordListRepository implements OnModuleDestroy {
       `UPDATE user_words AS words SET
        term = COALESCE($4, words.term), definition = COALESCE($5, words.definition),
        part_of_speech = CASE WHEN $6 THEN $7 ELSE words.part_of_speech END,
-       example = CASE WHEN $8 THEN $9 ELSE words.example END,
-       status = COALESCE($10, words.status),
+       status = COALESCE($8, words.status),
        updated_at = now()
        FROM user_word_lists AS lists
        WHERE words.id = $3 AND words.list_id = lists.id AND lists.owner_id = $1 AND lists.id = $2`,
       [ownerId, listId, wordId, patch.term ?? null, patch.definition ?? null,
-        patch.partOfSpeech !== undefined, patch.partOfSpeech ?? null, patch.example !== undefined, patch.example ?? null, patch.status ?? null],
+        patch.partOfSpeech !== undefined, patch.partOfSpeech ?? null, patch.status ?? null],
     );
     if (!rowCount) return null;
     const { rows } = await this.pool.query<WordEntry>(
-      `SELECT words.id, words.term, words.definition, words.part_of_speech AS "partOfSpeech", words.example, words.status
+      `SELECT words.id, words.term, words.definition, words.part_of_speech AS "partOfSpeech", words.status
        FROM user_words AS words WHERE words.id = $1`, [wordId],
     );
     return rows[0] ?? null;
@@ -147,7 +145,7 @@ export class WordListRepository implements OnModuleDestroy {
     if (!rows.length) return [];
     const ids = rows.map(row => row.id);
     const { rows: words } = await this.pool.query<WordEntry & { listId: string }>(
-      `SELECT id, list_id AS "listId", term, definition, part_of_speech AS "partOfSpeech", example, status
+      `SELECT id, list_id AS "listId", term, definition, part_of_speech AS "partOfSpeech", status
        FROM user_words WHERE list_id = ANY($1::uuid[]) ORDER BY created_at`, [ids],
     );
     return rows.map(row => ({ ...row, words: words.filter(word => word.listId === row.id).map(({ listId: _listId, ...word }) => word) }));
@@ -170,12 +168,12 @@ export class WordListRepository implements OnModuleDestroy {
         term varchar(100) NOT NULL CHECK (term ~ '^[a-z][a-z ''-]{0,99}$'),
         definition varchar(500) NOT NULL DEFAULT '',
         part_of_speech varchar(40),
-        example varchar(500),
         status varchar(16) NOT NULL DEFAULT 'UNFAMILIAR' CHECK (status IN ('KNOWN', 'UNFAMILIAR')),
         created_at timestamptz NOT NULL DEFAULT now(),
         updated_at timestamptz NOT NULL DEFAULT now(),
         UNIQUE (list_id, term)
       );
+      ALTER TABLE user_words DROP COLUMN IF EXISTS example;
       ALTER TABLE user_words ALTER COLUMN definition TYPE varchar(500)
         USING CASE WHEN char_length(definition) > 500 THEN left(definition, 499) || '…' ELSE definition END;
       UPDATE user_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
@@ -215,9 +213,9 @@ export class WordListRepository implements OnModuleDestroy {
       CREATE TABLE IF NOT EXISTS dictionary_words (
         term varchar(100) PRIMARY KEY,
         definition text NOT NULL,
-        part_of_speech text[] NOT NULL DEFAULT '{}',
-        source varchar(80) NOT NULL DEFAULT 'Simple English Wiktionary'
+        part_of_speech text[] NOT NULL DEFAULT '{}'
       );
+      ALTER TABLE dictionary_words DROP COLUMN IF EXISTS source;
       CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
       UPDATE dictionary_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
     `).then(() => undefined);

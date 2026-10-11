@@ -2,14 +2,14 @@ import { FormEvent, useEffect, useRef, useState } from 'react';
 import { dictionaryDefinition, DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
 
 type WordStatus = 'KNOWN' | 'UNFAMILIAR';
-type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; example?: string | null; status: WordStatus };
+type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; status: WordStatus };
 type PendingWordOperation =
   | { kind: 'create'; listId: string; term: string; definition: string }
   | { kind: 'dictionary-create'; listId: string; term: string }
   | { kind: 'update'; listId: string; term: string; definition: string }
   | { kind: 'delete'; listId: string };
 type WordList = { id: string; name: string; words: WordEntry[] };
-type ImportRow = { rowNumber: number; term: string; definition: string; partOfSpeech: string | null; example: string | null; selected: boolean; issues: string[] };
+type ImportRow = { rowNumber: number; term: string; definition: string; partOfSpeech: string | null; selected: boolean; issues: string[] };
 type ImportPreview = { rows: ImportRow[]; totals: { ready: number; warnings: number; rejected: number } };
 const LOCAL_WORD_LISTS_KEY = 'lexiplay-local-word-lists';
 
@@ -202,7 +202,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
     if (!localOnly) pendingWordOperations.current.set(id, { kind: 'dictionary-create', listId, term: entry.term });
     setLists(current => current.map(list => list.id === listId
-      ? { ...list, words: [...list.words, { id, term: entry.term, definition: savedDefinition(entry.definition ?? ''), status: 'UNFAMILIAR', partOfSpeech: entry.partOfSpeech.join(', '), example: null }] }
+      ? { ...list, words: [...list.words, { id, term: entry.term, definition: savedDefinition(entry.definition ?? ''), status: 'UNFAMILIAR', partOfSpeech: entry.partOfSpeech.join(', ') }] }
       : list));
     setMessage(`${entry.term} added as unfamiliar.`);
   }
@@ -267,7 +267,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
         }).map(row => ({
           id: `local-${Date.now()}-${Math.random().toString(36).slice(2)}`,
           term: row.term.trim().toLowerCase(), definition: savedDefinition(row.definition),
-          partOfSpeech: row.partOfSpeech, example: row.example, status: 'UNFAMILIAR' as const,
+          partOfSpeech: row.partOfSpeech, status: 'UNFAMILIAR' as const,
         }));
         added = addedWords.length;
         return { ...list, words: [...list.words, ...addedWords] };

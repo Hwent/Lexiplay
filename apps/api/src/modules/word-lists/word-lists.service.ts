@@ -50,7 +50,6 @@ export class WordListsService {
         term: input.term.trim().toLowerCase(),
         definition: trimDefinitionAtSecondSemicolon(input.definition?.trim() ?? ''),
         partOfSpeech: input.partOfSpeech?.trim() || null,
-        example: input.example?.trim() || null,
       });
       if (!word) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
       return word;
@@ -91,7 +90,6 @@ export class WordListsService {
         ...(input.term !== undefined ? { term: input.term.trim().toLowerCase() } : {}),
         ...(input.definition !== undefined ? { definition: trimDefinitionAtSecondSemicolon(input.definition.trim()) } : {}),
         ...(input.partOfSpeech !== undefined ? { partOfSpeech: input.partOfSpeech.trim() || null } : {}),
-        ...(input.example !== undefined ? { example: input.example.trim() || null } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
       });
       if (!word) throw new NotFoundException({ code: 'WORD_NOT_FOUND', message: 'This word could not be found.' });
@@ -122,7 +120,6 @@ export class WordListsService {
       term: row.term.trim().toLowerCase(),
       definition: trimDefinitionAtSecondSemicolon(row.definition.trim()),
       partOfSpeech: row.partOfSpeech?.trim() || null,
-      example: row.example?.trim() || null,
     }));
     const repeated = new Set<string>();
     for (const word of selected) {

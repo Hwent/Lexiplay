@@ -34,7 +34,7 @@ function pdfWithText(text: string): Buffer {
 
 class MemoryWordListRepository {
   private nextId = 1;
-  private lists: Array<{ id: string; ownerId: string; name: string; words: Array<{ id: string; term: string; definition: string; partOfSpeech?: string | null; example?: string | null; status: 'KNOWN' | 'UNFAMILIAR' }> }> = [];
+  private lists: Array<{ id: string; ownerId: string; name: string; words: Array<{ id: string; term: string; definition: string; partOfSpeech?: string | null; status: 'KNOWN' | 'UNFAMILIAR' }> }> = [];
 
   private uuid(prefix: number) { return `00000000-0000-4000-8000-${String(prefix).padStart(12, '0')}`; }
 
@@ -44,11 +44,11 @@ class MemoryWordListRepository {
   async create(ownerId: string) {
     const existing = this.lists.find(list => list.ownerId === ownerId);
     if (existing) return existing;
-    const list = { id: this.uuid(this.nextId++), ownerId, name: 'My words', words: [] as Array<{ id: string; term: string; definition: string; partOfSpeech?: string | null; example?: string | null; status: 'KNOWN' | 'UNFAMILIAR' }> };
+    const list = { id: this.uuid(this.nextId++), ownerId, name: 'My words', words: [] as Array<{ id: string; term: string; definition: string; partOfSpeech?: string | null; status: 'KNOWN' | 'UNFAMILIAR' }> };
     this.lists.push(list);
     return list;
   }
-  async addWord(ownerId: string, listId: string, word: { term: string; definition: string; partOfSpeech?: string | null; example?: string | null }) {
+  async addWord(ownerId: string, listId: string, word: { term: string; definition: string; partOfSpeech?: string | null }) {
     const list = await this.find(ownerId, listId);
     if (!list) return null;
     const saved = { id: this.uuid(this.nextId++), ...word, status: 'UNFAMILIAR' as const };
@@ -74,11 +74,11 @@ class MemoryWordListRepository {
     const existing = list.words.find(word => word.term === term);
     if (existing) return existing;
     const savedDefinition = definition.length > 500 ? `${definition.slice(0, 499)}…` : definition;
-    const saved = { id: this.uuid(this.nextId++), term, definition: savedDefinition, partOfSpeech: 'noun', example: null, status: 'UNFAMILIAR' as const };
+    const saved = { id: this.uuid(this.nextId++), term, definition: savedDefinition, partOfSpeech: 'noun', status: 'UNFAMILIAR' as const };
     list.words.push(saved);
     return saved;
   }
-  async importWords(ownerId: string, listId: string, words: { term: string; definition: string; partOfSpeech?: string; example?: string }[]) {
+  async importWords(ownerId: string, listId: string, words: { term: string; definition: string; partOfSpeech?: string }[]) {
     const list = await this.find(ownerId, listId);
     if (!list) return { added: 0, duplicates: 0 };
     let added = 0;
@@ -158,6 +158,7 @@ describe('owned vocabulary list HTTP endpoints', () => {
     expect(addedDictionaryWord.status).toBe(201);
     const word = await addedDictionaryWord.json() as { id: string; term: string };
     expect(word).toMatchObject({ term: 'apple', status: 'UNFAMILIAR' });
+    expect(word).not.toHaveProperty('example');
     const duplicateWord = await fetch(`${baseUrl}/${list.id}/dictionary`, { method: 'POST', headers, body: JSON.stringify({ term: 'apple' }) });
     expect(await duplicateWord.json()).toMatchObject({ id: word.id, status: 'UNFAMILIAR' });
 
@@ -230,6 +231,7 @@ describe('owned vocabulary list HTTP endpoints', () => {
       expect.objectContaining({ term: 'chair', definition: 'A seat' }),
     ]);
     expect(previewBody.totals.ready).toBe(2);
+    for (const row of previewBody.rows) expect(row).not.toHaveProperty('example');
 
     const foreignPreview = new FormData();
     foreignPreview.append('file', new Blob(['apple'], { type: 'text/plain' }), 'words.txt');
@@ -245,17 +247,21 @@ describe('owned vocabulary list HTTP endpoints', () => {
     expect(await refreshed.json()).toMatchObject({ words: [{ term: 'apple' }, { term: 'chair' }] });
 
     const csv = new FormData();
-    csv.append('file', new Blob(['word,definition\ngrape,A fruit'], { type: 'text/csv' }), 'words.csv');
+    csv.append('file', new Blob(['word,definition,part of speech,example\ngrape,A fruit,noun,A grape grows on a vine.'], { type: 'text/csv' }), 'words.csv');
     const csvPreview = await fetch(`${baseUrl}/${list.id}/import-preview`, { method: 'POST', headers, body: csv });
-    expect(await csvPreview.json()).toMatchObject({ rows: [expect.objectContaining({ term: 'grape', definition: 'A fruit' })] });
+    const csvBody = await csvPreview.json() as { rows: Record<string, unknown>[] };
+    expect(csvBody).toMatchObject({ rows: [expect.objectContaining({ term: 'grape', definition: 'A fruit', partOfSpeech: 'noun' })] });
+    expect(csvBody.rows[0]).not.toHaveProperty('example');
 
     const workbook = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['word', 'definition'], ['berry', 'A small fruit']]), 'Words');
+    XLSX.utils.book_append_sheet(workbook, XLSX.utils.aoa_to_sheet([['word', 'definition', 'part of speech', 'example'], ['berry', 'A small fruit', 'noun', 'A berry grows on a bush.']]), 'Words');
     const spreadsheet = XLSX.write(workbook, { type: 'buffer', bookType: 'xlsx' }) as Buffer;
     const xlsx = new FormData();
     xlsx.append('file', new Blob([new Uint8Array(spreadsheet)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }), 'words.xlsx');
     const xlsxPreview = await fetch(`${baseUrl}/${list.id}/import-preview`, { method: 'POST', headers, body: xlsx });
-    expect(await xlsxPreview.json()).toMatchObject({ rows: [expect.objectContaining({ term: 'berry', definition: 'A small fruit' })] });
+    const xlsxBody = await xlsxPreview.json() as { rows: Record<string, unknown>[] };
+    expect(xlsxBody).toMatchObject({ rows: [expect.objectContaining({ term: 'berry', definition: 'A small fruit', partOfSpeech: 'noun' })] });
+    expect(xlsxBody.rows[0]).not.toHaveProperty('example');
 
     const docx = new FormData();
     docx.append('file', new Blob([new Uint8Array(readFileSync(join(process.cwd(), 'src', 'modules', 'word-lists', 'fixtures', 'minimal.docx')))], { type: 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' }), 'words.docx');

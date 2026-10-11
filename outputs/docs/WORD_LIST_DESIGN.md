@@ -1,6 +1,6 @@
 # Word List — Product and API design
 
-**Status:** Current implementation · **Updated:** 2026-10-09
+**Status:** Current implementation · **Updated:** 2026-10-11
 
 ## Product behavior
 
@@ -14,7 +14,7 @@ Search matches initially show only clickable headwords and bookmark controls; de
 
 ## Import flow
 
-Supported formats are `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf`. The user selects a file, previews parsed words, then confirms the import. The preview reports duplicates and invalid rows. Imported words receive the Unfamiliar status by default. Definitions and examples are stored as plain text; uploaded files are not retained.
+Supported formats are `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf`. The user selects a file, previews parsed words, then confirms the import. The preview reports duplicates and invalid rows. Imported words receive the Unfamiliar status by default. Definitions are stored as plain text; uploaded files are not retained.
 
 Limits are enforced by the API: 5 MB maximum upload, 1,000 preview rows, and PDF extraction from the first 50 pages. Image-only/scanned PDFs need OCR and currently produce no extracted words. Macro-enabled workbooks and legacy `.doc` files are not accepted.
 
@@ -37,6 +37,8 @@ Dictionary search and definition lookup are public. Personal list endpoints requ
 The API accepts terms containing letters, spaces, apostrophes, and hyphens, up to 100 characters. Terms are normalized to lowercase. A unique constraint prevents duplicate terms in one user's list. The overall list is created lazily on first `GET /word-lists`; a database migration merges any previous lists for each owner, keeps duplicate terms once, removes the description field, and enforces one list per owner.
 
 ## Shared dictionary
+
+Dictionary rows contain `term`, `definition`, and `part_of_speech`. The former per-row `source` field has been removed; source attribution remains in the license notice and `/licenses` page. Personal words no longer store example sentences. Existing databases remove both retired columns during repository schema setup.
 
 The PostgreSQL `dictionary_words` table is LexiPlay’s canonical dictionary. Search, definitions, game answers, and accepted guesses use these stored entries. Simple English Wiktionary supplies the initial data. The seed command reads namespace-zero entry revisions from the MediaWiki API, extracts the first two definition lines and their parts of speech, excludes redirects, and filters entries to terms supported by LexiPlay. Page introductions are not used because many dictionary entries, including “because,” have no introduction:
 

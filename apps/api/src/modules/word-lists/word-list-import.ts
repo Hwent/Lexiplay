@@ -9,7 +9,6 @@ export type ImportPreviewRow = {
   term: string;
   definition: string;
   partOfSpeech: string | null;
-  example: string | null;
   selected: boolean;
   issues: ImportIssue[];
 };
@@ -74,7 +73,6 @@ export class WordListImportService {
       let term = columns[termColumn] ?? '';
       let definition = columns[headerAt === 0 ? headers.findIndex(value => ['definition', 'meaning'].includes(value)) : 1] ?? '';
       let partOfSpeech = columns[headerAt === 0 ? headers.findIndex(value => ['part of speech', 'pos'].includes(value)) : 2] ?? '';
-      let example = columns[headerAt === 0 ? headers.findIndex(value => ['example', 'sentence'].includes(value)) : 3] ?? '';
       if (columns.length === 1) {
         const match = /^([^—:\t,]+?)\s*(?:—|:|\t|,)\s*(.*)$/.exec(term);
         if (match) { term = match[1]!.trim(); definition = match[2]!.trim(); }
@@ -86,7 +84,7 @@ export class WordListImportService {
       if (term && seen.has(term)) issues.push('DUPLICATE_IN_FILE');
       if (term && existing.has(term)) issues.push('ALREADY_IN_LIST');
       seen.add(term);
-      return { rowNumber, term, definition: definition.slice(0, 500), partOfSpeech: partOfSpeech || null, example: example ? example.slice(0, 500) : null, selected: !issues.length, issues };
+      return { rowNumber, term, definition: definition.slice(0, 500), partOfSpeech: partOfSpeech || null, selected: !issues.length, issues };
     });
     return {
       rows: previewRows,

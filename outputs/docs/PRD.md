@@ -35,7 +35,7 @@ English learners who want short, repeatable vocabulary practice, and portfolio r
 2. **Vocabulary lists:** view starter lists, create/edit/delete owned lists, add/edit/remove words, and select a list for practice. Validate duplicate words, word length, supported characters, and list limits.
 3. **Import:** support `.txt` and Word documents (`.doc`/`.docx`) as the primary import formats, plus pasted text. Accept one word per line and optional inline or following-line definitions; preview parsed rows and actionable row-level issues before commit. Enforce detected-type, file-size, extracted-text, and word-count limits. Treat all imported content as plain text and never execute embedded content or treat it as HTML. CSV is optional secondary compatibility, not a required or primary format.
 4. **Puzzle:** show a fixed-length word grid, on-screen keyboard, focusable input, guess count, feedback colors plus non-color indicators, and accessible instructions. Normalize case and trim input. Reject words that are not eligible answers or guesses with a clear message.
-5. **Learning result:** on win or loss, reveal the answer, definition and example when available; offer the next word and add missed words to a review queue.
+5. **Learning result:** on win or loss, reveal the answer and definition when available; offer the next word and add missed words to a review queue.
 6. **Progress:** show recent outcomes, streak, attempts distribution, and review items. Define streak by local calendar day and document timezone behavior.
 7. **Responsive experience:** usable at mobile and desktop sizes, with loading, empty, validation, and error states.
 

@@ -3,7 +3,6 @@ import { applyContinuation } from './wiktionary-pagination';
 import { parseWiktionaryDefinition } from './wiktionary-definition';
 
 const apiUrl = 'https://simple.wiktionary.org/w/api.php';
-const sourceName = 'Simple English Wiktionary';
 const pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
 
 type WikiPage = { title: string; revisions?: Array<{ slots?: { main?: { content?: string } } }> };
@@ -101,19 +100,17 @@ async function seed() {
       CREATE TABLE IF NOT EXISTS dictionary_words (
         term varchar(100) PRIMARY KEY,
         definition text NOT NULL,
-        part_of_speech text[] NOT NULL DEFAULT '{}',
-        source varchar(80) NOT NULL DEFAULT '${sourceName}'
+        part_of_speech text[] NOT NULL DEFAULT '{}'
       );
       CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
-      ALTER TABLE dictionary_words ALTER COLUMN source SET DEFAULT '${sourceName}';
     `);
     await client.query('BEGIN');
+    await client.query('ALTER TABLE dictionary_words DROP COLUMN IF EXISTS source');
     await client.query(`
       CREATE TEMP TABLE dictionary_words_stage (
         term varchar(100) PRIMARY KEY,
         definition text NOT NULL,
-        part_of_speech text[] NOT NULL DEFAULT '{}',
-        source varchar(80) NOT NULL
+        part_of_speech text[] NOT NULL DEFAULT '{}'
       ) ON COMMIT DROP;
     `);
 
@@ -128,13 +125,13 @@ async function seed() {
       const definitions = [...grouped.values()].map(item => item.definition);
       const positions = [...grouped.values()].map(item => item.partOfSpeech.join(','));
       await client.query(
-        `INSERT INTO dictionary_words_stage (term, definition, part_of_speech, source)
-         SELECT incoming.term, incoming.definition, string_to_array(incoming.positions, ','), $4
+        `INSERT INTO dictionary_words_stage (term, definition, part_of_speech)
+         SELECT incoming.term, incoming.definition, string_to_array(incoming.positions, ',')
          FROM UNNEST($1::text[], $2::text[], $3::text[]) AS incoming(term, definition, positions)
          ON CONFLICT (term) DO UPDATE SET
            definition = CASE WHEN length(EXCLUDED.definition) < length(dictionary_words_stage.definition)
              THEN EXCLUDED.definition ELSE dictionary_words_stage.definition END`,
-        [terms, definitions, positions, sourceName],
+        [terms, definitions, positions],
       );
       count += grouped.size;
       batch = [];
@@ -153,7 +150,7 @@ async function seed() {
     const { rows: sentinel } = await client.query("SELECT term FROM dictionary_words_stage WHERE term = 'because'");
     if (!sentinel.length) throw new Error('The import is missing the common word because; the existing dictionary was kept.');
     await client.query('DELETE FROM dictionary_words');
-    await client.query('INSERT INTO dictionary_words (term, definition, part_of_speech, source) SELECT term, definition, part_of_speech, source FROM dictionary_words_stage');
+    await client.query('INSERT INTO dictionary_words (term, definition, part_of_speech) SELECT term, definition, part_of_speech FROM dictionary_words_stage');
     await client.query('COMMIT');
     console.log(`Simple English Wiktionary loaded; ${entryCount.toLocaleString()} dictionary entries are available.`);
   } catch (error) {

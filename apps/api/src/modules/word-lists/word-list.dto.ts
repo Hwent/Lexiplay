@@ -21,11 +21,6 @@ export class SaveWordDto {
   @IsString()
   @MaxLength(40)
   partOfSpeech?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  example?: string;
 }
 
 export class UpdateWordDto {
@@ -43,11 +38,6 @@ export class UpdateWordDto {
   @IsString()
   @MaxLength(40)
   partOfSpeech?: string;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  example?: string;
 
   @IsOptional()
   @IsIn(['KNOWN', 'UNFAMILIAR'])
@@ -70,11 +60,6 @@ export class ImportWordDto {
   @IsString()
   @MaxLength(40)
   partOfSpeech?: string | null;
-
-  @IsOptional()
-  @IsString()
-  @MaxLength(500)
-  example?: string | null;
 
   @IsBoolean()
   selected!: boolean;

@@ -208,7 +208,7 @@ describe('vocabulary list panel', () => {
   });
 
   it('previews an uploaded word file and confirms the selected rows', async () => {
-    const preview = { rows: [{ rowNumber: 1, term: 'apple', definition: 'A fruit', partOfSpeech: null, example: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } };
+    const preview = { rows: [{ rowNumber: 1, term: 'apple', definition: 'A fruit', partOfSpeech: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } };
     const updatedList = { ...list, words: [{ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }] };
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify([list]), { status: 200 }))

@@ -23,6 +23,8 @@ Start the local database with `docker compose up -d database` before using accou
 
 ## Personal vocabulary list
 
+Personal words store a term, definition, optional part of speech, and Known/Unfamiliar status. Example sentences are no longer supported by the API or importer. Existing databases drop `user_words.example` during word-list schema setup. Dictionary schema setup and seeding drop `dictionary_words.source`; attribution remains in the license notice and `/licenses` page rather than on every dictionary row.
+
 Every account has one overall “My words” list. `GET /api/v1/word-lists` ensures and returns that list; the first schema migration merges existing lists per owner, keeps duplicate terms once, removes list descriptions, and enforces one list per account. Word entries use `/:listId/words` for create, edit, status changes, and delete. Terms accept letters, spaces, and hyphens. Each word is `KNOWN` or `UNFAMILIAR`; new manual, imported, and dictionary words default to `UNFAMILIAR`.
 
 The shared dictionary is seeded from Simple English Wiktionary through its public MediaWiki API. After starting PostgreSQL with `docker compose up -d database`, load or refresh it with `pnpm --filter @lexiplay/api dictionary:seed`; this replaces the shared dictionary rows atomically after a successful import. The API requires internet access while seeding. Preserve attribution and the source’s share-alike terms as described in [`SIMPLE-WIKTIONARY-LICENSE`](../apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE). `GET /api/v1/word-lists/dictionary?q=...` searches the shared dictionary, and `POST /api/v1/word-lists/:listId/dictionary` adds an entry to the owner’s list. Gameplay uses this same database dictionary.

@@ -165,12 +165,12 @@ The schema is currently defined inside the repository classes and seeder, not in
 | `account_users` | UUID `id`, unique email, password hash, creation timestamp. | `AccountRepository.ensureSchema`. |
 | `account_sessions` | Token hash primary key, user ID, expiry and creation timestamps; belongs to an account. | `AccountRepository.ensureSchema`. |
 | `user_word_lists` | UUID `id`, owner ID, name, timestamps; unique owner, with the name `My words`. | `WordListRepository.ensureSchema` and `ensureDefaultList`. |
-| `user_words` | UUID `id`, list ID, term, definition, optional part of speech/example, status, timestamps; unique `(list_id, term)`. | `WordListRepository.ensureSchema`. |
-| `dictionary_words` | Term primary key, canonical definition, parts-of-speech array, source. Shared across users. | `WordListRepository.ensureDictionarySchema` and the seed script. |
+| `user_words` | UUID `id`, list ID, term, definition, optional part of speech, status, timestamps; unique `(list_id, term)`. | `WordListRepository.ensureSchema`. |
+| `dictionary_words` | Term primary key, canonical definition, parts-of-speech array. Shared across users. | `WordListRepository.ensureDictionarySchema` and the seed script. |
 
 Personal terms accept letters, spaces, apostrophes, and hyphens, up to 100 characters, and are normalized to lowercase. Definitions are limited to 500 characters in personal entries. `WordStatus` is the union `'KNOWN' | 'UNFAMILIAR'`, with new words defaulting to `UNFAMILIAR`. Game words have narrower requirements: only `a`–`z`, the selected length, and a nonempty canonical definition.
 
-The server's `WordList` response has `{ id, name, words }`; each `WordEntry` has `{ id, term, definition, partOfSpeech, example, status }`. Repository queries map SQL names such as `part_of_speech` to JSON names such as `partOfSpeech`.
+The server's `WordList` response has `{ id, name, words }`; each `WordEntry` has `{ id, term, definition, partOfSpeech, status }`. Repository queries map SQL names such as `part_of_speech` to JSON names such as `partOfSpeech`.
 
 ### Transient and browser data
 
