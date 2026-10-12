@@ -63,7 +63,7 @@ export class WordListImportService {
 
     if (sourceRows.length > MAX_ROWS + 1) throw new BadRequestException({ code: 'IMPORT_TOO_MANY_ROWS', message: 'A file can contain up to 1,000 words.' });
     const rows = sourceRows.map((columns, index) => ({ columns: columns.map(value => String(value ?? '').trim()), rowNumber: index + 1 }));
-    const headerAt = rows.length && /^(word|term|text)$/i.test(rows[0]!.columns[0] ?? '') ? 0 : -1;
+    const headerAt = rows.length && (extension === 'csv' || extension === 'xlsx') && /^(word|term|text)$/i.test(rows[0]!.columns[0] ?? '') ? 0 : -1;
     const headers = headerAt === 0 ? rows[0]!.columns.map(value => value.toLowerCase()) : [];
     const content = headerAt === 0 ? rows.slice(1) : rows;
     const seen = new Set<string>();
@@ -74,7 +74,7 @@ export class WordListImportService {
       let definition = columns[headerAt === 0 ? headers.findIndex(value => ['definition', 'meaning'].includes(value)) : 1] ?? '';
       let partOfSpeech = columns[headerAt === 0 ? headers.findIndex(value => ['part of speech', 'pos'].includes(value)) : 2] ?? '';
       if (columns.length === 1) {
-        const match = /^([^—:\t,]+?)\s*(?:—|:|\t|,)\s*(.*)$/.exec(term);
+        const match = /^([^—:\t,]+?)\s*(?:—|:|\t|,|\s+-\s+)\s*(.*)$/.exec(term);
         if (match) { term = match[1]!.trim(); definition = match[2]!.trim(); }
       }
       term = term.toLowerCase().trim();

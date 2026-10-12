@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WordListsPanel from './WordListsPanel';
@@ -14,35 +14,28 @@ describe('vocabulary list panel', () => {
     window.localStorage.clear();
   });
 
-  it('keeps added and status changes local until leaving the route', async () => {
+  it('keeps status changes local until leaving the route', async () => {
+    const word = { id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' };
     const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response(JSON.stringify([list]), { status: 200 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }), { status: 201 }));
+      .mockResolvedValueOnce(Response.json([{ ...list, words: [word] }]))
+      .mockResolvedValueOnce(Response.json({ ...word, status: 'KNOWN' }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
     render(<WordListsPanel pageMode />);
-    await screen.findByRole('heading', { name: 'Cloud words' });
-    const addToggle = screen.getByRole('button', { name: /^add$/i });
-    await waitFor(() => expect(addToggle).toBeEnabled());
-    await user.click(addToggle);
-    expect(addToggle).toHaveAttribute('aria-expanded', 'true');
-    await user.type(await screen.findByRole('textbox', { name: /^word$/i }), 'apple');
-    await user.type(screen.getByRole('textbox', { name: /definition/i }), 'A fruit');
-    const addForm = screen.getByRole('textbox', { name: /definition/i }).closest('form')!;
-    await user.click(within(addForm).getByRole('button', { name: /^add$/i }));
     expect(await screen.findByText('apple')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toHaveAttribute('aria-pressed', 'false');
     await user.click(screen.getByRole('button', { name: 'Unfamiliar' }));
     expect(await screen.findByRole('button', { name: 'Known' })).toHaveAttribute('aria-pressed', 'true');
     await user.click(screen.getByRole('button', { name: 'Known' }));
     expect(screen.getByRole('button', { name: 'Unfamiliar' })).toHaveAttribute('aria-pressed', 'false');
+    await user.click(screen.getByRole('button', { name: 'Unfamiliar' }));
     expect(fetchMock).toHaveBeenCalledTimes(1);
     await act(async () => { window.dispatchEvent(new Event('lexiplay:before-route-change')); });
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2));
-    expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/word-lists/list-1/words', expect.objectContaining({
-      method: 'POST',
-      body: JSON.stringify({ term: 'apple', definition: 'A fruit' }),
+    expect(fetchMock).toHaveBeenLastCalledWith('/api/v1/word-lists/list-1/words/word-1', expect.objectContaining({
+      method: 'PATCH',
+      body: JSON.stringify({ status: 'KNOWN' }),
     }));
   });
 
@@ -121,35 +114,45 @@ describe('vocabulary list panel', () => {
     expect(screen.getByText('My own definition.')).toBeInTheDocument();
   });
 
-  it('rejects a repeated manual word without overwriting its definition', async () => {
+  it('skips pasted words already saved without overwriting personal definitions', async () => {
     const saved = { ...list, words: [{ id: 'word-1', term: 'apple', definition: 'My own definition.', status: 'KNOWN' }] };
-    vi.stubGlobal('fetch', vi.fn(async () => new Response(JSON.stringify([saved]))));
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json([saved]))
+      .mockResolvedValueOnce(Response.json({ rows: [{ rowNumber: 1, term: 'apple', definition: 'A conflicting definition.', partOfSpeech: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } }));
+    vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
     render(<WordListsPanel pageMode />);
     await screen.findByText('My own definition.');
-    await waitFor(() => expect(screen.getByRole('button', { name: /^add$/i })).toBeEnabled());
-    await user.click(screen.getByRole('button', { name: /^add$/i }));
-    await user.type(screen.getByRole('textbox', { name: /^word$/i }), 'APPLE');
-    await user.type(screen.getByRole('textbox', { name: /definition/i }), 'A conflicting definition.');
-    await user.click(within(screen.getByRole('textbox', { name: /definition/i }).closest('form')!).getByRole('button', { name: /^add$/i }));
-    expect(await screen.findByText(/saved definition has been kept/i)).toBeInTheDocument();
-    expect(screen.getAllByText('apple')).toHaveLength(1);
+    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    await user.click(screen.getByRole('textbox', { name: 'Paste your words' }));
+    await user.paste('APPLE: A conflicting definition.');
+    await user.click(screen.getByRole('button', { name: 'Preview import' }));
+    expect(await screen.findByText('Already in list')).toBeInTheDocument();
+    expect(screen.getByRole('checkbox', { name: 'Include apple' })).not.toBeChecked();
+    expect(screen.getByRole('checkbox', { name: 'Include apple' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Import 0 words' })).toBeDisabled();
     expect(screen.getByText('My own definition.')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledTimes(2);
   });
 
   it('keeps signed-out additions on this device and restores them after remounting', async () => {
-    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 }));
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/import-preview')
+      ? Response.json({ rows: [{ rowNumber: 1, term: 'localword', definition: 'A local definition', partOfSpeech: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } })
+      : new Response(JSON.stringify({ message: 'Unauthorized' }), { status: 401 }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();
 
     const firstRender = render(<WordListsPanel pageMode />);
     await screen.findByText('Your words are saved on this device.');
-    await user.click(screen.getByRole('button', { name: /^add$/i }));
-    await user.type(screen.getByRole('textbox', { name: /^word$/i }), 'localword');
-    await user.type(screen.getByRole('textbox', { name: /definition/i }), 'A local definition');
-    const addForm = screen.getByRole('textbox', { name: /definition/i }).closest('form')!;
-    await user.click(within(addForm).getByRole('button', { name: /^add$/i }));
+    await waitFor(() => expect(screen.getByRole('button', { name: /^upload$/i })).toBeEnabled());
+    expect(screen.queryByRole('button', { name: /^add$/i })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^upload$/i }));
+    await user.click(screen.getByRole('textbox', { name: 'Paste your words' }));
+    await user.paste('localword: A local definition');
+    await user.click(screen.getByRole('button', { name: 'Preview import' }));
+    await user.click(await screen.findByRole('button', { name: 'Import 1 word' }));
     expect(await screen.findByText('localword')).toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/import'))).toBe(false);
     await waitFor(() => expect(JSON.parse(window.localStorage.getItem('lexiplay-local-word-lists') ?? '[]')[0].words[0]).toMatchObject({
       term: 'localword', definition: 'A local definition',
     }));
@@ -207,6 +210,79 @@ describe('vocabulary list panel', () => {
     });
   });
 
+  it('previews pasted words, imports only selected rows, and clears the input', async () => {
+    const rows = [
+      { rowNumber: 1, term: 'apple', definition: 'A fruit', partOfSpeech: null, selected: true, issues: [] },
+      { rowNumber: 2, term: 'brave', definition: 'Showing courage', partOfSpeech: null, selected: true, issues: [] },
+      { rowNumber: 3, term: 'bad123', definition: '', partOfSpeech: null, selected: false, issues: ['INVALID_TERM'] },
+      { rowNumber: 4, term: 'apple', definition: '', partOfSpeech: null, selected: false, issues: ['DUPLICATE_IN_FILE'] },
+    ];
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json([list]))
+      .mockResolvedValueOnce(Response.json({ rows, totals: { ready: 2, warnings: 1, rejected: 1 } }))
+      .mockResolvedValueOnce(Response.json({ added: 1, duplicates: 0 }))
+      .mockResolvedValueOnce(Response.json({ ...list, words: [{ id: 'word-1', term: 'brave', definition: 'Showing courage', status: 'UNFAMILIAR' }] }));
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<WordListsPanel pageMode />);
+    await screen.findByRole('heading', { name: 'Cloud words' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(screen.getByRole('button', { name: 'Preview import' })).toBeDisabled();
+    const input = screen.getByRole('textbox', { name: 'Paste your words' });
+    const text = 'apple — A fruit\nbrave: Showing courage\nbad123\napple';
+    await user.click(input);
+    await user.paste(text);
+    await user.click(screen.getByRole('button', { name: 'Preview import' }));
+    expect(await screen.findByRole('button', { name: 'Import 2 words' })).toBeEnabled();
+    expect(screen.getByRole('checkbox', { name: 'Include bad123' })).toBeDisabled();
+    expect(screen.getAllByRole('checkbox', { name: 'Include apple' })[1]).toBeDisabled();
+    const form = fetchMock.mock.calls[1]![1]!.body as FormData;
+    const file = form.get('file') as File;
+    expect(file.name).toBe('pasted-words.txt');
+    const submittedText = await new Promise<string>(resolve => {
+      const reader = new FileReader();
+      reader.onload = () => resolve(String(reader.result));
+      reader.readAsText(file);
+    });
+    expect(submittedText).toBe(text);
+    await user.click(screen.getAllByRole('checkbox', { name: 'Include apple' })[0]!);
+    await user.click(screen.getByRole('button', { name: 'Import 1 word' }));
+    expect(await screen.findByText('1 word added.')).toBeInTheDocument();
+    const body = JSON.parse(fetchMock.mock.calls[2]![1]!.body as string);
+    expect(body.rows.filter((row: { selected: boolean }) => row.selected)).toEqual([rows[1]]);
+    expect(screen.getByText('brave')).toBeInTheDocument();
+    expect(screen.queryByRole('textbox', { name: 'Paste your words' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    expect(screen.getByRole('textbox', { name: 'Paste your words' })).toHaveValue('');
+  });
+
+  it('clears a stale preview when the pasted text or import source changes and recovers from errors', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json([list]))
+      .mockResolvedValueOnce(Response.json({ message: 'Could not read these words.' }, { status: 400 }))
+      .mockImplementation(async () => Response.json({ rows: [{ rowNumber: 1, term: 'apple', definition: '', partOfSpeech: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<WordListsPanel pageMode />);
+    await screen.findByRole('heading', { name: 'Cloud words' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    const input = screen.getByRole('textbox', { name: 'Paste your words' });
+    await user.type(input, 'apple');
+    await user.click(screen.getByRole('button', { name: 'Preview import' }));
+    expect(await screen.findByText('Could not read these words.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Preview import' }));
+    await screen.findByRole('button', { name: 'Import 1 word' });
+    await user.type(input, '\nchair');
+    expect(screen.queryByRole('table', { name: 'Import preview' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Preview import' }));
+    await screen.findByRole('button', { name: 'Import 1 word' });
+    await user.click(screen.getByRole('button', { name: 'Upload file' }));
+    expect(screen.queryByRole('table', { name: 'Import preview' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Preview import' })).toBeDisabled();
+  });
+
   it('previews an uploaded word file and confirms the selected rows', async () => {
     const preview = { rows: [{ rowNumber: 1, term: 'apple', definition: 'A fruit', partOfSpeech: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } };
     const updatedList = { ...list, words: [{ id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' }] };
@@ -223,6 +299,7 @@ describe('vocabulary list panel', () => {
     const uploadToggle = screen.getByRole('button', { name: /^upload$/i });
     await waitFor(() => expect(uploadToggle).toBeEnabled());
     await user.click(uploadToggle);
+    await user.click(screen.getByRole('button', { name: 'Upload file' }));
     const upload = await screen.findByLabelText(/upload word list/i);
     await user.upload(upload, new File(['apple — A fruit'], 'words.txt', { type: 'text/plain' }));
     await user.click(screen.getByRole('button', { name: /preview import/i }));

@@ -37,9 +37,6 @@ function BookmarkIcon({ added }: { added: boolean }) {
 
 export default function WordListsPanel({ pageMode = false, searchQuery = '' }: { pageMode?: boolean; searchQuery?: string }) {
   const [lists, setLists] = useState<WordList[]>(loadLocalLists);
-  const [term, setTerm] = useState('');
-  const [definition, setDefinition] = useState('');
-  const [addOpen, setAddOpen] = useState(false);
   const [editingWordId, setEditingWordId] = useState('');
   const [editingTerm, setEditingTerm] = useState('');
   const [editingDefinition, setEditingDefinition] = useState('');
@@ -48,7 +45,9 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [localOnly, setLocalOnly] = useState(false);
   const [message, setMessage] = useState('');
   const [uploadFile, setUploadFile] = useState<File | null>(null);
-  const [uploadOpen, setUploadOpen] = useState(false);
+  const [uploadListId, setUploadListId] = useState('');
+  const [importSource, setImportSource] = useState<'paste' | 'file'>('paste');
+  const [pastedWords, setPastedWords] = useState('');
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [listSearch, setListSearch] = useState(searchQuery);
   const [wordPage, setWordPage] = useState(1);
@@ -145,20 +144,6 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
     return () => window.removeEventListener('lexiplay:before-route-change', flushPendingStatuses);
   }, [localOnly]);
 
-  async function submitWord(event: FormEvent<HTMLFormElement>, listId: string) {
-    event.preventDefault();
-    if (lists.some(list => list.id === listId && list.words.some(word => normalizeTerm(word.term) === normalizeTerm(term)))) {
-      setMessage('This word is already in your list. Your saved definition has been kept.');
-      return;
-    }
-    const id = `local-${Date.now()}-${Math.random().toString(36).slice(2)}`;
-    const word: WordEntry = { id, term: term.trim().toLowerCase(), definition: savedDefinition(definition), status: 'UNFAMILIAR' };
-    if (!localOnly) pendingWordOperations.current.set(id, { kind: 'create', listId, term: word.term, definition: word.definition });
-    setLists(current => current.map(list => list.id === listId ? { ...list, words: [...list.words, word] } : list));
-    setTerm('');
-    setDefinition('');
-  }
-
   function saveWord(event: FormEvent<HTMLFormElement>, listId: string, wordId: string) {
     event.preventDefault();
     if (lists.some(list => list.id === listId && list.words.some(word => word.id !== wordId && normalizeTerm(word.term) === normalizeTerm(editingTerm)))) {
@@ -220,15 +205,27 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   }
 
   async function previewImport(listId: string) {
-    if (!uploadFile) return;
+    const file = importSource === 'paste'
+      ? pastedWords.trim() ? new File([pastedWords], 'pasted-words.txt', { type: 'text/plain' }) : null
+      : uploadFile;
+    if (!file) return;
     setBusy(true);
     setMessage('');
     setPreview(null);
     try {
       const form = new FormData();
-      form.append('file', uploadFile);
-      setPreview(await request<ImportPreview>(`/word-lists/${listId}/import-preview`, { method: 'POST', body: form }));
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not preview this file.'); }
+      form.append('file', file);
+      const result = await request<ImportPreview>(`/word-lists/${listId}/import-preview`, { method: 'POST', body: form });
+      const existingTerms = new Set(lists.find(list => list.id === listId)?.words.map(word => normalizeTerm(word.term)));
+      const rows = result.rows.map(row => existingTerms.has(normalizeTerm(row.term))
+        ? { ...row, selected: false, issues: [...new Set([...row.issues, 'ALREADY_IN_LIST'])] }
+        : row);
+      setPreview({ rows, totals: {
+        ready: rows.filter(row => !row.issues.length).length,
+        warnings: rows.filter(row => row.issues.some(issue => issue === 'DUPLICATE_IN_FILE' || issue === 'ALREADY_IN_LIST')).length,
+        rejected: rows.filter(row => row.issues.some(issue => issue === 'INVALID_TERM' || issue === 'MISSING_TERM')).length,
+      } });
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not preview these words.'); }
     finally { setBusy(false); }
   }
 
@@ -257,6 +254,8 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       setLists(updatedLists);
       setPreview(null);
       setUploadFile(null);
+      setPastedWords('');
+      setUploadListId('');
       const duplicates = selectedCount - added;
       setMessage(`${added} ${added === 1 ? 'word' : 'words'} added${duplicates ? `; ${duplicates} duplicate${duplicates === 1 ? '' : 's'} skipped` : ''}.`);
       return;
@@ -271,6 +270,8 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       setLists(current => current.map(list => list.id === listId ? updated : list));
       setPreview(null);
       setUploadFile(null);
+      setPastedWords('');
+      setUploadListId('');
       setMessage(`${result.added} ${result.added === 1 ? 'word' : 'words'} added${result.duplicates ? `; ${result.duplicates} duplicate${result.duplicates === 1 ? '' : 's'} skipped` : ''}.`);
       if (!selectedCount && !result.added) setMessage('No words were selected for import.');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not import these words.'); }
@@ -284,7 +285,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
 
   return <section className={`word-lists-panel${pageMode ? ' page-mode' : ''}`}>
     <div className="word-lists-content">
-      {pageMode && <div className="list-library-heading"><div><p className="eyebrow">YOUR VOCABULARY</p><h2>My word list</h2><p>{authenticated ? 'Search the dictionary and keep track of what you know.' : 'Your words are saved on this device.'}</p></div></div>}
+      {pageMode && <p className="word-library-help">{authenticated ? 'Search to save dictionary words, or upload your own.' : 'Your words are saved on this device.'}</p>}
 
       {busy && !lists.length && <p className="account-message">Loading your lists…</p>}
       {!busy && authenticated && !lists.length && !message && <p className="account-message">Your lists will appear here.</p>}
@@ -307,44 +308,41 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
         <div className="word-list-heading">
           <div className="word-list-select">
               <span><h3>{list.name}</h3></span>
-            <span className="word-list-count">{list.words.length} words</span>
+            <span className="word-list-count">{list.words.length} {list.words.length === 1 ? 'word' : 'words'}</span>
           </div>
+          <button className="account-action upload-toggle" type="button" aria-expanded={uploadListId === list.id} aria-controls={`upload-${list.id}`} disabled={busy} onClick={() => { setUploadListId(current => current === list.id ? '' : list.id); setPreview(null); setUploadFile(null); setImportSource('paste'); }}>Upload</button>
         </div>
 
         <div className="word-list-detail">
-          <section className="word-import" aria-label="Edit words">
-            <div className="word-list-actions">
-              <button className="account-action upload-toggle" type="button" aria-expanded={uploadOpen} disabled={busy} onClick={() => setUploadOpen(value => !value)}>Upload</button>
-              <button className="account-action add-word-toggle" type="button" aria-expanded={addOpen} disabled={busy} onClick={() => setAddOpen(value => !value)}>Add</button>
+          {uploadListId === list.id && <section className="word-import upload-interface" id={`upload-${list.id}`} aria-label="Import words">
+            <div className="import-source-options" role="group" aria-label="Import source">
+              <button type="button" aria-pressed={importSource === 'paste'} disabled={busy} onClick={() => { setImportSource('paste'); setPreview(null); }}>Paste words</button>
+              <button type="button" aria-pressed={importSource === 'file'} disabled={busy} onClick={() => { if (importSource !== 'file') setUploadFile(null); setImportSource('file'); setPreview(null); }}>Upload file</button>
             </div>
-            {uploadOpen && <div className="upload-interface">
-            <h4>Import a word list</h4>
-            <p>Upload TXT, DOCX, CSV, XLSX, or PDF. Use one word per line or include a definition after a dash or colon.</p>
-            <label htmlFor={`import-file-${list.id}`}>Choose a file</label>
-            <input id={`import-file-${list.id}`} aria-label="Upload word list" type="file" accept=".txt,.docx,.csv,.xlsx,.pdf,application/pdf" onChange={event => { setUploadFile(event.target.files?.[0] ?? null); setPreview(null); }} />
-            <button className="account-action" type="button" onClick={() => void previewImport(list.id)} disabled={busy || !uploadFile}> {busy ? 'Working…' : 'Preview import'}</button>
+            {importSource === 'paste' ? <div className="import-input">
+              <label htmlFor={`paste-words-${list.id}`}>Paste your words</label>
+              <p id={`paste-help-${list.id}`}>One word per line, up to 1,000. Optional meanings: apple — a fruit.</p>
+              <textarea id={`paste-words-${list.id}`} aria-describedby={`paste-help-${list.id}`} rows={6} value={pastedWords} disabled={busy} placeholder={'apple — a fruit\nbrave: showing courage\ncurious'} onChange={event => { setPastedWords(event.target.value); setPreview(null); }} />
+            </div> : <div className="import-input">
+              <label htmlFor={`import-file-${list.id}`}>Choose a file</label>
+              <p id={`file-help-${list.id}`}>TXT, DOCX, CSV, XLSX or PDF · up to 5 MB.</p>
+              <input id={`import-file-${list.id}`} aria-label="Upload word list" aria-describedby={`file-help-${list.id}`} type="file" disabled={busy} accept=".txt,.docx,.csv,.xlsx,.pdf,application/pdf" onChange={event => { setUploadFile(event.target.files?.[0] ?? null); setPreview(null); }} />
+            </div>}
+            <button className="account-action" type="button" onClick={() => void previewImport(list.id)} disabled={busy || (importSource === 'paste' ? !pastedWords.trim() : !uploadFile)}>{busy ? 'Working…' : 'Preview import'}</button>
             {preview && <>
-              <p className="import-summary" role="status">{preview.totals.ready} ready · {preview.totals.warnings} duplicate warnings · {preview.totals.rejected} need attention</p>
+              <p className="import-summary" role="status">{preview.totals.ready} ready · {preview.totals.warnings} {preview.totals.warnings === 1 ? 'duplicate' : 'duplicates'} · {preview.totals.rejected} invalid</p>
               <div className="import-preview-table" role="table" aria-label="Import preview">
                 {preview.rows.map((row, index) => <div className="import-preview-row" role="row" key={`${row.rowNumber}-${index}`}>
-                  <label><input type="checkbox" aria-label={`Include ${row.term || `row ${row.rowNumber}`}`} checked={row.selected} disabled={Boolean(row.issues.some(issue => issue === 'INVALID_TERM' || issue === 'MISSING_TERM'))} onChange={event => setPreview(current => current ? { ...current, rows: current.rows.map((item, itemIndex) => itemIndex === index ? { ...item, selected: event.target.checked } : item) } : current)} /></label>
+                  <label><input type="checkbox" aria-label={`Include ${row.term || `row ${row.rowNumber}`}`} checked={row.selected} disabled={busy || row.issues.length > 0} onChange={event => setPreview(current => current ? { ...current, rows: current.rows.map((item, itemIndex) => itemIndex === index ? { ...item, selected: event.target.checked } : item) } : current)} /></label>
                   <strong>{row.term || `Row ${row.rowNumber}`}</strong><span>{row.definition || 'No definition'}</span>
-                  {row.issues.length > 0 && <small>{row.issues.map(issue => issue === 'INVALID_TERM' ? 'Use letters, spaces, or hyphens' : issue === 'MISSING_TERM' ? 'Word is missing' : issue === 'DUPLICATE_IN_FILE' ? 'Repeated in file' : 'Already in list').join(' · ')}</small>}
+                  {row.issues.length > 0 && <small>{row.issues.map(issue => issue === 'INVALID_TERM' ? 'Use letters, spaces, or hyphens' : issue === 'MISSING_TERM' ? 'Word is missing' : issue === 'DUPLICATE_IN_FILE' ? 'Repeated word' : 'Already in list').join(' · ')}</small>}
                 </div>)}
-                {!preview.rows.length && <p>No words were found in this file.</p>}
+                {!preview.rows.length && <p>No words were found.</p>}
               </div>
               <button className="account-action" type="button" onClick={() => void confirmImport(list.id)} disabled={busy || !preview.rows.some(row => row.selected)}>Import {preview.rows.filter(row => row.selected).length} {preview.rows.filter(row => row.selected).length === 1 ? 'word' : 'words'}</button>
             </>}
-            </div>}
-
-          {addOpen && <form className="word-add-form" onSubmit={event => { void submitWord(event, list.id); setAddOpen(false); }}>
-            <h4>Add a word</h4>
-            <label htmlFor={`word-term-${list.id}`}>Word</label>
-            <input id={`word-term-${list.id}`} value={term} onChange={event => setTerm(event.target.value)} required maxLength={100} pattern="[A-Za-z][A-Za-z '-]{0,99}" />
-            <label htmlFor={`word-definition-${list.id}`}>Definition</label>
-            <input id={`word-definition-${list.id}`} value={definition} onChange={event => setDefinition(event.target.value)} maxLength={500} />
-            <button className="account-action" type="submit">Add</button>
-          </form>}
+          </section>}
+          {!visibleWords.length && uploadListId !== list.id && <p className="word-list-empty">{normalizedSearch ? 'No words match this search.' : 'Save a word from a game or upload a list to get started.'}</p>}
           <ul className="word-entry-list">
             {pageWords.map(word => <li key={word.id}>
               {editingWordId === word.id ? <form className="word-edit-form" onSubmit={event => saveWord(event, list.id, word.id)}>
@@ -358,7 +356,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
               </form> : <>
                 <span><strong>{word.term}</strong><small>{word.definition || 'No definition yet'}</small></span>
                 <button className={`word-status ${word.status === 'KNOWN' ? 'known' : 'unfamiliar'}`} type="button" aria-pressed={word.status === 'KNOWN'} onClick={() => void changeWordStatus(list.id, word)}>{word.status === 'KNOWN' ? 'Known' : 'Unfamiliar'}</button>
-                <button className="text-action" type="button" onClick={() => { setEditingWordId(word.id); setEditingTerm(word.term); setEditingDefinition(word.definition); }}>Edit</button>
+                <button className="text-action" type="button" aria-label={`Edit ${word.term}`} onClick={() => { setEditingWordId(word.id); setEditingTerm(word.term); setEditingDefinition(word.definition); }}>Edit</button>
               </>}
             </li>)}
           </ul>
@@ -368,7 +366,6 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
               <span aria-live="polite">Page {currentPage} of {pageCount}</span>
               <button type="button" disabled={currentPage === pageCount} onClick={() => { setWordPage(currentPage + 1); setEditingWordId(''); }}>Next</button></div>
           </nav>}
-          </section>
         </div>
       </article>;
       })}
