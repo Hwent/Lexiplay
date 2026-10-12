@@ -1,5 +1,6 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { dictionaryDefinition, DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
+import { ApiError, apiRequest as request } from './services/api-client';
 
 type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; status: WordStatus };
@@ -30,27 +31,8 @@ function savedDefinition(value: string) {
   return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
 }
 
-class WordListRequestError extends Error {
-  constructor(message: string, readonly status: number) { super(message); }
-}
-
 function BookmarkIcon({ added }: { added: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
-}
-
-async function request<T>(path: string, init?: RequestInit): Promise<T> {
-  const headers = new Headers(init?.headers);
-  if (init?.body && !(init.body instanceof FormData)) headers.set('content-type', 'application/json');
-  const response = await fetch(`/api/v1${path}`, {
-    ...init,
-    credentials: 'same-origin',
-    headers,
-  });
-  const payload = response.status === 204 ? undefined : await response.json();
-  if (!response.ok) {
-    throw new WordListRequestError(payload?.message ?? 'Something went wrong. Please try again.', response.status);
-  }
-  return payload as T;
 }
 
 export default function WordListsPanel({ pageMode = false, searchQuery = '' }: { pageMode?: boolean; searchQuery?: string }) {
@@ -100,7 +82,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
       .then(nextLists => { if (active) { setLists(nextLists); setAuthenticated(true); setLocalOnly(false); setMessage(''); } })
       .catch(error => {
         if (!active) return;
-        if (error instanceof WordListRequestError && error.status === 401) {
+        if (error instanceof ApiError && error.status === 401) {
           setLists(loadLocalLists());
           setLocalOnly(true);
           setMessage('');

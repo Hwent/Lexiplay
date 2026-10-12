@@ -2,6 +2,7 @@ import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import AccountPanel from './AccountPanel';
 import WordListsPanel from './WordListsPanel';
 import { normalizeTerm, rememberDictionaryDefinition } from './dictionary-cache';
+import { ApiError, apiRequest as api } from './services/api-client';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
@@ -45,20 +46,6 @@ function savedDefinition(text: string) {
   const trimmed = secondSemicolon < 0 ? valueTrimmed : valueTrimmed.slice(0, secondSemicolon + 1).trim();
   return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
 }
-
-class ApiError extends Error {
-  constructor(message: string, readonly status: number) { super(message); }
-}
-
-const api = async <T,>(path: string, init?: RequestInit): Promise<T> => {
-  const response = await fetch(`/api/v1${path}`, {
-    ...init,
-    headers: { 'content-type': 'application/json', ...init?.headers },
-  });
-  const payload = await response.json();
-  if (!response.ok) throw new ApiError(payload.message ?? 'Something went wrong. Please try again.', response.status);
-  return payload as T;
-};
 
 const lengthName = (length: number) => `${['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'][length]}-letter`;
 const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];

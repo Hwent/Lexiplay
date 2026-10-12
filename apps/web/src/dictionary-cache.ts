@@ -1,3 +1,5 @@
+import { apiRequest } from './services/api-client';
+
 export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[] };
 type Cached<T> = { value: T; expiresAt: number };
 const STORAGE_KEY = 'lexiplay-dictionary-cache-v1';
@@ -44,10 +46,7 @@ function cached<T>(cache: Map<string, Cached<T>>, key: string): T | undefined {
 }
 
 async function request<T>(path: string): Promise<T> {
-  const response = await fetch(`/api/v1/word-lists/${path}`, { credentials: 'same-origin' });
-  const payload = await response.json();
-  if (!response.ok) throw new Error(payload?.message ?? 'Could not load the dictionary.');
-  return payload as T;
+  return apiRequest<T>(`/word-lists/${path}`, undefined, 'Could not load the dictionary.');
 }
 
 function sharedRequest<T>(key: string, fetchValue: () => Promise<T>): Promise<T> {

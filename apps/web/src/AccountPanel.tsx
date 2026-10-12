@@ -1,4 +1,5 @@
 import { FormEvent, useEffect, useState } from 'react';
+import { apiRequest } from './services/api-client';
 
 type Account = { id: string; email: string };
 type AccountMode = 'login' | 'register';
@@ -13,8 +14,7 @@ export default function AccountPanel() {
 
   useEffect(() => {
     let active = true;
-    fetch('/api/v1/auth/me', { credentials: 'same-origin' })
-      .then(async response => response.ok ? response.json() as Promise<Account> : null)
+    apiRequest<Account>('/auth/me')
       .then(user => { if (active && user) setAccount(user); })
       .catch(() => undefined);
     return () => { active = false; };
@@ -25,15 +25,11 @@ export default function AccountPanel() {
     setBusy(true);
     setMessage('');
     try {
-      const response = await fetch(`/api/v1/auth/${mode === 'register' ? 'register' : 'login'}`, {
+      const payload = await apiRequest<{ user: Account }>(`/auth/${mode === 'register' ? 'register' : 'login'}`, {
         method: 'POST',
-        credentials: 'same-origin',
-        headers: { 'content-type': 'application/json' },
         body: JSON.stringify({ email, password }),
-      });
-      const payload = await response.json();
-      if (!response.ok) throw new Error(payload.message ?? 'Could not sign in. Please try again.');
-      setAccount(payload.user as Account);
+      }, 'Could not sign in. Please try again.');
+      setAccount(payload.user);
       setPassword('');
       setMessage('');
     } catch (error) {
@@ -46,8 +42,7 @@ export default function AccountPanel() {
   async function signOut() {
     setBusy(true);
     try {
-      const response = await fetch('/api/v1/auth/logout', { method: 'POST', credentials: 'same-origin' });
-      if (!response.ok) throw new Error('Could not sign out. Please try again.');
+      await apiRequest<void>('/auth/logout', { method: 'POST' }, 'Could not sign out. Please try again.');
       setAccount(null);
       setMessage('You’re signed out.');
     } catch (error) {

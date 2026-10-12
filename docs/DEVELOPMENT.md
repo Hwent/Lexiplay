@@ -2,6 +2,8 @@
 
 For a guided tour of the current code, file responsibilities, data structures, and technologies, start with [learn.md](learn.md).
 
+For an evaluation of the supplied React standard and conventions grounded in the web app, use [react-standard-evaluation.md](react-standard-evaluation.md).
+
 ## Component boundaries
 
 - **Web** owns presentation, navigation, accessibility, and transient input state. It calls the API through a typed client/contract boundary.
