@@ -97,7 +97,7 @@ A local `localhost` or `127.0.0.1` word list cannot automatically move to the Re
 - **Verification/recovery message missing:** onboarding can send only to the Resend account email; check provider status and the deployed origin. A verified domain is required for other recipients.
 - **Rollback:** with Auto-Deploy off, use Render’s Manual Deploy controls to select an earlier working commit. Take a database backup before schema-changing releases; a code rollback does not undo database changes.
 
-This prepares a demo, not a verified live deployment. Cloud creation, credential entry, dictionary import, and live checks require the operator. Before a lasting launch, replace the expiring database, set up backups/restore, configure a verified sender, and define the public privacy/retention policy.
+This guide describes the demo setup procedure. The completed 2026-10-12 import and live checks are recorded in [deployment checks](DEPLOYMENT-CHECKS.md), including cleanup and remaining limits. Before a lasting launch, replace the expiring database, set up backups/restore, configure a verified sender, and define the public privacy/retention policy.
 
 Local validation passed: 27 API tests (including six disposable PostgreSQL cases), 49 web tests, workspace typechecking, and production builds. The compiled server was smoke-tested locally: browser routes and its generated JavaScript asset returned 200, health returned JSON, and missing API/asset paths returned 404. The manual Bash wizard passed syntax checking; ShellCheck was unavailable. The dictionary wrapper passed Node syntax checking and has not been executed against a cloud database.
 
