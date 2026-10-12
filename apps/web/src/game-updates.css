@@ -57,3 +57,132 @@
 @media (max-width: 700px) { .statistics-columns { grid-template-columns: 1fr; } .stat-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); } .game-consumables { grid-template-columns: 1fr; } }
 @media (max-width: 560px) { .account-status-link { padding: .3rem .45rem; gap: .35rem; } .account-status-link strong { max-width: 5rem; } }
 @media (max-width: 420px) { body { min-width: 0; } .workspace .topbar { gap: .4rem; } .header-search { width: clamp(4rem, 23vw, 7rem); } .account-avatar { display: none; } .catalog-status { display: none; } .length-segments label { min-height: 3.3rem; } .length-segments label > span { font-size: 1.1rem; } .length-segments small { font-size: .58rem; } }
+
+/* Readable game and vocabulary views */
+.page-title h1 { font-size: clamp(1.5rem, 3vw, 1.9rem); }
+.game-catalog-card { padding: 1rem 1.4rem; }
+.catalog-copy strong { font-size: 1.2rem; }
+.catalog-copy > span { font-size: 1rem; line-height: 1.5; }
+.catalog-status { font-size: .9rem; }
+.welcome-card { min-height: 0; padding: 2rem 1rem; }
+.welcome-card h2 { font-family: inherit; font-size: clamp(1.8rem, 4vw, 2.3rem); }
+.sample-grid { margin-bottom: 1rem; }
+.practice-options { width: min(100%, 34rem); margin-top: 1.8rem; }
+.length-options legend, .difficulty-options legend { font-size: 1.1rem; margin-bottom: .75rem; }
+.length-segments label { min-height: 3.25rem; }
+.length-segments label > span { font-size: 1.5rem; }
+.difficulty-options { margin-top: 1.5rem; }
+.difficulty-segments label { padding: 1rem .7rem; }
+.difficulty-segments strong { font-size: 1rem; }
+.difficulty-segments small { font-size: .85rem; }
+.word-pool-option strong { font-size: 1rem; }
+.word-pool-option small { font-size: .9rem; }
+.welcome-card .practice-options + .primary-button { min-width: min(100%, 34rem); margin-top: 1.5rem; }
+.game-card .primary-button { min-height: 3.25rem; font-size: 1.1rem; border-radius: .75rem; }
+.puzzle-heading h2 { font-family: inherit; font-size: 1.75rem; }
+.puzzle-heading .eyebrow { font-size: .85rem; letter-spacing: .07em; }
+.attempt-counter { font-size: 1rem; border-radius: 99px; background: var(--surface-soft); }
+.puzzle-tools { margin: -.4rem 0 1rem; }
+.puzzle-tools .account-link { font-size: 1rem; }
+.guess-board { margin-inline: auto; gap: .35rem; container-type: inline-size; }
+.guess-row { gap: .35rem; }
+.letter-tile { border-radius: .4rem; font-size: clamp(1.15rem, 6cqi, 2.25rem); }
+.letter-tile.correct { color: white; }
+.letter-tile.present, .keyboard-key.present { color: #171717; }
+.letter-tile.absent { color: var(--absent-text); }
+.game-consumables { margin: .75rem 0 0; }
+.game-consumables .friendly-hint { min-height: 3.5rem; padding: .75rem; }
+.friendly-hint strong { font-size: 1rem; }
+.game-consumables .friendly-hint small { font-size: .85rem; }
+.hint-count { font-size: .9rem; }
+.game-keyboard { margin-top: 0; }
+.keyboard-key { height: 3.5rem; border-radius: .5rem; font-size: 1.2rem; }
+.special-key { font-size: .95rem; }
+.delete-key { font-size: 1.5rem; }
+.guess-definition, .answer-definition { padding: 1rem; }
+.guess-definition strong, .answer-definition strong { font-size: 1.2rem; }
+.guess-definition .definition-text, .answer-definition .definition-text { font-size: 1rem; line-height: 1.6; }
+.guess-definition .learn-more, .answer-definition .learn-more { font-size: .95rem; }
+.revealed-letter-hint, .notice { font-size: 1rem; }
+.word-lists-panel.page-mode { font-size: 1rem; }
+.word-lists-panel.page-mode .word-lists-content { max-width: 64rem; padding: clamp(1rem, 3vw, 2rem); }
+.word-library-help { margin: 0 0 1.25rem; color: var(--muted); line-height: 1.6; }
+.word-lists-panel.page-mode .word-list-card { padding: 1.25rem; background: var(--surface); }
+.word-lists-panel.page-mode .word-list-heading { gap: 1rem; }
+.word-lists-panel.page-mode .word-list-select { justify-content: flex-start; flex-wrap: wrap; gap: .75rem; }
+.word-lists-panel.page-mode .word-list-select h3 { font-size: 1.35rem; overflow-wrap: anywhere; }
+.word-lists-panel.page-mode .word-list-count { font-size: .9rem; }
+.word-lists-panel.page-mode .account-action { min-height: 2.75rem; padding: .6rem 1rem; font-size: 1rem; }
+.word-lists-panel.page-mode .upload-toggle { margin: 0; }
+.word-lists-panel.page-mode .word-import { padding: 1.25rem; margin: .5rem 0 1rem; background: var(--surface-soft); }
+.import-source-options { display: flex; gap: .5rem; margin-bottom: 1.25rem; }
+.import-source-options button { min-height: 2.75rem; padding: .55rem 1rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface); color: var(--soft-text); cursor: pointer; }
+.import-source-options button[aria-pressed='true'] { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); font-weight: 700; }
+.import-source-options button:disabled { opacity: .6; cursor: wait; }
+.import-input { display: flex; flex-direction: column; gap: .5rem; margin-bottom: .75rem; }
+.import-input label { font-weight: 650; }
+.import-input p { margin: 0; font-size: .95rem; }
+.import-input textarea { width: 100%; min-height: 10rem; resize: vertical; padding: .85rem 1rem; border: 1px solid var(--control-border); border-radius: .65rem; background: var(--surface); color: var(--text); line-height: 1.7; }
+.import-input textarea::placeholder { color: var(--muted); opacity: 1; }
+.word-list-empty { padding: 1rem 0; color: var(--muted); line-height: 1.6; }
+.word-lists-panel.page-mode .word-entry-list li { padding: 1rem .25rem; gap: .75rem; }
+.word-lists-panel.page-mode .word-entry-list li > span { gap: .4rem; }
+.word-lists-panel.page-mode .word-entry-list li > span strong { font-size: 1.3rem; }
+.word-lists-panel.page-mode .word-entry-list li > span small { font-size: 1rem; line-height: 1.6; white-space: normal; overflow-wrap: anywhere; }
+.word-lists-panel .word-status { min-height: 2.75rem; padding: .5rem .75rem; font-size: .9rem; }
+:root[data-theme='light'] .word-status.known { color: #166534; }
+:root[data-theme='light'] .word-status.unfamiliar { color: #806415; }
+.word-lists-panel .text-action { min-height: 2.75rem; padding: .5rem; font-size: 1rem; text-underline-offset: .2em; }
+.word-lists-panel .account-message, .import-summary, .word-pagination { font-size: 1rem; }
+.word-pagination button { min-height: 2.75rem; }
+.word-edit-form { padding: 1rem; grid-template-columns: 1fr; gap: .5rem; }
+.word-edit-form label { font-size: 1rem; }
+.word-edit-form input { min-height: 2.75rem; font-size: 1rem; }
+.dictionary-results { padding: 1.25rem; }
+.dictionary-results h3 { font-size: 1.2rem; }
+.dictionary-result { padding: 1rem 0; }
+.dictionary-term { font-size: 1.3rem; }
+.dictionary-result span { font-size: 1rem; line-height: 1.6; }
+.dictionary-result small { font-size: .9rem; }
+.import-preview-table { max-height: 22rem; }
+.import-preview-row { min-height: 3rem; grid-template-columns: 1.5rem minmax(0, .75fr) minmax(0, 1.5fr); gap: .75rem; padding: .75rem; }
+.import-preview-row strong { overflow-wrap: anywhere; }
+.import-preview-row span { white-space: normal; overflow-wrap: anywhere; line-height: 1.5; }
+.import-preview-row small { font-size: .85rem; }
+.import-preview-row input[type='checkbox'] { width: 1.25rem; height: 1.25rem; accent-color: var(--accent); }
+@media (max-width: 560px) {
+  .workspace .topbar { flex-wrap: wrap; padding-block: .75rem; gap: .75rem; }
+  .header-actions { width: 100%; }
+  .header-search { flex: 1; height: 2.75rem; }
+  .header-search input { font-size: 1rem; }
+  .header-actions .theme-toggle { min-height: 2.75rem; min-width: 2.75rem; }
+  .game-catalog-card { padding: .9rem; gap: .75rem; }
+  .catalog-copy > span { font-size: .9rem; }
+  .welcome-card { padding: 1.5rem .5rem; }
+  .practice-options { margin-top: 1.25rem; }
+  .length-segments { gap: .1rem; padding: .2rem; }
+  .length-segments label > span { font-size: 1.25rem; }
+  .difficulty-segments label { padding: .75rem .4rem; }
+  .difficulty-segments small { font-size: .8rem; }
+  .puzzle-heading { gap: .5rem; }
+  .puzzle-heading h2 { font-size: 1.4rem; }
+  .attempt-counter { padding: .45rem .55rem; font-size: .9rem; }
+  .game-consumables { grid-template-columns: 1fr 1fr; gap: .4rem; }
+  .game-consumables .friendly-hint { flex-wrap: wrap; padding: .6rem; gap: .25rem; }
+  .friendly-hint strong { font-size: .9rem; }
+  .game-consumables .friendly-hint small { font-size: .8rem; }
+  .hint-icon { display: none; }
+  .keyboard-row { gap: .25rem; }
+  .keyboard-key { font-size: 1.05rem; min-height: 3rem; }
+  .special-key { font-size: .75rem; }
+  .delete-key { font-size: 1.3rem; }
+  .word-lists-panel.page-mode .word-lists-content { padding: 1rem .75rem; }
+  .word-lists-panel.page-mode .word-list-card { padding: 1rem .75rem; }
+  .word-lists-panel.page-mode .word-list-heading { flex-wrap: nowrap; gap: .5rem; }
+  .word-lists-panel.page-mode .word-list-select { flex-basis: auto; gap: .35rem; }
+  .word-lists-panel.page-mode .word-import { padding: .85rem; }
+  .import-source-options button { flex: 1; padding-inline: .5rem; }
+  .word-lists-panel.page-mode .word-entry-list li { flex-wrap: wrap; gap: .5rem; }
+  .word-lists-panel.page-mode .word-entry-list li > span { flex-basis: 100%; }
+  .word-pagination { font-size: .95rem; }
+}

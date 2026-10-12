@@ -314,7 +314,7 @@ export default function App() {
       </aside>
       <div className="workspace">
       <header className="topbar">
-        <div className="page-title"><p className="eyebrow">YOUR LEARNING SPACE</p><h1>{sectionTitle[activeSection]}</h1></div>
+        <div className="page-title"><h1>{sectionTitle[activeSection]}</h1></div>
         <div className="header-actions">
           <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('library', quickSearch); }}>
             <label className="sr-only" htmlFor="quick-search">Search your words</label>
@@ -329,7 +329,7 @@ export default function App() {
       </header>
 
       {activeSection === 'play' && <>
-      <GameCatalog selectedId={selectedGameId} onSelect={setSelectedGameId} />
+      {!game && <GameCatalog selectedId={selectedGameId} onSelect={setSelectedGameId} />}
       {selectedGameId === 'word-puzzle' &&
       <section className="game-card" aria-label="Vocabulary puzzle" onClick={event => {
         const target = event.target;
@@ -341,14 +341,13 @@ export default function App() {
             <div className="sample-grid" aria-hidden="true">
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
-            <h2>A fresh word is waiting.</h2>
-            <p>Make it your kind of practice. Pick your word length and challenge.</p>
+            <h2>Ready to play?</h2>
             <div className="practice-options">
-              <fieldset className="length-options"><legend>Word length</legend><p>A little shorter, or a little more challenging.</p>
+              <fieldset className="length-options"><legend>Word length</legend>
                 <div className="length-segments">
                   {[3, 4, 5, 6, 7, 8, 9].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
                     <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={`${length} letters`} />
-                    <span>{length}</span><small>letters</small>
+                    <span>{length}</span>
                   </label>)}
                 </div>
               </fieldset>
@@ -367,10 +366,10 @@ export default function App() {
               <div><p className="eyebrow">{game.difficulty ?? difficulty} · {game.wordLength} letters</p><h2>Find the word</h2></div>
               <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
             </div>
-            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={resetGame} disabled={busy || progressSaving}>Choose a new puzzle</button><span>Your accepted guesses are saved.</span></div>}
+            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={resetGame} disabled={busy || progressSaving}>Choose a new puzzle</button></div>}
             <div className="puzzle-columns">
             <div className="puzzle-play-column">
-            <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `${game.wordLength * 5.2 + (game.wordLength - 1) * 0.45}rem` }}>
+            <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `${game.wordLength * 3.6 + (game.wordLength - 1) * 0.35}rem` }}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
                 const result = game.guesses[row];
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
@@ -378,14 +377,14 @@ export default function App() {
                   {Array.from({ length: game.wordLength }, (_, column) => {
                     const letter = result?.guess[column] ?? activeGuess[column] ?? '';
                     const state = result?.feedback[column]?.toLowerCase() ?? '';
-                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} key={column}>{letter}</span>;
+                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)` }} key={column}>{letter}</span>;
                   })}
                 </div>;
               })}
             </div>
             {!finished && <div className="game-consumables" aria-label="Hints">
-              <button className="friendly-hint" type="button" onClick={() => void useHint('unused')} disabled={busy || progressSaving || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span><span><strong>Remove letters</strong><small>Hide up to 3 letters absent from the answer</small></span><span className="hint-count">{game.hints.unused} left</span></button>
-              <button className="friendly-hint" type="button" onClick={() => void useHint('present')} disabled={busy || progressSaving || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span><span><strong>Reveal a letter</strong><small>Show an answer letter, without its position</small></span><span className="hint-count">{game.hints.present} left</span></button>
+              <button className="friendly-hint" type="button" onClick={() => void useHint('unused')} disabled={busy || progressSaving || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span><span><strong>Remove letters</strong><small>Hide up to 3 incorrect letters</small></span><span className="hint-count">{game.hints.unused} left</span></button>
+              <button className="friendly-hint" type="button" onClick={() => void useHint('present')} disabled={busy || progressSaving || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span><span><strong>Reveal a letter</strong><small>Position stays hidden</small></span><span className="hint-count">{game.hints.present} left</span></button>
             </div>}
             {!finished && <>
               {game.revealedPresent.length > 0 && <p className="revealed-letter-hint" aria-live="polite">{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')} {game.revealedPresent.length === 1 ? 'is' : 'are'} in the answer; position unknown.</p>}
@@ -393,16 +392,7 @@ export default function App() {
               <input ref={inputRef} className="game-input" id="guess-input" value={guess} onChange={event => setGuess(event.target.value.toLowerCase().replace(/[^a-z]/g, '').slice(0, game.wordLength))} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="text" />
             </>}
             </div>
-            <aside className="puzzle-definitions" aria-label="Word definitions">
-            {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
-              <div><strong>{result.guess}</strong><DefinitionText text={result.definition || 'Definition unavailable.'} /></div>
-              <button className="bookmark-button" type="button" aria-label={addedWords.has(result.guess) ? 'Already in word list' : `Save ${result.guess} to word list`} title={addedWords.has(result.guess) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(result.guess, result.definition ?? '')} disabled={addedWords.has(result.guess)}><BookmarkIcon added={addedWords.has(result.guess)} />{addedWords.has(result.guess) && <span>Added</span>}</button>
-            </div>)}
-            {finished && game.guesses.at(-1)?.answer && <div className="answer-definition">
-              <div><p className="eyebrow">THE ANSWER</p><strong>{game.guesses.at(-1)!.answer}</strong><DefinitionText text={game.guesses.at(-1)!.answerDefinition || 'Definition unavailable.'} /></div>
-              <button className="bookmark-button" type="button" aria-label={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : `Save ${game.guesses.at(-1)!.answer} to word list`} title={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(game.guesses.at(-1)!.answer!, game.guesses.at(-1)!.answerDefinition ?? game.guesses.at(-1)!.definition ?? '')} disabled={addedWords.has(game.guesses.at(-1)!.answer!)}><BookmarkIcon added={addedWords.has(game.guesses.at(-1)!.answer!)} />{addedWords.has(game.guesses.at(-1)!.answer!) && <span>Added</span>}</button>
-            </div>}
-            </aside>
+
             {!finished && <div className="keyboard-dock">
               <div className="game-keyboard" role="group" aria-label="On-screen keyboard">
                 {keyboardRows.map((row, rowIndex) => <div className={`keyboard-row keyboard-row-${rowIndex + 1}`} key={row}>
@@ -414,8 +404,18 @@ export default function App() {
                   {rowIndex === 2 && <button className="keyboard-key special-key delete-key" type="button" aria-label="Delete letter" onMouseDown={event => event.preventDefault()} onClick={deleteLetter} disabled={busy || progressSaving || finished}>⌫</button>}
                 </div>)}
               </div>
-              <p className="input-hint">Type one letter at a time or use the on-screen keyboard.</p>
             </div>}
+            {game.guesses.length > 0 && <aside className="puzzle-definitions" aria-label="Word definitions">
+            {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
+              <div><strong>{result.guess}</strong><DefinitionText text={result.definition || 'Definition unavailable.'} /></div>
+              <button className="bookmark-button" type="button" aria-label={addedWords.has(result.guess) ? 'Already in word list' : `Save ${result.guess} to word list`} title={addedWords.has(result.guess) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(result.guess, result.definition ?? '')} disabled={addedWords.has(result.guess)}><BookmarkIcon added={addedWords.has(result.guess)} />{addedWords.has(result.guess) && <span>Added</span>}</button>
+            </div>)}
+            {finished && game.guesses.at(-1)?.answer && <div className="answer-definition">
+              <div><p className="eyebrow">THE ANSWER</p><strong>{game.guesses.at(-1)!.answer}</strong><DefinitionText text={game.guesses.at(-1)!.answerDefinition || 'Definition unavailable.'} /></div>
+              <button className="bookmark-button" type="button" aria-label={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : `Save ${game.guesses.at(-1)!.answer} to word list`} title={addedWords.has(game.guesses.at(-1)!.answer!) ? 'Already in word list' : 'Save to word list'} onClick={() => void addGameWord(game.guesses.at(-1)!.answer!, game.guesses.at(-1)!.answerDefinition ?? game.guesses.at(-1)!.definition ?? '')} disabled={addedWords.has(game.guesses.at(-1)!.answer!)}><BookmarkIcon added={addedWords.has(game.guesses.at(-1)!.answer!)} />{addedWords.has(game.guesses.at(-1)!.answer!) && <span>Added</span>}</button>
+            </div>}
+            </aside>}
+
             </div>
           </div>
         )}
@@ -425,7 +425,6 @@ export default function App() {
       }
       </>}
       {activeSection === 'library' && <section className="library-page">
-        <div className="section-intro"><div><p className="eyebrow">YOUR VOCABULARY</p><h2>Word List</h2><p>Keep the words you’re learning close at hand.</p></div><span className="library-mark" aria-hidden="true">✳</span></div>
         <WordListsPanel key={accountRevision} pageMode searchQuery={quickSearch} />
       </section>}
       {activeSection === 'home' && <section className="overview-page">

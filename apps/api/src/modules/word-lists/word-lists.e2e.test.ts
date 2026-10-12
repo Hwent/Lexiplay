@@ -114,6 +114,26 @@ describe('owned vocabulary list HTTP endpoints', () => {
     app = undefined;
   });
 
+  it('parses pasted word meanings while preserving compound words and rejecting invalid or duplicate rows', async () => {
+    const importer = new WordListImportService();
+    const preview = await importer.preview({ originalname: 'pasted-words.txt', buffer: Buffer.from(
+      'APPLE — A fruit\r\nbrave - Showing courage\nwell-being: Good health\ncurious\napple\nbad123\nchair\n',
+    ) }, ['chair']);
+    expect(preview.rows).toMatchObject([
+      { term: 'apple', definition: 'A fruit', selected: true },
+      { term: 'brave', definition: 'Showing courage', selected: true },
+      { term: 'well-being', definition: 'Good health', selected: true },
+      { term: 'curious', definition: '', selected: true },
+      { term: 'apple', selected: false, issues: ['DUPLICATE_IN_FILE'] },
+      { term: 'bad123', selected: false, issues: ['INVALID_TERM'] },
+      { term: 'chair', selected: false, issues: ['ALREADY_IN_LIST'] },
+    ]);
+    expect(preview.totals).toEqual({ ready: 4, warnings: 2, rejected: 1 });
+    const literalWords = await importer.preview({ originalname: 'pasted-words.txt', buffer: Buffer.from('word\nterm\ntext') }, []);
+    expect(literalWords.rows.map(row => row.term)).toEqual(['word', 'term', 'text']);
+    await expect(importer.preview({ originalname: 'pasted-words.txt', buffer: Buffer.from('apple\n'.repeat(1002)) }, [])).rejects.toThrow();
+  });
+
   it('lets an owner manage lists and words while hiding another user’s lists', async () => {
     const repository = new MemoryWordListRepository();
     const ownerToken = 'A'.repeat(43);

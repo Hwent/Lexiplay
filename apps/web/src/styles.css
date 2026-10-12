@@ -60,8 +60,8 @@
 
 * { box-sizing: border-box; }
 body { margin: 0; min-width: 320px; min-height: 100vh; background: var(--page); }
-button, input, select { font: inherit; }
-button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; z-index: 1; }
+button, input, select, textarea { font: inherit; }
+button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible, a:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; z-index: 1; }
 .page-shell { width: min(100% - 2rem, 56rem); min-height: 100vh; margin: 0 auto; display: flex; flex-direction: column; }
 .topbar { min-height: 3.2rem; display: flex; align-items: center; justify-content: space-between; border-bottom: 1px solid var(--line); }
 .brand { display: inline-flex; align-items: center; gap: .6rem; color: var(--text); text-decoration: none; font-family: Georgia, serif; font-size: 1.3rem; font-weight: 700; letter-spacing: -.035em; }
@@ -83,7 +83,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .word-lists-panel summary { padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; white-space: nowrap; list-style: none; }
 .word-lists-panel summary::-webkit-details-marker { display: none; }
 .word-lists-content { position: absolute; z-index: 50; top: calc(100% + .5rem); right: 0; width: min(25rem, calc(100vw - 1rem)); max-height: min(78vh, 42rem); overflow-y: auto; padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--surface); box-shadow: var(--account-shadow); }
-.list-create-form, .list-edit-form, .word-add-form { display: flex; flex-direction: column; gap: .4rem; padding-bottom: .8rem; }
+.list-create-form, .list-edit-form { display: flex; flex-direction: column; gap: .4rem; padding-bottom: .8rem; }
 .word-lists-content h2, .word-lists-content h3 { margin: 0 0 .35rem; color: var(--text); font-family: Georgia, serif; font-size: 1.15rem; }
 .word-lists-content h3 { margin-top: .75rem; font-size: 1rem; }
 .word-list-select h3 { margin: 0; font-family: inherit; font-size: .8rem; }
@@ -111,18 +111,16 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .remove-word-action { color: #c76464; }
 .play-my-words { display: flex; align-items: center; gap: .55rem; margin: 0 0 1rem; color: var(--soft-text); font-size: .9rem; cursor: pointer; }
 .play-my-words input { width: 1.1rem; height: 1.1rem; accent-color: var(--accent); }
-.word-add-form { margin-top: .65rem; padding: .8rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface); }
 .game-consumables { width: 100%; margin: .8rem 0 .25rem; display: flex; justify-content: flex-start; flex-wrap: wrap; gap: .5rem; }
 .game-consumables button, .guess-definition button, .answer-definition button { min-height: 2.35rem; padding: .4rem .7rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--surface-soft); color: var(--text); cursor: pointer; font-size: .76rem; font-weight: 650; }
 .game-consumables button:disabled, .guess-definition button:disabled, .answer-definition button:disabled { opacity: .55; cursor: default; }
 .game-consumables button small { margin-left: .4rem; color: var(--muted); font-size: .68rem; }
 .hint-icon { display: inline-block; margin-right: .35rem; color: var(--accent); font-size: 1.05rem; vertical-align: -.08em; }
-.puzzle-columns { width: 100%; display: grid; grid-template-columns: minmax(0, 1.08fr) minmax(17rem, .92fr); align-items: start; gap: clamp(1.25rem, 3vw, 3rem); }
-.puzzle-play-column { min-width: 0; display: flex; flex-direction: column; align-items: flex-start; }
+.puzzle-columns { width: 100%; display: flex; flex-direction: column; align-items: center; gap: 1rem; }
+.puzzle-play-column { min-width: 0; display: flex; flex-direction: column; align-items: center; width: 100%; }
 .puzzle-definitions { min-width: 0; padding-top: .3rem; display: flex; flex-direction: column; gap: .55rem; }
-.puzzle-definitions { max-height: 70vh; overflow-y: auto; overscroll-behavior: contain; }
+.puzzle-definitions { width: 100%; }
 .keyboard-dock { width: 100%; grid-column: 1 / -1; display: flex; flex-direction: column; align-items: center; }
-.puzzle-definitions:empty::after { color: var(--muted); content: 'Definitions for your guesses will appear here.'; font-size: .82rem; }
 .revealed-letter-hint { margin: .4rem 0 0; padding: .55rem .7rem; border: 1px solid color-mix(in srgb, var(--present) 45%, var(--line)); border-radius: .55rem; background: color-mix(in srgb, var(--present) 10%, var(--surface)); color: var(--soft-text); font-size: .82rem; }
 .guess-definition, .answer-definition { width: 100%; margin: 0; padding: .7rem .8rem; display: flex; align-items: center; justify-content: space-between; gap: .8rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface-soft); }
 .guess-definition > div, .answer-definition > div { min-width: 0; display: flex; flex-direction: column; gap: .15rem; }
@@ -150,7 +148,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .primary-button:hover:not(:disabled) { filter: brightness(1.12); }
 .primary-button:disabled { opacity: .5; cursor: not-allowed; }
 .primary-button span { padding-left: .4rem; }
-.puzzle { width: 100%; max-width: 92rem; margin: auto; padding: .55rem 0 .75rem; display: flex; flex-direction: column; align-items: stretch; }
+.puzzle { width: 100%; max-width: 46rem; margin: auto; padding: .55rem 0 .75rem; display: flex; flex-direction: column; align-items: stretch; }
 .puzzle-heading { width: 100%; min-height: 3.2rem; margin-bottom: .8rem; display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
 .puzzle-heading .eyebrow { margin: 0 0 .3rem; color: var(--muted); font-size: .65rem; font-weight: 700; letter-spacing: .13em; text-transform: uppercase; }
 .puzzle-heading h2 { font-size: 1.45rem; }
@@ -210,7 +208,7 @@ footer { min-height: 3.5rem; margin-top: auto; display: flex; align-items: cente
 @media (max-width: 700px) {
   .top-note { display: none; }
   .header-actions { gap: .4rem; }
-  .guess-board { max-width: min(100%, 20rem) !important; gap: .3rem; }
+  .guess-board { max-width: 100%; gap: .3rem; }
   .guess-row { gap: .3rem; }
   .puzzle-heading { min-height: 2.8rem; margin-bottom: .55rem; }
   .keyboard-key { height: 3rem; }
