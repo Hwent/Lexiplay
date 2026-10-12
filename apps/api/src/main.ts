@@ -1,14 +1,17 @@
 import 'reflect-metadata';
-import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
+import { NestExpressApplication } from '@nestjs/platform-express';
 import { AppModule } from './app.module';
+import { configureHttp, serverConfig } from './http-setup';
 
 async function bootstrap() {
-  const app = await NestFactory.create(AppModule);
-  app.setGlobalPrefix('api/v1');
-  app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
-  await app.listen(Number(process.env.PORT ?? 3000), '127.0.0.1');
+  const config = serverConfig();
+  if (config.publicOrigin) process.env.PUBLIC_WEB_ORIGIN = config.publicOrigin;
+  const app = await NestFactory.create<NestExpressApplication>(AppModule);
+  configureHttp(app, config);
+  app.enableShutdownHooks();
+  await app.listen(config.port, config.host);
   console.log(`API_LISTENING=${await app.getUrl()}`);
 }
 
-void bootstrap();
+void bootstrap().catch(error => { console.error(error instanceof Error ? error.message : 'Could not start the API.'); process.exitCode = 1; });

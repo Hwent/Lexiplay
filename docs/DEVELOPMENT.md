@@ -45,4 +45,6 @@ Run the regular checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Rea
 
 ## GitHub setup
 
+[DEPLOYMENT.md](DEPLOYMENT.md) covers the Render demo. `http-setup.ts` validates production configuration, serves `apps/web/dist` and browser routes beside `/api/v1`, configures bounded proxy trust, and preserves API/asset 404s. Development remains loopback with Vite’s proxy. Production binds `0.0.0.0` by default and uses Render’s public URL for mail links unless explicitly overridden. The manual first-import wrapper requires a private external database URL and explicit `SEED` input; it is never run automatically on deploy.
+
 The repository already has an `origin` remote (see the root README). Pull requests and pushes to `main` run CI, including a disposable PostgreSQL service for integration tests. Add deployment secrets only through protected GitHub Actions environments after selecting a deployment target.

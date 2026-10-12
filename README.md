@@ -32,6 +32,8 @@ Sign-in and signup automatically save guest words and games to the account. Exis
 
 ## GitHub
 
+For the Render demo walkthrough and exact production settings, use [DEPLOYMENT.md](docs/DEPLOYMENT.md). Production serves the built web app and API from one origin; run `pnpm build` then `pnpm start` with the required server environment. The free database expires after 30 days, so use a lasting database plan before keeping real users’ progress.
+
 The remote is `https://github.com/Hwent/Lexiplay.git`. Push future work with:
 
 ```powershell

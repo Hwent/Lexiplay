@@ -44,7 +44,7 @@ flowchart LR
     Seed --> DB
 ```
 
-Vite's proxy is part of local development. The repository does not yet define a production hosting arrangement.
+Vite's proxy is part of local development. [DEPLOYMENT.md](DEPLOYMENT.md) defines the Render demo arrangement: the compiled NestJS server serves the React build and API from one origin, with managed PostgreSQL. `http-setup.ts` validates production settings, configures proxy trust, and handles browser routes without masking API/asset errors. Render creation and the first dictionary import are manual operator steps.
 
 ## 2. Technologies and where they are configured
 
