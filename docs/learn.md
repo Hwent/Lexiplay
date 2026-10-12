@@ -83,6 +83,7 @@ Paths in this table are relative to `apps/web/`.
 | [src/AccountPage.tsx](../apps/web/src/AccountPage.tsx) | Dedicated responsive `/account` page for signup with optional email/verification, sign-in/out, adding recovery email, password recovery, and confirmed deletion. Makes requests to `/api/v1/auth/*`; `account.css` styles the page. |
 | [src/PasswordField.tsx](../apps/web/src/PasswordField.tsx) | Shared password input with accessible Show/Hide controls, autocomplete, and automatic hiding when cleared. |
 | [src/AccountStatus.tsx](../apps/web/src/AccountStatus.tsx) / [src/useAccount.ts](../apps/web/src/useAccount.ts) | Compact header status and a shared account/session lookup that stays mounted across page changes. |
+| [src/services/guest-progress.ts](../apps/web/src/services/guest-progress.ts) | Snapshots browser words/latest game, batches account-bound transfers, keeps data on failure, and retries pending work. `useAccount` invokes it after sign-in/signup and on reload with pending work. |
 | [src/GameCatalog.tsx](../apps/web/src/GameCatalog.tsx) | Catalogue of available games, currently Word puzzle; the entry point for future game views. |
 | [src/StatisticsPanel.tsx](../apps/web/src/StatisticsPanel.tsx) | Completed-game metrics, winning guess distribution, recent practice, and guest/error/empty states. |
 | [src/WordListsPanel.tsx](../apps/web/src/WordListsPanel.tsx) | Personal list display, search, pagination, manual edits, Known/Unfamiliar toggles, dictionary saves, and upload preview/confirmation. It imports `apiRequest` as `request`; read `loadLocalLists`, the pending operation maps, and the route-change effect. |
@@ -125,6 +126,7 @@ Files under [apps/api/src/modules/accounts](../apps/api/src/modules/accounts):
 - `account.repository.ts` defines `AccountUser` / `AccountRecord` and queries account tables. Email is nullable. Account deletion locks the user and atomically removes owned games plus the user; foreign keys cascade personal words/lists, sessions, and action links. Game creation takes a compatible account lock to avoid orphan games during deletion.
 - `account.dto.ts` validates usernames, email addresses, action tokens, and 8–128 character passwords.
 - `account-mail.service.ts` delivers verification/reset links through local development previews or the configured Resend API. `account_actions` stores expiring token hashes, consumed once in a transaction.
+- `account-email.ts` generates formal HTML and plain-text messages with escaped URLs, action/fallback links, and expiry/optionality instructions.
 - `session-cookie.ts` extracts and validates the `lexiplay_session` token from the request cookie header.
 - `accounts.module.ts` registers providers, exports `AccountService`, and configures account throttling.
 
@@ -135,6 +137,7 @@ The browser receives an HttpOnly, SameSite=Lax cookie scoped to `/api/v1`; `Secu
 Files under [apps/api/src/modules/games](../apps/api/src/modules/games):
 
 - `game.controller.ts` handles start, restore, guesses, and hints, resolves account/guest ownership, and validates requests.
+- `progress-transfer.controller.ts` validates authenticated guest claims; `progress-transfer.repository.ts` coordinates atomic word/game transfer and account-bound receipts through the existing repositories. `guest-cookie.ts` shares cookie hashing and expiry helpers.
 - `game.service.ts` selects answers, checks guesses, scores duplicate letters, enriches definitions, and coordinates persisted hints/completion.
 - `game.types.ts` defines game state, public answer redaction, and difficulty rules. `game.dto.ts` and `submit-guess.dto.ts` validate 3–9 letters and allowed settings.
 - `game.repository.ts` stores games and guesses in PostgreSQL, with transactions and row locks for updates.
@@ -177,6 +180,8 @@ The schema is currently defined inside the repository classes and seeder, not in
 | `account_users` | UUID `id`, unique nullable email, unique username, optional verification flag, password hash, creation timestamp. | `AccountRepository.ensureSchema`. |
 | `account_sessions` | Token hash primary key, user ID, expiry and creation timestamps; belongs to an account. | `AccountRepository.ensureSchema`. |
 | `account_actions` | One-use reset/verification token hashes, owner, purpose, and expiry. | `AccountRepository.ensureSchema`. |
+| `guest_progress_claims` | Hashed guest owner mapped to the receiving account; cascades on account deletion. | `AccountRepository.ensureSchema`. |
+| `progress_transfers` | Batch UUID, account owner, payload hash, and receipt counts for idempotent retries; cascades on deletion. | `AccountRepository.ensureSchema`. |
 | `practice_games` | UUID `id`, account/hashed-guest owner key, server-only state JSON. | `GameRepository.ensureSchema`. |
 | `practice_guesses` | Game ID, position, accepted result JSON including learning definitions. | `GameRepository.ensureSchema`. |
 | `user_word_lists` | UUID `id`, owner ID, name, timestamps; unique owner, with the name `My words`. | `WordListRepository.ensureSchema` and `ensureDefaultList`. |
@@ -195,7 +200,8 @@ The server's `WordList` response has `{ id, name, words }`; each `WordEntry` has
 | React component state | Current section, guess, game response, list contents, messages, and UI controls. | Component/page lifetime. |
 | `WordListsPanel` refs | Maps of pending word operations and status changes. | Component lifetime, flushed on the app's route-change event. |
 | `localStorage`: `lexiplay-theme` | Light/dark preference. | Across browser reloads on that origin. |
-| `localStorage`: `lexiplay-local-word-lists` | Guest personal list and words. | On that browser origin; no implemented account synchronization. |
+| `localStorage`: `lexiplay-local-word-lists` | Guest personal list and words. | Merged into the account after sign-in/signup; cleared only after acknowledged transfer, preserving concurrent local edits. |
+| `localStorage`: `lexiplay-progress-transfer` | Pending account-bound snapshot, batch IDs, acknowledged position, latest game ID, and totals. | Retained for retry/reload until all batches succeed. Contains no password or session token. |
 | `localStorage`: `lexiplay-dictionary-cache-v1` | Cached search/definition entries with `expiresAt`; also held in in-memory maps. | 24-hour cache entries. |
 
 [packages/shared/src/index.ts](../packages/shared/src/index.ts) currently exports only `ApiError` and `HealthStatus` types. Most game/account/list response types are defined locally in the web and API files, rather than imported from a generated shared client. The files in [packages/shared/vocabulary](../packages/shared/vocabulary/README.md) are historical SCOWL word-list snapshots; the current API does not load them for games.
@@ -258,9 +264,9 @@ Most API HTTP tests use deterministic repository substitutes or spies. `persiste
 ## 8. Current limits to keep in mind while learning
 
 - Community remains a placeholder. Games and guesses now persist, and Statistics is implemented; a missed-word review queue is still future work.
-- Guest lists remain on the browser origin. Personal-word games require an authenticated API list; they do not read the guest list from browser storage. Changing the local web port also changes the browser storage origin.
+- Guest lists are saved to the account after signup/sign-in. Personal-word games require an authenticated API list; they do not read the guest list directly from browser storage. Transfer needs access to that origin’s storage; changing the local web port changes the browser storage origin.
 - Signed-in manual list edits are queued until app navigation. The current code does not implement a durable pending-operation queue or a page-close save flow.
-- Automatic puzzle resume needs the browser’s saved game ID and its ownership cookie/session. Guest games do not transfer into accounts. Production email requires provider/sender/origin configuration; development uses local previews.
+- Automatic puzzle resume needs the browser’s saved game ID and its ownership cookie/session. Guest games transfer on signup/sign-in only with the original guest cookie; a lost/expired cookie cannot be replaced by a game ID. Production email requires provider/sender/origin configuration; development uses local previews.
 - Schema changes currently run inside lazy repository setup. The migration approach described in the development/design docs is a convention to move toward, not a separate implemented migration system.
 - PDF import extracts text and does not perform OCR. The health endpoint returns `{ status: 'ok' }` without checking database readiness.
 

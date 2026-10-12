@@ -23,6 +23,8 @@ Registration requires a unique case-insensitive username (3–32 letters/numbers
 
 Start the local database with `docker compose up -d database` before using account endpoints. The API creates its account tables on the first auth request. Run the dictionary seed command in Local setup once to populate its search data. Auth and word-list HTTP tests use deterministic repository adapters, so endpoint contracts can be checked without Docker.
 
+After sign-in/signup, `useAccount` invokes the browser guest-progress transfer. The authenticated `/progress/claim` route accepts 100 validated words per batch and reads guest ownership from the HttpOnly cookie. `ProgressTransferRepository` coordinates a transaction through the existing word/game repositories; game owner keys and serialized state change together. Account-bound batch receipts make retries safe, and guest claims reject stale guest game creation. Lists/words already in the account take precedence. Pending local data remains until all batches succeed and is retried on reload or through Account. See [GAMES_AND_ACCOUNTS.md](GAMES_AND_ACCOUNTS.md) for the storage and cookie limits. `account-email.ts` builds escaped HTML and plain-text messages; mail delivery uses the existing provider boundary.
+
 ## Personal vocabulary list
 
 Personal words store a term, definition, optional part of speech, and Known/Unfamiliar status. Example sentences are no longer supported by the API or importer. Existing databases drop `user_words.example` during word-list schema setup. Dictionary schema setup and seeding drop `dictionary_words.source`; attribution remains in the license notice and `/licenses` page rather than on every dictionary row.

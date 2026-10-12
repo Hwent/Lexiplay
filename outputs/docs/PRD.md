@@ -6,6 +6,8 @@ Current game/account behavior is documented in [GAMES_AND_ACCOUNTS.md](../../doc
 
 ## 1. Product summary
 
+Guest progress is automatically saved to the account after signup/sign-in. Saved words preserve learning status, existing account entries take precedence, completed games join Statistics, and the latest puzzle resumes with its guesses/hints. Failed transfers retain device data and offer retry. Verification emails use formal HTML/plain-text messages while remaining optional.
+
 LexiPlay is a Wordle-inspired English vocabulary practice app. A player chooses a vocabulary list, guesses a hidden word using a limited number of attempts, and learns from the result through definitions and review. The first release should demonstrate a complete, dependable full-stack product suitable for a software portfolio.
 
 ## 2. Goals and non-goals

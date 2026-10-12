@@ -20,9 +20,19 @@ Answers and valid guesses come from the database dictionary, filtered to lowerca
 
 `practice_games` stores an owner key and server-only JSON state: game kind, answer, dictionary-pool snapshot, rules, hint counts, revealed letters, and timestamps. `practice_guesses` stores accepted results and definitions in position order, with a unique `(game_id, position)` key. Guesses and game changes commit in one transaction. Row locks serialize simultaneous guesses and hints. Reads use a consistent database snapshot. Answers and dictionary pools are removed from active-game responses; completion reveals the answer in the final guess result.
 
-Signed-in games belong to the account. Guest games belong to an opaque, HttpOnly, SameSite=Lax browser cookie; only its SHA-256 hash is stored. Cookies use Secure in production. Another account or browser receives 404 for a game it does not own. Guest cookies last 30 days. Guest games do not transfer into an account after sign-in.
+Signed-in games belong to the account. Guest games belong to an opaque, HttpOnly, SameSite=Lax browser cookie; only its SHA-256 hash is stored. Cookies use Secure in production. Another account or browser receives 404 for a game it does not own. Guest cookies last 30 days. Sign-in and signup transfer the current browser’s guest games into the authenticated account, including unfinished games and completed history.
 
-Accepted guesses, definitions, hints, and completed games survive API restart. The browser stores the latest game ID in `lexiplay-last-game` and restores it on reload. Navigating between pages retains the current puzzle. Choosing a new puzzle clears that browser pointer; an unfinished previous puzzle remains stored but does not count toward Statistics. Signing in/out clears the displayed puzzle and pointer so another account cannot inherit its UI. Without browser storage, automatic resume is unavailable.
+Accepted guesses, definitions, hints, and completed games survive API restart. The browser stores the latest game ID in `lexiplay-last-game` and restores it on reload. Navigating between pages retains the current puzzle. Choosing a new puzzle clears that browser pointer; an unfinished previous puzzle remains stored but does not count toward Statistics. Successful sign-in/signup restores the latest puzzle after its ownership is checked/transferred. Sign-out clears the displayed puzzle and pointer so another account cannot inherit its UI. Without browser storage, automatic resume is unavailable.
+
+### Saving guest progress to an account
+
+After authentication, the browser snapshots its local words and latest game ID. `POST /progress/claim` merges up to 100 words per batch into the account’s single list and moves every game owned by the guest cookie into the account. IDs, accepted guesses, hint state, definitions, and completion timestamps remain intact. Only the server-held game state is transferred; clients cannot supply guesses or a guest owner key. The latest game resumes only if the authenticated account owns it. Completed games immediately count toward Statistics.
+
+New words preserve Known/Unfamiliar status and personal definitions. Repeated terms are normalized/deduplicated, and existing account words keep their definitions and status. Each batch uses one PostgreSQL transaction for words, games, guest ownership, and its receipt. `progress_transfers` binds a batch ID and payload hash to one account, making retries idempotent. `guest_progress_claims` prevents another account or an in-flight guest request from reusing a claimed guest identity. These records cascade on account deletion. A successfully claimed guest cookie is expired.
+
+`lexiplay-progress-transfer` stores the pending snapshot, account binding, batch IDs, acknowledged position, and totals before requests begin. Local words are cleared only after all batches are acknowledged; new/edited words from another tab remain. A failed transfer leaves authentication successful, retains local data, and shows Retry saving progress on Account. Reloading retries a pending transfer for the same account. Signing in to a different account cannot take over that pending snapshot. Puzzle controls pause while transfer is running.
+
+Transfer requires access to the current browser origin’s local storage and the original guest cookie. Different browser origins/dev ports cannot read each other’s words. Guest games whose cookie has been lost or expired cannot be claimed using a game ID alone. Very large transfers may reach the endpoint rate limit and can resume via retry.
 
 ## Statistics
 
@@ -42,6 +52,8 @@ Delete account opens a confirmation form requiring the current password and the 
 
 Email verification links expire after 24 hours; password reset links after 30 minutes. Only SHA-256 token hashes are stored in `account_actions`. Each new request replaces the previous link of the same type. Token consumption is transactional and single-use. Resetting a password revokes all existing sessions. Email links target `/account#action=verify&token=...` or `/account#action=reset&token=...`. Account removes the token from the address bar and offers a confirmation form. Older root-page action links open Account too. After verification, an existing signed-in session is refreshed so a link for another email cannot incorrectly mark the current account verified.
 
+Account emails use formal subjects and a branded HTML template with an action button, fallback URL, expiry/single-use instructions, a safe-ignore notice, and a plain-text alternative. The verification message explicitly says verification is optional. Dynamic URLs are HTML-escaped; templates do not include passwords or server credentials. Reset messages retain their 30-minute expiry and clarify that the password is unchanged until reset completion.
+
 | API route | Request / behavior |
 | --- | --- |
 | `POST /games` | `{ kind?, wordLength?, difficulty?, playWithMyWords? }`; create owned game |
@@ -49,6 +61,7 @@ Email verification links expire after 24 hours; password reset links after 30 mi
 | `POST /games/:id/guesses` | `{ guess }`; accept or reject without consuming invalid attempts |
 | `POST /games/:id/hints` | `{ type: "unused" \| "present" }`; persist hint state |
 | `GET /progress/summary?timezone=America%2FToronto` | Authenticated completed-game statistics |
+| `POST /progress/claim` | Authenticated `{ accountId, transferId, words, lastGameId? }`; UUID IDs, max 100 validated words with Known/Unfamiliar status; guest ownership proven by cookie |
 | `POST /auth/register` | `{ username, password, email?, sendVerification? }`; verification defaults off |
 | `POST /auth/login` | `{ identifier, password }`; legacy `{ email, password }` also works |
 | `POST /auth/forgot-password` | `{ email }`; generic recovery response |
@@ -130,3 +143,17 @@ Files changed in this milestone:
 - Documentation: `README.md`, `docs/DEVELOPMENT.md`, `docs/GAMES_AND_ACCOUNTS.md`, `docs/learn.md`, `outputs/docs/PRD.md`, and `outputs/docs/TECHNICAL_DESIGN.md`.
 
 Known limits: username-only accounts cannot recover a forgotten password without a previously linked email; existing recovery addresses cannot yet be changed/removed. Backup retention, account export, and versioned database migrations remain future work.
+
+## Guest progress and formal email milestone
+
+Guest words/games now move into the account after signup or sign-in, with account-bound retries and puzzle restoration. Verification and reset messages have formal HTML/plain-text templates. No dependencies were added and no external email was sent for this milestone.
+
+Validation passed: 25 API tests (six real PostgreSQL cases), 49 web tests, workspace typechecking, and production builds. Integration coverage includes signup/login transfer, concurrent retries, preservation of existing words, active guesses/hints, Statistics, restart, account isolation, deletion cleanup, and rollback. Browser tests cover large batches, lost responses, concurrent local edits, retry/reload, and puzzle/word UI restoration. A local dummy-link email preview was inspected through browser accessibility content; screenshot capture was unavailable, and rendering in external email clients was not exercised.
+
+Files changed:
+
+- Accounts: `apps/api/src/modules/accounts/account.repository.ts`, `account-email.ts`, `account-mail.service.ts`, and `account-mail.service.test.ts`.
+- Games/progress: `apps/api/src/modules/games/game.controller.ts`, `game.repository.ts`, `games.module.ts`, `guest-cookie.ts`, `progress-transfer.controller.ts`, `progress-transfer.dto.ts`, and `progress-transfer.repository.ts`.
+- Word storage: `apps/api/src/modules/word-lists/word-list.repository.ts` and `word-lists.module.ts`; integration coverage in `apps/api/src/persistence.e2e.test.ts`.
+- Web: `apps/web/src/AccountPage.tsx`, `AccountPage.test.tsx`, `App.tsx`, `App.test.tsx`, `GameUpdates.test.tsx`, `GuestProgress.test.tsx`, `useAccount.ts`, `services/guest-progress.ts`, and `services/guest-progress.test.ts`.
+- Docs: `README.md`, `docs/DEVELOPMENT.md`, `docs/GAMES_AND_ACCOUNTS.md`, `docs/learn.md`, `outputs/docs/PRD.md`, and `outputs/docs/TECHNICAL_DESIGN.md`.

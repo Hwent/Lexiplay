@@ -28,6 +28,8 @@ The dedicated `/account` page contains sign-in, registration, sign-out, optional
 
 Run the checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Tests cover UI, account and owned-list lifecycles, and games at every supported length through the production validation pipeline. Set `TEST_DATABASE_URL` to a disposable `lexiplay_test_*` database to run persistence/restart/concurrency and account-link integration checks; CI supplies one automatically. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for boundaries and conventions.
 
+Sign-in and signup automatically save guest words and games to the account. Existing account words take precedence when terms overlap; new words keep their Known/Unfamiliar status. Active puzzles retain guesses/hints and resume, while completed games contribute to Statistics. Failed transfers keep local data and offer a retry on Account. Verification emails include a formal HTML message, an action button, a fallback link, and a plain-text alternative; verification remains optional.
+
 ## GitHub
 
 The remote is `https://github.com/Hwent/Lexiplay.git`. Push future work with:

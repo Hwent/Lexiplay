@@ -49,6 +49,8 @@ Current tables are `account_users`, `account_sessions`, `account_actions`, `user
 
 Use UUID primary keys, UTC timestamps, foreign keys, and indexes for common owner/date queries. The following remains the broader logical model, including future review capabilities.
 
+`guest_progress_claims` and `progress_transfers` also belong to accounts through cascading foreign keys. The authenticated progress-claim transaction merges browser words and moves cookie-owned games, updating both owner keys and serialized owner fields. Existing words remain authoritative. Advisory locks serialize batch retries and guest ownership transitions; receipts bind IDs/payload hashes to accounts. Pending snapshots stay in browser storage until all batches are acknowledged. Account emails use escaped HTML with plain-text alternatives and explicit expiry/optionality.
+
 | Entity | Key fields and relationships |
 |---|---|
 | `User` | `id`, unique normalized `email`, `passwordHash` or external auth identity, `createdAt`; owns lists and games. Keep profile fields minimal. |

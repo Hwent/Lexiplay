@@ -1,12 +1,13 @@
 import { Body, Controller, Get, Headers, Inject, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { createHash, randomBytes } from 'node:crypto';
+import { randomBytes } from 'node:crypto';
 import { GameService } from './game.service';
 import { SubmitGuessDto } from './submit-guess.dto';
 import { StartGameDto, HintDto } from './game.dto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { AccountService } from '../accounts/account.service';
 import { readSessionCookie } from '../accounts/session-cookie';
+import { guestOwner } from './guest-cookie';
 
 type Response = { setHeader(name: string, value: string): void };
 @Controller('games')
@@ -31,11 +32,12 @@ export class GameController {
   private async owner(cookie: string | undefined, response?: Response) {
     const session = /(?:^|;\s*)lexiplay_session=/.test(cookie ?? '') ? readSessionCookie(cookie) : undefined;
     if (session) return `user:${(await this.accounts.current(session)).id}`;
-    let guest = cookie?.match(/(?:^|;\s*)lexiplay_guest=([A-Za-z0-9_-]{43})(?:;|$)/)?.[1];
-    if (!guest && response) {
-      guest = randomBytes(32).toString('base64url');
+    let owner = guestOwner(cookie);
+    if (!owner && response) {
+      const guest = randomBytes(32).toString('base64url');
       response.setHeader('Set-Cookie', `lexiplay_guest=${guest}; HttpOnly; SameSite=Lax; Path=/api/v1; Max-Age=2592000${process.env.NODE_ENV === 'production' ? '; Secure' : ''}`);
+      owner = guestOwner(`lexiplay_guest=${guest}`);
     }
-    return guest ? `guest:${createHash('sha256').update(guest).digest('hex')}` : 'guest:missing';
+    return owner ?? 'guest:missing';
   }
 }

@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
+import { ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import { Game, Guess } from './game.types';
 
@@ -17,6 +17,13 @@ export class GameRepository implements OnModuleDestroy {
       if (game.owner.startsWith('user:')) {
         const user = await client.query('SELECT id FROM account_users WHERE id = $1 FOR KEY SHARE', [game.owner.slice(5)]);
         if (!user.rowCount) throw new NotFoundException('This account no longer exists.');
+      } else {
+        await client.query('SELECT pg_advisory_xact_lock(hashtextextended($1, 0))', [game.owner]);
+        const claims = await client.query("SELECT to_regclass('guest_progress_claims') AS table_name");
+        if (claims.rows[0].table_name) {
+          const claim = await client.query('SELECT user_id FROM guest_progress_claims WHERE guest_owner = $1', [game.owner]);
+          if (claim.rowCount) throw new ConflictException('Your guest session changed. Reload before starting a game.');
+        }
       }
       await client.query('INSERT INTO practice_games (id, owner_key, state) VALUES ($1, $2, $3)', [game.id, game.owner, JSON.stringify(state)]);
       await client.query('COMMIT');
@@ -60,6 +67,13 @@ export class GameRepository implements OnModuleDestroy {
       WHERE g.owner_key = $1 AND g.state->>'completed' = 'true'
       GROUP BY g.id ORDER BY g.state->>'completedAt' DESC`, [owner]);
     return result.rows.map(row => ({ ...row.state, guesses: row.guesses }));
+  }
+
+  prepareProgressTransfer() { return this.ensureSchema(); }
+
+  async transferGuestGames(client: PoolClient, guest: string, owner: string): Promise<number> {
+    const result = await client.query("UPDATE practice_games SET owner_key = $2, state = jsonb_set(state, '{owner}', to_jsonb($2::text)) WHERE owner_key = $1 RETURNING id", [guest, owner]);
+    return result.rowCount ?? 0;
   }
 
   private async load(client: PoolClient, id: string, owner: string, lock = false): Promise<Game> {

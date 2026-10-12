@@ -1,5 +1,5 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { Pool, PoolClient } from 'pg';
 
 export type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 export type WordEntry = { id: string; term: string; definition: string; partOfSpeech: string | null; status: WordStatus };
@@ -140,6 +140,19 @@ export class WordListRepository implements OnModuleDestroy {
   }
 
   async onModuleDestroy() { await this.pool.end(); }
+
+  prepareProgressTransfer() { return this.ensureSchema(); }
+
+  async mergeGuestWords(client: PoolClient, ownerId: string, words: Omit<WordEntry, 'id'>[]) {
+    if (!words.length) return { wordsAdded: 0, wordsAlreadySaved: 0 };
+    const list = await client.query<{ id: string }>("INSERT INTO user_word_lists (owner_id, name) VALUES ($1, 'My words') ON CONFLICT (owner_id) DO UPDATE SET name = 'My words' RETURNING id", [ownerId]);
+    const added = await client.query(`INSERT INTO user_words (list_id, term, definition, part_of_speech, status)
+      SELECT $1, incoming.term, incoming.definition, incoming.part_of_speech, incoming.status
+      FROM UNNEST($2::text[], $3::text[], $4::text[], $5::text[]) AS incoming(term, definition, part_of_speech, status)
+      ON CONFLICT (list_id, term) DO NOTHING RETURNING id`,
+    [list.rows[0]!.id, words.map(word => word.term), words.map(word => word.definition), words.map(word => word.partOfSpeech), words.map(word => word.status)]);
+    return { wordsAdded: added.rowCount ?? 0, wordsAlreadySaved: words.length - (added.rowCount ?? 0) };
+  }
 
   private async includeWords(rows: WordListRow[]): Promise<WordList[]> {
     if (!rows.length) return [];

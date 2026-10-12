@@ -11,6 +11,7 @@ describe('dedicated account page', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/progress/claim')) return Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null });
       if (path.endsWith('/auth/login')) return Response.json({ user: account });
       if (path.endsWith('/auth/logout')) return new Response(null, { status: 204 });
       throw new Error(`Unexpected request: ${path}`);
@@ -60,7 +61,7 @@ describe('dedicated account page', () => {
     window.history.replaceState({}, '', '/account#action=verify&token=' + 'b'.repeat(43));
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? Response.json({ id: 'user-2', email: 'other@example.test', username: 'other', emailVerified: false }) : Response.json({ message: 'Your email is verified.' }));
     vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
-    await user.click(await screen.findByRole('button', { name: 'Verify my email' }));
+    await user.click(await screen.findByRole('button', { name: 'Verify email address' }));
     await waitFor(() => expect(screen.getByText('Email not verified · optional')).toBeInTheDocument());
     expect(screen.queryByText('Verified')).not.toBeInTheDocument();
   });
@@ -68,7 +69,7 @@ describe('dedicated account page', () => {
     window.history.replaceState({}, '', '/account');
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
       ? new Response('{}', { status: 401 })
-      : Response.json({ user: { id: 'user-1', username: 'learner', email: null, emailVerified: false }, verificationSent: false }));
+      : String(input).endsWith('/progress/claim') ? Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }) : Response.json({ user: { id: 'user-1', username: 'learner', email: null, emailVerified: false }, verificationSent: false }));
     vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('tab', { name: 'Create account' }));
     expect(screen.getByLabelText('Email optional')).not.toBeRequired();
@@ -91,7 +92,7 @@ describe('dedicated account page', () => {
     window.history.replaceState({}, '', '/account');
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
       ? new Response('{}', { status: 401 })
-      : Response.json({ user: { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false }, verificationSent: true }));
+      : String(input).endsWith('/progress/claim') ? Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }) : Response.json({ user: { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false }, verificationSent: true }));
     vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('tab', { name: 'Create account' }));
     await user.type(screen.getByLabelText('Username'), 'learner');

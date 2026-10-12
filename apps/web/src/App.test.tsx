@@ -83,6 +83,7 @@ describe('practice puzzle', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({
         user: { id: 'user-1', email: 'learner@example.test' },
       }), { status: 201 }))
+      .mockResolvedValueOnce(Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
     vi.stubGlobal('fetch', fetchMock);
     const user = userEvent.setup();

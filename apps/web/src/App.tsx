@@ -64,7 +64,7 @@ const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 const feedbackRank: Record<Feedback, number> = { ABSENT: 1, PRESENT: 2, CORRECT: 3 };
 
 export default function App() {
-  const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount } = useAccount();
+  const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount, signedIn, progressSaving, progressError, progressMessage, retryProgress } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
   const [guess, setGuess] = useState('');
   const [busy, setBusy] = useState(false);
@@ -120,9 +120,24 @@ export default function App() {
         else setMessage('Could not restore your puzzle. Reload to try again.');
       }).finally(() => { if (active) setRestoring(false); });
     }
-    const changed = () => { active = false; resetGame(); setRestoring(false); setAccountRevision(value => value + 1); };
+    let revision = 0;
+    const changed = (event: Event) => {
+      active = false;
+      const detail = (event as CustomEvent<{ resumeGameId?: string; keepGuestProgress?: boolean }>).detail;
+      if (detail?.keepGuestProgress) { setGame(null); setGuess(''); setMessage(''); setAddedWords(new Set()); } else resetGame();
+      setRestoring(false); setAccountRevision(value => value + 1);
+      const currentRevision = ++revision;
+      if (detail?.resumeGameId) {
+        const resumeId = detail.resumeGameId;
+        try { window.localStorage.setItem(LAST_GAME_KEY, resumeId); } catch { /* Resume remains available in this view. */ }
+        setRestoring(true);
+        api<Game>(`/games/${encodeURIComponent(resumeId)}`).then(result => { if (revision === currentRevision) setGame(result); }).catch(() => {
+          if (revision === currentRevision) setMessage('Your puzzle is saved. Reload to resume it.');
+        }).finally(() => { if (revision === currentRevision) setRestoring(false); });
+      }
+    };
     window.addEventListener('lexiplay:account-change', changed);
-    return () => { active = false; window.removeEventListener('lexiplay:account-change', changed); };
+    return () => { active = false; revision++; window.removeEventListener('lexiplay:account-change', changed); };
   }, []);
 
   const finished = game?.guesses.at(-1)?.completed ?? false;
@@ -138,6 +153,7 @@ export default function App() {
   }, [theme]);
 
   async function startPractice() {
+    if (progressSaving) return;
     setBusy(true);
     setMessage('');
     try {
@@ -160,7 +176,7 @@ export default function App() {
   }
 
   async function useHint(type: 'unused' | 'present') {
-    if (!game || busy || finished) return;
+    if (!game || busy || progressSaving || finished) return;
     setBusy(true);
     setMessage('');
     try {
@@ -211,7 +227,7 @@ export default function App() {
   }
 
   async function submitGuess() {
-    if (!game || busy || finished || guess.length !== game.wordLength) return;
+    if (!game || busy || progressSaving || finished || guess.length !== game.wordLength) return;
     setBusy(true);
     setMessage('');
     try {
@@ -236,7 +252,7 @@ export default function App() {
   }
 
   function addLetter(letter: string) {
-    if (!game || busy || finished) return;
+    if (!game || busy || progressSaving || finished) return;
     setGuess(current => current.length < game.wordLength ? `${current}${letter}` : current);
     inputRef.current?.focus({ preventScroll: true });
   }
@@ -246,7 +262,7 @@ export default function App() {
   }
 
   function deleteLetter() {
-    if (!game || busy || finished) return;
+    if (!game || busy || progressSaving || finished) return;
     setGuess(current => current.slice(0, -1));
     inputRef.current?.focus({ preventScroll: true });
   }
@@ -341,8 +357,8 @@ export default function App() {
                 <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /><span className="option-switch" aria-hidden="true" />
               </label>
             </div>
-            <button className="primary-button" onClick={startPractice} disabled={busy || restoring}>
-              {restoring ? 'Restoring your puzzle…' : busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
+            <button className="primary-button" onClick={startPractice} disabled={busy || progressSaving || restoring}>
+              {progressSaving ? 'Saving your progress…' : restoring ? 'Restoring your puzzle…' : busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
             </button>
           </div>
         ) : (
@@ -351,7 +367,7 @@ export default function App() {
               <div><p className="eyebrow">{game.difficulty ?? difficulty} · {game.wordLength} letters</p><h2>Find the word</h2></div>
               <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
             </div>
-            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={resetGame} disabled={busy}>Choose a new puzzle</button><span>Your accepted guesses are saved.</span></div>}
+            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={resetGame} disabled={busy || progressSaving}>Choose a new puzzle</button><span>Your accepted guesses are saved.</span></div>}
             <div className="puzzle-columns">
             <div className="puzzle-play-column">
             <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `${game.wordLength * 5.2 + (game.wordLength - 1) * 0.45}rem` }}>
@@ -368,8 +384,8 @@ export default function App() {
               })}
             </div>
             {!finished && <div className="game-consumables" aria-label="Hints">
-              <button className="friendly-hint" type="button" onClick={() => void useHint('unused')} disabled={busy || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span><span><strong>Remove letters</strong><small>Hide up to 3 letters absent from the answer</small></span><span className="hint-count">{game.hints.unused} left</span></button>
-              <button className="friendly-hint" type="button" onClick={() => void useHint('present')} disabled={busy || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span><span><strong>Reveal a letter</strong><small>Show an answer letter, without its position</small></span><span className="hint-count">{game.hints.present} left</span></button>
+              <button className="friendly-hint" type="button" onClick={() => void useHint('unused')} disabled={busy || progressSaving || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span><span><strong>Remove letters</strong><small>Hide up to 3 letters absent from the answer</small></span><span className="hint-count">{game.hints.unused} left</span></button>
+              <button className="friendly-hint" type="button" onClick={() => void useHint('present')} disabled={busy || progressSaving || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span><span><strong>Reveal a letter</strong><small>Show an answer letter, without its position</small></span><span className="hint-count">{game.hints.present} left</span></button>
             </div>}
             {!finished && <>
               {game.revealedPresent.length > 0 && <p className="revealed-letter-hint" aria-live="polite">{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')} {game.revealedPresent.length === 1 ? 'is' : 'are'} in the answer; position unknown.</p>}
@@ -390,12 +406,12 @@ export default function App() {
             {!finished && <div className="keyboard-dock">
               <div className="game-keyboard" role="group" aria-label="On-screen keyboard">
                 {keyboardRows.map((row, rowIndex) => <div className={`keyboard-row keyboard-row-${rowIndex + 1}`} key={row}>
-                  {rowIndex === 2 && <button className="keyboard-key special-key enter-key" type="button" onMouseDown={event => event.preventDefault()} onClick={() => void submitGuess()} disabled={busy || finished || guess.length !== game.wordLength}>Enter</button>}
+                  {rowIndex === 2 && <button className="keyboard-key special-key enter-key" type="button" onMouseDown={event => event.preventDefault()} onClick={() => void submitGuess()} disabled={busy || progressSaving || finished || guess.length !== game.wordLength}>Enter</button>}
                   {row.split('').map(letter => {
                     const state = keyboardFeedback.get(letter.toUpperCase())?.toLowerCase() ?? '';
-                    return <button className={`keyboard-key ${state}`} key={letter} type="button" aria-label={`${letter.toUpperCase()}${state ? `, ${state}` : ''}`} onMouseDown={event => event.preventDefault()} onClick={() => addLetter(letter)} disabled={busy || finished}>{letter}</button>;
+                    return <button className={`keyboard-key ${state}`} key={letter} type="button" aria-label={`${letter.toUpperCase()}${state ? `, ${state}` : ''}`} onMouseDown={event => event.preventDefault()} onClick={() => addLetter(letter)} disabled={busy || progressSaving || finished}>{letter}</button>;
                   })}
-                  {rowIndex === 2 && <button className="keyboard-key special-key delete-key" type="button" aria-label="Delete letter" onMouseDown={event => event.preventDefault()} onClick={deleteLetter} disabled={busy || finished}>⌫</button>}
+                  {rowIndex === 2 && <button className="keyboard-key special-key delete-key" type="button" aria-label="Delete letter" onMouseDown={event => event.preventDefault()} onClick={deleteLetter} disabled={busy || progressSaving || finished}>⌫</button>}
                 </div>)}
               </div>
               <p className="input-hint">Type one letter at a time or use the on-screen keyboard.</p>
@@ -416,7 +432,7 @@ export default function App() {
         <div className="welcome-banner"><p className="eyebrow">A LITTLE PRACTICE GOES A LONG WAY</p><h2>Make room for a new word.</h2><p>Build a habit with a quick puzzle or spend a few minutes organizing your vocabulary.</p><button type="button" className="primary-button" onClick={() => navigateTo('play')}>Start a puzzle <span aria-hidden="true">→</span></button></div>
         <div className="overview-cards"><button type="button" onClick={() => navigateTo('library')}><span className="overview-icon" aria-hidden="true">▤</span><strong>Your word list</strong><span>Browse and add words</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('play')}><span className="overview-icon" aria-hidden="true">▦</span><strong>Quick practice</strong><span>Solve a word puzzle</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('progress')}><span className="overview-icon" aria-hidden="true">▥</span><strong>Learning progress</strong><span>Review your activity</span><span className="card-arrow" aria-hidden="true">→</span></button></div>
       </section>}
-      {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} />}
+      {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}
       {activeSection === 'community' && <section className="section-placeholder"><span aria-hidden="true">♧</span><h2>Learn alongside others.</h2><p>Community features are being planned. Your private word lists stay yours.</p></section>}
       {activeSection === 'settings' && <section className="settings-page"><h2>Appearance</h2><p>Choose the theme that feels comfortable.</p><button className="theme-toggle" type="button" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '☾ Dark mode'}</button></section>}

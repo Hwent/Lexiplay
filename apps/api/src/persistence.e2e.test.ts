@@ -10,7 +10,8 @@ import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { AccountRepository } from './modules/accounts/account.repository';
 import { AccountMailService } from './modules/accounts/account-mail.service';
 import { AccountService } from './modules/accounts/account.service';
-import { createHash, randomBytes } from 'node:crypto';
+import { createHash, randomBytes, randomUUID } from 'node:crypto';
+import { guestOwner } from './modules/games/guest-cookie';
 
 const testUrl = process.env.TEST_DATABASE_URL;
 describe.skipIf(!testUrl)('real PostgreSQL persistence', () => {
@@ -123,11 +124,79 @@ describe.skipIf(!testUrl)('real PostgreSQL persistence', () => {
     try {
       for (const [table, key, value] of [
         ['account_users', 'id', registered.user.id], ['account_sessions', 'user_id', registered.user.id], ['account_actions', 'user_id', registered.user.id],
+        ['guest_progress_claims', 'user_id', registered.user.id], ['progress_transfers', 'user_id', registered.user.id],
         ['user_word_lists', 'owner_id', registered.user.id], ['user_words', 'id', word!.id], ['practice_games', 'owner_key', owner], ['practice_guesses', 'game_id', game.id],
       ]) expect((await pool.query(`SELECT count(*)::int AS count FROM ${table} WHERE ${key} = $1`, [value])).rows[0].count).toBe(0);
     } finally { await pool.end(); }
     expect((await accounts.current(other.token)).id).toBe(other.user.id);
     expect((await lists.find(other.user.id, otherList.id))!.words).toHaveLength(1);
     expect((await games.read(otherGame.id, `user:${other.user.id}`)).id).toBe(otherGame.id);
+  });
+  it.each(['login', 'register'] as const)('transfers guest games and words after %s, resumes puzzles, and makes retries safe', async mode => {
+    let url = await boot(); const accounts = app!.get(AccountService); let games = app!.get(GameService);
+    const cookie = `lexiplay_guest=${randomBytes(32).toString('base64url')}`; const guest = guestOwner(cookie)!;
+    const completed = await games.start(5, ['apple'], 'easy', guest); await games.submit(completed.id, 'apple', guest);
+    const active = await games.start(5, ['apple'], 'medium', guest); await games.submit(active.id, 'paper', guest); await games.hint(active.id, 'present', guest);
+    const unrelatedGuest = `guest:${randomBytes(32).toString('hex')}`; const untouched = await games.start(5, ['apple'], 'hard', unrelatedGuest);
+    const username = `test_${randomBytes(5).toString('hex')}`;
+    const existing = mode === 'login' ? await accounts.register({ username, password: 'password8' }) : undefined;
+    let existingWord: { id: string } | null = null;
+    if (existing) {
+      const lists = app!.get(WordListRepository); const list = (await lists.findAll(existing.user.id))[0]!;
+      existingWord = await lists.addWord(existing.user.id, list.id, { term: 'apple', definition: 'My existing definition.', partOfSpeech: 'noun' });
+    }
+    const auth = await fetch(`${url}/auth/${mode}`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify(mode === 'login' ? { identifier: username, password: 'password8' } : { username, password: 'password8' }) });
+    expect(auth.status).toBe(201); const user = (await auth.json()).user as { id: string };
+    const sessionCookie = auth.headers.get('set-cookie')!.split(';')[0]!;
+    const headers = { 'content-type': 'application/json', cookie: `${sessionCookie}; ${cookie}` };
+    const body = { accountId: user.id, transferId: randomUUID(), lastGameId: active.id, words: [
+      { term: 'APPLE', definition: 'A new definition.', status: 'KNOWN', partOfSpeech: 'noun' },
+      { term: 'chair', definition: 'A seat.', status: 'KNOWN' },
+    ] };
+    const claim = () => fetch(`${url}/progress/claim`, { method: 'POST', headers, body: JSON.stringify(body) });
+    expect((await fetch(`${url}/progress/claim`, { method: 'POST', headers: { 'content-type': 'application/json', cookie }, body: JSON.stringify(body) })).status).toBe(401);
+    expect((await fetch(`${url}/progress/claim`, { method: 'POST', headers, body: JSON.stringify({ ...body, accountId: randomUUID() }) })).status).toBe(403);
+    expect((await fetch(`${url}/progress/claim`, { method: 'POST', headers, body: JSON.stringify({ ...body, words: [{ term: 'chair', status: 'INVALID' }] }) })).status).toBe(400);
+    const [first, retry] = await Promise.all([claim(), claim()]); expect(first.status).toBe(201); expect(retry.status).toBe(201);
+    const result = await first.json(); expect(await retry.json()).toEqual(result);
+    expect(result).toEqual({ wordsAdded: existing ? 1 : 2, wordsAlreadySaved: existing ? 1 : 0, gamesTransferred: 2, resumeGameId: active.id });
+    expect(first.headers.get('set-cookie')).toContain('lexiplay_guest=;'); expect(first.headers.get('set-cookie')).toContain('Max-Age=0');
+    expect((await fetch(`${url}/progress/claim`, { method: 'POST', headers, body: JSON.stringify({ ...body, words: [{ term: 'changed', status: 'KNOWN' }] }) })).status).toBe(409);
+    const another = await accounts.register({ username: `test_${randomBytes(5).toString('hex')}`, password: 'password8' });
+    for (const transferId of [body.transferId, randomUUID()]) expect((await fetch(`${url}/progress/claim`, { method: 'POST', headers: { ...headers, cookie: `lexiplay_session=${another.token}; ${cookie}` }, body: JSON.stringify({ ...body, accountId: another.user.id, transferId }) })).status).toBe(409);
+    await expect(games.read(active.id, guest)).rejects.toThrow();
+    await expect(games.start(5, ['apple'], 'easy', guest)).rejects.toThrow('guest session changed');
+    expect((await games.read(untouched.id, unrelatedGuest)).id).toBe(untouched.id);
+    await app!.close(); app = undefined; url = await boot(); games = app!.get(GameService);
+    const restored = await app!.get(GameRepository).read(active.id, `user:${user.id}`);
+    expect(restored.owner).toBe(`user:${user.id}`); expect(restored.guesses).toHaveLength(1); expect(restored.hints.present).toBe(1); expect(restored.revealedPresent).toHaveLength(1);
+    const savedWords = (await app!.get(WordListRepository).findAll(user.id))[0]!.words;
+    expect(savedWords).toHaveLength(2); expect(savedWords.find(word => word.term === 'chair')!.status).toBe('KNOWN');
+    expect(savedWords.find(word => word.term === 'apple')).toMatchObject(existing ? { id: existingWord!.id, definition: 'My existing definition.', status: 'UNFAMILIAR' } : { definition: 'A new definition.', status: 'KNOWN' });
+    const summary = await fetch(`${url}/progress/summary`, { headers: { cookie: sessionCookie } }); expect(await summary.json()).toMatchObject({ total: 1, wins: 1 });
+    if (mode === 'register') {
+      expect((await fetch(`${url}/auth/account`, { method: 'DELETE', headers: { 'content-type': 'application/json', cookie: sessionCookie }, body: JSON.stringify({ password: 'password8', confirmation: 'DELETE' }) })).status).toBe(204);
+      const pool = new Pool({ connectionString: testUrl });
+      try { for (const table of ['guest_progress_claims', 'progress_transfers']) expect((await pool.query(`SELECT count(*)::int AS count FROM ${table} WHERE user_id = $1`, [user.id])).rows[0].count).toBe(0); } finally { await pool.end(); }
+    }
+  });
+  it('rolls back both words and game ownership when a transfer fails', async () => {
+    const url = await boot(); const accounts = app!.get(AccountService);
+    const user = await accounts.register({ username: `test_${randomBytes(5).toString('hex')}`, password: 'password8' });
+    const cookie = `lexiplay_guest=${randomBytes(32).toString('base64url')}`; const guest = guestOwner(cookie)!;
+    const game = await app!.get(GameService).start(5, ['apple'], 'easy', guest);
+    const body = { accountId: user.user.id, transferId: randomUUID(), words: [{ term: 'chair', status: 'KNOWN' }] };
+    const headers = { 'content-type': 'application/json', cookie: `lexiplay_session=${user.token}; ${cookie}` };
+    const failure = vi.spyOn(app!.get(GameRepository), 'transferGuestGames').mockRejectedValueOnce(new Error('Test-only write failure'));
+    const first = await fetch(`${url}/progress/claim`, { method: 'POST', headers, body: JSON.stringify(body) }); expect(first.status).toBe(500);
+    expect(first.headers.get('set-cookie')).toBeNull(); expect((await app!.get(GameService).read(game.id, guest)).id).toBe(game.id);
+    expect((await app!.get(WordListRepository).findAll(user.user.id))[0]!.words).toHaveLength(0);
+    const pool = new Pool({ connectionString: testUrl });
+    try {
+      expect((await pool.query('SELECT count(*)::int AS count FROM progress_transfers WHERE id = $1', [body.transferId])).rows[0].count).toBe(0);
+      expect((await pool.query('SELECT count(*)::int AS count FROM guest_progress_claims WHERE guest_owner = $1', [guest])).rows[0].count).toBe(0);
+    } finally { await pool.end(); }
+    failure.mockRestore();
+    const retry = await fetch(`${url}/progress/claim`, { method: 'POST', headers, body: JSON.stringify(body) }); expect(retry.status).toBe(201); expect(await retry.json()).toMatchObject({ wordsAdded: 1, gamesTransferred: 1 });
   });
 });

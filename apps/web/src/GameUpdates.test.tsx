@@ -75,7 +75,7 @@ describe('saved practice and account updates', () => {
     vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
     await waitFor(() => expect(window.location.hash).toBe(''));
     expect(window.location.pathname).toBe('/account');
-    await user.click(screen.getByRole('button', { name: 'Verify my email' }));
+    await user.click(screen.getByRole('button', { name: 'Verify email address' }));
     expect(await screen.findByText('Your email is verified.')).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/verify-email', expect.objectContaining({ body: JSON.stringify({ token: 'a'.repeat(43) }) }));
   });

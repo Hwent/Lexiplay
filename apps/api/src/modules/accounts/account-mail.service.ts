@@ -2,6 +2,7 @@ import { Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { mkdir, writeFile } from 'node:fs/promises';
 import { join } from 'node:path';
 import { randomUUID } from 'node:crypto';
+import { accountEmail } from './account-email';
 
 @Injectable()
 export class AccountMailService {
@@ -14,8 +15,7 @@ export class AccountMailService {
     url.hash = new URLSearchParams({ action: purpose, token }).toString();
     const message = {
       to: [email], from: process.env.MAIL_FROM ?? 'LexiPlay <onboarding@resend.dev>',
-      subject: purpose === 'reset' ? 'Reset your LexiPlay password' : 'Verify your LexiPlay email',
-      text: `${purpose === 'reset' ? 'Reset your password' : 'Verify your email'}: ${url.href}\nThis link expires in ${purpose === 'reset' ? '30 minutes' : '24 hours'}. If you did not request it, ignore this email.`,
+      ...accountEmail(purpose, url.href),
     };
     const mode = process.env.MAIL_MODE ?? (process.env.NODE_ENV === 'production' ? 'resend' : 'local');
     if (mode === 'local' && process.env.NODE_ENV !== 'production') {

@@ -139,6 +139,8 @@ export class AccountRepository implements OnModuleDestroy {
       );
       CREATE INDEX IF NOT EXISTS account_sessions_user_id_idx ON account_sessions(user_id);
       CREATE TABLE IF NOT EXISTS account_actions (token_hash text PRIMARY KEY, user_id uuid NOT NULL REFERENCES account_users(id) ON DELETE CASCADE, purpose text NOT NULL CHECK (purpose IN ('reset', 'verify')), expires_at timestamptz NOT NULL);
+      CREATE TABLE IF NOT EXISTS guest_progress_claims (guest_owner text PRIMARY KEY, user_id uuid NOT NULL REFERENCES account_users(id) ON DELETE CASCADE);
+      CREATE TABLE IF NOT EXISTS progress_transfers (id uuid PRIMARY KEY, user_id uuid NOT NULL REFERENCES account_users(id) ON DELETE CASCADE, payload_hash text NOT NULL, result jsonb NOT NULL);
     `).then(() => undefined);
     return this.schemaReady;
   }
