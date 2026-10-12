@@ -80,7 +80,9 @@ Paths in this table are relative to `apps/web/`.
 | [index.html](../apps/web/index.html) | HTML entry document with the root element and script entry. |
 | [src/main.tsx](../apps/web/src/main.tsx) | Finds `#root`, calls React's `createRoot`, renders `App` inside `StrictMode`, and imports styles. |
 | [src/App.tsx](../apps/web/src/App.tsx) | Application shell, section navigation, theme, game options, board, keyboard, hints, and game definitions. Read `sectionPaths`, `navigateTo`, `startPractice`, `submitGuess`, and `useHint`. It imports `apiRequest` as `api` for game and related list requests. |
-| [src/AccountPanel.tsx](../apps/web/src/AccountPanel.tsx) | Loads the current account and handles registration, login, logout, and account messages. Makes requests to `/api/v1/auth/*`. |
+| [src/AccountPanel.tsx](../apps/web/src/AccountPanel.tsx) | Username/email sign-in, registration, logout, password recovery, verification, and account messages. Makes requests to `/api/v1/auth/*`. |
+| [src/GameCatalog.tsx](../apps/web/src/GameCatalog.tsx) | Catalogue of available games, currently Word puzzle; the entry point for future game views. |
+| [src/StatisticsPanel.tsx](../apps/web/src/StatisticsPanel.tsx) | Completed-game metrics, winning guess distribution, recent practice, and guest/error/empty states. |
 | [src/WordListsPanel.tsx](../apps/web/src/WordListsPanel.tsx) | Personal list display, search, pagination, manual edits, Known/Unfamiliar toggles, dictionary saves, and upload preview/confirmation. It imports `apiRequest` as `request`; read `loadLocalLists`, the pending operation maps, and the route-change effect. |
 | [src/services/api-client.ts](../apps/web/src/services/api-client.ts) | Shared browser HTTP boundary. `apiRequest<T>` prefixes `/api/v1`, includes same-origin session credentials, handles JSON and multipart requests, accepts 204 responses, and throws an `ApiError` carrying HTTP status. |
 | [src/dictionary-cache.ts](../apps/web/src/dictionary-cache.ts) | Normalizes dictionary terms, caches search results and canonical definitions, persists them to browser storage, and shares simultaneous requests. Read `searchDictionary`, `dictionaryDefinition`, and `rememberDictionaryDefinition`. |
@@ -90,11 +92,11 @@ Paths in this table are relative to `apps/web/`.
 
 React `useState` holds values that affect rendering, such as the current guess or list contents. `useEffect` coordinates side effects such as loading data and attaching browser events. `useRef` holds mutable values such as input references and pending operations without causing a render by itself.
 
-The supplied [React standard](react-standard.md) is a scaffolding template. The [evaluation and project conventions](react-standard-evaluation.md) explain which rules fit LexiPlay and which would require an architectural change. Keep PascalCase component files with default exports, named utility exports, colocated tests, immutable state updates, cleaned-up effects, semantic controls, and explicit loading/error states. The current app uses TypeScript, History API navigation, and a shared stylesheet; it does not implement the template's exact JavaScript folder tree, React Router, or CSS Modules.
+The supplied [React standard](react-standard.md) is a scaffolding template. Keep PascalCase component files with default exports, named utility exports, colocated tests, immutable state updates, cleaned-up effects, semantic controls, and explicit loading/error states. The current app uses TypeScript, History API navigation, and shared stylesheets; it does not implement the template's exact JavaScript folder tree, React Router, or CSS Modules.
 
 `App`, `AccountPanel`, `WordListsPanel`, and `dictionary-cache` all use `services/api-client.ts` for HTTP requests. This applies the standard's service boundary without moving the existing feature components. Feature code still owns response types, caching, guest behavior, and user messages. The generic `T` describes the expected JSON shape at compile time; it does not validate server responses at runtime. `ApiError` here is a browser error class, distinct from the API error payload type in `packages/shared`.
 
-There is no routing library: `App.tsx` maps paths such as `/play`, `/library`, and `/licenses` to sections, calls `history.pushState`, and listens for `popstate`. Changing sections dispatches `lexiplay:before-route-change`. For signed-in users, `WordListsPanel.tsx` uses that event to flush queued word edits and status changes. Imports use a separate confirmation request. Guest list changes are stored on the device.
+There is no routing library: `App.tsx` maps paths such as `/games`, `/library`, and `/licenses` to sections, calls `history.pushState`, and listens for `popstate`. `/play` remains a compatible games URL. Changing sections dispatches `lexiplay:before-route-change`. For signed-in users, `WordListsPanel.tsx` uses that event to flush queued word edits and status changes. Imports use a separate confirmation request. Guest list changes are stored on the device.
 
 The dictionary cache lasts 24 hours and keeps up to 100 searches and 300 definitions. It uses memory if browser storage fails. Personal definitions are separate from cached canonical dictionary definitions.
 
@@ -119,7 +121,8 @@ Files under [apps/api/src/modules/accounts](../apps/api/src/modules/accounts):
 - `account.controller.ts` defines `/auth/register`, `/auth/login`, `/auth/logout`, and `/auth/me`, and sets or clears the session cookie.
 - `account.service.ts` normalizes emails, derives password hashes with scrypt, verifies passwords, creates 14-day sessions, and hashes session tokens with SHA-256 before storage.
 - `account.repository.ts` defines `AccountUser` / `AccountRecord` and queries `account_users` and `account_sessions`.
-- `account.dto.ts` defines email validation and a 12–128 character password requirement.
+- `account.dto.ts` validates usernames, email addresses, action tokens, and 8–128 character passwords.
+- `account-mail.service.ts` delivers verification/reset links through local development previews or the configured Resend API. `account_actions` stores expiring token hashes, consumed once in a transaction.
 - `session-cookie.ts` extracts and validates the `lexiplay_session` token from the request cookie header.
 - `accounts.module.ts` registers providers, exports `AccountService`, and configures account throttling.
 
@@ -129,14 +132,16 @@ The browser receives an HttpOnly, SameSite=Lax cookie scoped to `/api/v1`; `Secu
 
 Files under [apps/api/src/modules/games](../apps/api/src/modules/games):
 
-- `game.controller.ts` defines `POST /games`, `POST /games/:gameId/guesses`, and `POST /games/:gameId/hints`. It obtains personal words when requested and adds dictionary definitions to guess responses.
-- `game.service.ts` defines `Game`, `Guess`, `Feedback`, and `WordLength`; owns the game map; selects an answer; checks guesses; scores duplicate letters in two passes; and handles hints and completion.
-- `submit-guess.dto.ts` defines the guess request class. See the validation caveat in section 8.
-- `games.module.ts` registers the controller and service and imports WordLists.
+- `game.controller.ts` handles start, restore, guesses, and hints, resolves account/guest ownership, and validates requests.
+- `game.service.ts` selects answers, checks guesses, scores duplicate letters, enriches definitions, and coordinates persisted hints/completion.
+- `game.types.ts` defines game state, public answer redaction, and difficulty rules. `game.dto.ts` and `submit-guess.dto.ts` validate 3–9 letters and allowed settings.
+- `game.repository.ts` stores games and guesses in PostgreSQL, with transactions and row locks for updates.
+- `statistics.controller.ts` returns authenticated completed-game metrics and timezone-aware practice streaks.
+- `games.module.ts` registers these controllers/providers and imports WordLists and Accounts.
 
-Games allow six attempts. The service supports word lengths 3–8. `CORRECT` means the right letter in the right position, `PRESENT` means an available matching letter elsewhere, and `ABSENT` means no remaining matching occurrence. Exact matches are counted first so repeated letters are not credited more times than they occur in the answer.
+Games support 3–9 letters. Easy allows seven guesses and three uses of each hint; Medium allows six and two; Hard allows five and one. `CORRECT` means the right letter in the right position, `PRESENT` means an available matching letter elsewhere, and `ABSENT` means no remaining matching occurrence. Exact matches are counted first so repeated letters are not credited more times than they occur in the answer.
 
-Each game captures its allowed dictionary words at start. Personal-word mode restricts **answers** to saved terms in that dictionary pool; guesses can still use the full pool. Both Known and Unfamiliar personal words are currently eligible. Each game starts with three unused-letter hints and three present-letter hints.
+Each game persists its allowed dictionary words at start. Personal-word mode restricts **answers** to saved terms in that dictionary pool; guesses can still use the full pool. Both Known and Unfamiliar personal words are eligible. Remove letters reveals up to three absent letters per use; Reveal a letter reveals an answer letter without its position. See [GAMES_AND_ACCOUNTS.md](GAMES_AND_ACCOUNTS.md) for the complete current behavior.
 
 ### Personal vocabulary and dictionary
 
@@ -167,8 +172,11 @@ The schema is currently defined inside the repository classes and seeder, not in
 
 | Table | Main fields and relationship | Defining code |
 | --- | --- | --- |
-| `account_users` | UUID `id`, unique email, password hash, creation timestamp. | `AccountRepository.ensureSchema`. |
+| `account_users` | UUID `id`, unique email/username, verification flag, password hash, creation timestamp. | `AccountRepository.ensureSchema`. |
 | `account_sessions` | Token hash primary key, user ID, expiry and creation timestamps; belongs to an account. | `AccountRepository.ensureSchema`. |
+| `account_actions` | One-use reset/verification token hashes, owner, purpose, and expiry. | `AccountRepository.ensureSchema`. |
+| `practice_games` | UUID `id`, account/hashed-guest owner key, server-only state JSON. | `GameRepository.ensureSchema`. |
+| `practice_guesses` | Game ID, position, accepted result JSON including learning definitions. | `GameRepository.ensureSchema`. |
 | `user_word_lists` | UUID `id`, owner ID, name, timestamps; unique owner, with the name `My words`. | `WordListRepository.ensureSchema` and `ensureDefaultList`. |
 | `user_words` | UUID `id`, list ID, term, definition, optional part of speech, status, timestamps; unique `(list_id, term)`. | `WordListRepository.ensureSchema`. |
 | `dictionary_words` | Term primary key, canonical definition, parts-of-speech array. Shared across users. | `WordListRepository.ensureDictionarySchema` and the seed script. |
@@ -181,7 +189,7 @@ The server's `WordList` response has `{ id, name, words }`; each `WordEntry` has
 
 | Location | Structure | Lifetime |
 | --- | --- | --- |
-| API `GameService.games` | `Map<string, Game>` with an answer, allowed-word `Set`, guesses, hint counts, and revealed-letter sets. | In the API process; lost on restart. |
+| `localStorage`: `lexiplay-last-game` | Latest game ID; no answer or server-only state. | Used to restore the owned game across reloads; cleared on account changes or choosing a new puzzle. |
 | React component state | Current section, guess, game response, list contents, messages, and UI controls. | Component/page lifetime. |
 | `WordListsPanel` refs | Maps of pending word operations and status changes. | Component lifetime, flushed on the app's route-change event. |
 | `localStorage`: `lexiplay-theme` | Light/dark preference. | Across browser reloads on that origin. |
@@ -194,11 +202,11 @@ The server's `WordList` response has `{ id, name, words }`; each `WordEntry` has
 
 ### Starting and playing a game
 
-1. `App.startPractice` posts `{ wordLength, playWithMyWords }` to `/api/v1/games`.
+1. `App.startPractice` posts `{ kind, wordLength, difficulty, playWithMyWords }` to `/api/v1/games`.
 2. Vite forwards the request to the local API. `GameController.start` obtains authenticated personal words if that mode is selected.
-3. `GameService.start` asks `WordListsService` / `WordListRepository` for valid dictionary terms, chooses an answer, and stores the game in its map. The initial response does not include the answer.
-4. `App.submitGuess` posts a guess using the returned game ID. `GameService.submit` validates and scores it and updates completion state.
-5. `GameController.submit` adds dictionary definitions; React renders the returned feedback. A completed response also includes the answer and its definition.
+3. `GameService.start` obtains valid dictionary terms, chooses an answer, and persists the owned game. The initial response does not include the answer.
+4. `App.submitGuess` posts a guess using the returned ID. `GameService.submit` validates/scores it and stores learning definitions and completion state in one transaction.
+5. React renders feedback; completion includes the answer and definition. Reload uses `GET /games/:id` to restore the saved board and hints. Statistics reads completed games for the signed-in owner.
 
 ### Saving a personal word
 
@@ -243,14 +251,14 @@ pnpm build
 | [word-lists.e2e.test.ts](../apps/api/src/modules/word-lists/word-lists.e2e.test.ts) | Ownership, dictionary access, status changes, and import preview/confirmation through HTTP. |
 | `wiktionary-definition.test.ts` / `wiktionary-pagination.test.ts` | Definition extraction and continuation parameter replacement. |
 
-API HTTP tests use deterministic repository substitutes or spies. They do not verify real PostgreSQL schema execution or a live Wiktionary import. Browser tests use jsdom and mocked fetch responses. GitHub [CI](../.github/workflows/ci.yml) installs with the frozen lockfile, then runs tests, typechecking, and builds.
+Most API HTTP tests use deterministic repository substitutes or spies. `persistence.e2e.test.ts` runs against real PostgreSQL when `TEST_DATABASE_URL` points at a disposable `lexiplay_test_*` database; it covers restart, concurrency, ownership, Statistics, and account links. Browser tests use jsdom and mocked fetch. GitHub [CI](../.github/workflows/ci.yml) supplies a PostgreSQL service, installs the frozen lockfile, then runs tests, typechecking, and builds. Live Wiktionary import and actual email delivery are not part of automated checks.
 
 ## 8. Current limits to keep in mind while learning
 
-- Active games and guesses are not persisted. There are no implemented game-history/progress tables; Statistics and Community currently render placeholder pages.
+- Community remains a placeholder. Games and guesses now persist, and Statistics is implemented; a missed-word review queue is still future work.
 - Guest lists remain on the browser origin. Personal-word games require an authenticated API list; they do not read the guest list from browser storage. Changing the local web port also changes the browser storage origin.
 - Signed-in manual list edits are queued until app navigation. The current code does not implement a durable pending-operation queue or a page-close save flow.
-- `GameService` supports 3–8 letters, but `SubmitGuessDto` still declares `@Length(5, 5)`. The HTTP game tests create the app without the global validation pipe used by `main.ts`; their all-length coverage does not establish that the live validation path accepts every supported length. This is a validation inconsistency in the current code.
+- Automatic puzzle resume needs the browser’s saved game ID and its ownership cookie/session. Guest games do not transfer into accounts. Production email requires provider/sender/origin configuration; development uses local previews.
 - Schema changes currently run inside lazy repository setup. The migration approach described in the development/design docs is a convention to move toward, not a separate implemented migration system.
 - PDF import extracts text and does not perform OCR. The health endpoint returns `{ status: 'ok' }` without checking database readiness.
 
@@ -261,4 +269,4 @@ API HTTP tests use deterministic repository substitutes or spies. They do not ve
 3. Read the account controller, service, repository, and cookie helper to understand authentication.
 4. Follow `WordListsPanel.tsx` into the word-list controller, service, repository, DTOs, and import parser.
 5. Read `dictionary-cache.ts`, the Wiktionary seed helpers, and their tests to understand caching and dictionary ingestion.
-6. Use [DEVELOPMENT.md](DEVELOPMENT.md) for general conventions, [react-standard-evaluation.md](react-standard-evaluation.md) for the React standard evaluation and current web conventions, [WORD_LIST_DESIGN.md](../outputs/docs/WORD_LIST_DESIGN.md) for detailed feature behavior, and [dictionary-source-review.md](dictionary-source-review.md) for the recorded dictionary-source decision. Consult [PRD.md](../outputs/docs/PRD.md) and [TECHNICAL_DESIGN.md](../outputs/docs/TECHNICAL_DESIGN.md) for broader product/design intent.
+6. Use [DEVELOPMENT.md](DEVELOPMENT.md) for conventions, [GAMES_AND_ACCOUNTS.md](GAMES_AND_ACCOUNTS.md) for current gameplay/account behavior, [WORD_LIST_DESIGN.md](../outputs/docs/WORD_LIST_DESIGN.md) for list behavior, and [dictionary-source-review.md](dictionary-source-review.md) for the dictionary-source decision. Consult [PRD.md](../outputs/docs/PRD.md) and [TECHNICAL_DESIGN.md](../outputs/docs/TECHNICAL_DESIGN.md) for broader product/design intent.

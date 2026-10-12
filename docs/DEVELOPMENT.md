@@ -2,7 +2,7 @@
 
 For a guided tour of the current code, file responsibilities, data structures, and technologies, start with [learn.md](learn.md).
 
-For an evaluation of the supplied React standard and conventions grounded in the web app, use [react-standard-evaluation.md](react-standard-evaluation.md).
+Use [GAMES_AND_ACCOUNTS.md](GAMES_AND_ACCOUNTS.md) for current game rules, persistence, Statistics, and account/email setup. The supplied [React standard](react-standard.md) is a reference template; preserve the project’s TypeScript components and existing boundaries.
 
 ## Component boundaries
 
@@ -19,7 +19,7 @@ The PostgreSQL `dictionary_words` table supplies both answers and valid guesses.
 
 ## Accounts
 
-The API provides `POST /api/v1/auth/register`, `POST /api/v1/auth/login`, `POST /api/v1/auth/logout`, and `GET /api/v1/auth/me`. Account records and hashed session tokens are stored in PostgreSQL; passwords are derived with Node's scrypt implementation. Browser sessions use an HttpOnly, SameSite=Lax cookie, marked Secure in production. Auth routes are throttled to ten requests per minute per IP. The account panel supports registration, sign-in, and sign-out; account recovery and email verification are the next account milestone.
+Registration requires email, a unique case-insensitive username (3–32 letters/numbers/underscores, starting with a letter), and an 8–128 character password. Sign-in accepts username or email. Account records and hashed session tokens are stored in PostgreSQL; passwords use Node scrypt. Browser sessions use an HttpOnly, SameSite=Lax cookie, marked Secure in production. Auth routes are throttled to ten requests per minute per IP. Recovery and verification use expiring, single-use hashed tokens; resetting a password revokes sessions. Configure email as described in [GAMES_AND_ACCOUNTS.md](GAMES_AND_ACCOUNTS.md). Existing accounts receive a unique generated username and retain email sign-in.
 
 Start the local database with `docker compose up -d database` before using account endpoints. The API creates its account tables on the first auth request. Run the dictionary seed command in Local setup once to populate its search data. Auth and word-list HTTP tests use deterministic repository adapters, so endpoint contracts can be checked without Docker.
 
@@ -37,8 +37,10 @@ Word-list uploads support `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf
 
 Use Node.js 22+, the pinned pnpm 11.25.0, and Docker Desktop. `.env.example` documents sample settings; the current launcher and API read `process.env` and do not automatically load `.env`. Set custom values such as `DATABASE_URL` in the shell before running commands. Never commit secrets or real user data. Run `pnpm install` from the repository root so the lockfile governs every workspace package.
 
-Run `pnpm dev` to start the API and web development server. The dev script selects free loopback ports and prints the browser URL, which also works in environments that reserve common fixed development ports. Active practice games are held in API memory, so restarting the API clears them.
+Run `pnpm dev` to start the API and web development server. The dev script selects free loopback ports, sets the web origin used by development email links, and prints the browser URL. Games and accepted guesses persist in PostgreSQL; the browser remembers its latest game ID and restores it on reload. Games use 3–9 letters and Easy/Medium/Hard rules; Statistics groups completed games by the browser’s IANA timezone.
+
+Run the regular checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Real-database tests run when `TEST_DATABASE_URL` names a separate disposable `lexiplay_test_*` database. CI starts PostgreSQL and runs these tests automatically. Schema setup remains lazy inside repositories; separate versioned migrations are still future work.
 
 ## GitHub setup
 
-Create an empty GitHub repository, then add it as `origin` and push `main` (commands are in the root README). Configure pull requests to run the repository checks before merging. Add deployment secrets only through GitHub Actions environments after a deployment target is selected.
+The repository already has an `origin` remote (see the root README). Pull requests and pushes to `main` run CI, including a disposable PostgreSQL service for integration tests. Add deployment secrets only through protected GitHub Actions environments after selecting a deployment target.

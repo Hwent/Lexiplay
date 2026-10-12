@@ -1,16 +1,18 @@
 # LexiPlay — Technical Design
 
-**Status:** Initial draft · **Version:** 0.1
+**Status:** Design intent with current implementation notes · **Version:** 0.2
+
+The implementation preserves React + NestJS + PostgreSQL and uses the existing `pg` driver rather than Prisma. Schema setup remains lazy in repositories; standalone migration tooling and container deployment remain planned. See [GAMES_AND_ACCOUNTS.md](../../docs/GAMES_AND_ACCOUNTS.md) for current APIs, storage, email configuration, Statistics semantics, and limits. The logical entities below include future review/deployment work and are not a literal schema listing.
 
 ## 1. Architecture
 
-Use a TypeScript monorepo with a responsive React frontend and a NestJS REST API. The API owns authentication, authorization, puzzle rules, vocabulary validation, and persistence. PostgreSQL is the source of truth; Prisma provides schema management, migrations, and typed queries.
+Use a TypeScript monorepo with a responsive React frontend and a NestJS REST API. The API owns authentication, authorization, puzzle rules, vocabulary validation, and persistence. PostgreSQL is the source of truth; current repositories use `pg`. Introduce separate versioned migrations without rewriting unrelated modules when deployment work begins.
 
 ```text
 Browser (React + TypeScript)
         │ HTTPS / JSON REST (/api/v1)
         ▼
-NestJS modules ── Prisma ── PostgreSQL
+NestJS modules ── pg repositories ── PostgreSQL
         │
         └── structured logs / health endpoints
 
@@ -35,15 +37,17 @@ Choose a workspace/package manager and pin its version. Keep API and web deploya
 ## 3. Authentication and security
 
 - Use a maintained authentication library or a carefully reviewed NestJS integration; prefer secure, HttpOnly, Secure, SameSite cookies for browser sessions. Avoid storing long-lived bearer tokens in local storage.
-- Hash passwords with Argon2id if password auth is implemented. Use generic auth errors, rate limits, and email verification/password reset through a trusted provider before public launch.
+- Current passwords use scrypt and allow 8–128 characters; usernames are unique/case-insensitive. Generic auth/recovery errors, throttling, single-use expiring verification/reset tokens, and session revocation on reset are implemented. Real email delivery requires configured Resend credentials and sender; development uses local previews.
 - Validate all inputs with DTO validation (allow-list properties, reject unknown fields); enforce ownership checks on every list, word, game, and progress operation.
 - Configure CORS for explicit origins, TLS in production, security headers, CSRF protections appropriate to cookie auth, request/body limits, and throttling on auth/import/game-start routes.
 - Store secrets in the hosting platform's secret manager. Never log passwords, session tokens, imported file contents, or full guess histories.
 - Add privacy policy, retention rules, account deletion, and backup access controls before public release.
 
-## 4. PostgreSQL / Prisma data model
+## 4. PostgreSQL data model
 
-Use UUID primary keys, UTC timestamps (`createdAt`, `updatedAt`), foreign keys, and indexes for common owner/date queries. Exact Prisma syntax is implementation-time work; this is the logical model.
+Current tables are `account_users`, `account_sessions`, `account_actions`, `user_word_lists`, `user_words`, `dictionary_words`, `practice_games`, and `practice_guesses`. Games store their kind/rules and protected state as JSONB; guesses have ordered JSONB results including definitions. Game updates and accepted guesses share a transaction and row lock. Read transactions use a consistent snapshot. Signed-in owner keys identify an account; guest owner keys contain only a hash of the opaque cookie. Active-game response projection excludes the answer, allowed-word pool, and owner key. Statistics computes completed-game metrics and local-calendar-day streaks from UTC timestamps.
+
+Use UUID primary keys, UTC timestamps, foreign keys, and indexes for common owner/date queries. The following remains the broader logical model, including future review capabilities.
 
 | Entity | Key fields and relationships |
 |---|---|
@@ -76,7 +80,7 @@ Base path: `/api/v1`; JSON; consistent error shape such as `{ "code": "VALIDATIO
 | `GET /games/:id` | Read caller's game state with answer redaction while active. |
 | `GET /progress/summary`, `GET /progress/review-items` | Recent stats, streak, and due/missed words. |
 
-For feedback, define duplicate-letter handling explicitly and test it: mark exact-position matches first, then assign remaining letters as present only up to their remaining answer frequency. Normalize using a documented locale-independent rule. Return feedback as structured values (`CORRECT`, `PRESENT`, `ABSENT`), not presentation colors.
+For feedback, mark exact-position matches first, then assign remaining letters as present only up to their remaining answer frequency. Return structured values (`CORRECT`, `PRESENT`, `ABSENT`). DTO validation normalizes guesses and allows 3–9 letters; the service enforces the selected length and stored dictionary pool. Easy/Medium/Hard persist 7/6/5 guesses and 3/2/1 uses of each hint respectively. Game kind is persisted to leave room for future game modules.
 
 ## 6. Frontend behavior
 

@@ -3,11 +3,12 @@ import { ThrottlerModule } from '@nestjs/throttler';
 import { AccountController } from './account.controller';
 import { AccountRepository } from './account.repository';
 import { AccountService } from './account.service';
+import { AccountMailService } from './account-mail.service';
 
 @Module({
   imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }])],
   controllers: [AccountController],
-  providers: [AccountRepository, AccountService],
+  providers: [AccountRepository, AccountService, AccountMailService],
   exports: [AccountService],
 })
 export class AccountsModule {}

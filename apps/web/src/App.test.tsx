@@ -1,10 +1,11 @@
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { afterEach, describe, expect, it, vi } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 import { cachedDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 
 describe('practice puzzle', () => {
+  beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/'); });
   afterEach(() => {
     cleanup();
     clearDictionaryCache();
@@ -21,7 +22,7 @@ describe('practice puzzle', () => {
     const user = userEvent.setup();
 
     render(<App />);
-    await user.click(screen.getByRole('button', { name: /^play$/i }));
+    await user.click(screen.getByRole('button', { name: /^games$/i }));
     await user.click(screen.getByRole('radio', { name: '4 letters' }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     const guessInput = await screen.findByRole('textbox', { name: /four-letter guess/i });
@@ -32,7 +33,7 @@ describe('practice puzzle', () => {
 
     expect(await screen.findByRole('row', { name: 'word' })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(4);
-    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ wordLength: 4, playWithMyWords: false });
+    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ kind: 'word-puzzle', wordLength: 4, difficulty: 'medium', playWithMyWords: false });
   });
 
   it('starts a game and submits a guess with server feedback', async () => {
@@ -49,7 +50,7 @@ describe('practice puzzle', () => {
     const user = userEvent.setup();
 
     render(<App />);
-    await user.click(screen.getByRole('button', { name: /^play$/i }));
+    await user.click(screen.getByRole('button', { name: /^games$/i }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     const guessInput = await screen.findByRole('textbox', { name: /five-letter guess/i });
     await user.type(guessInput, 'xxxxx');
@@ -89,6 +90,7 @@ describe('practice puzzle', () => {
     render(<App />);
     await user.click(screen.getByText('Account'));
     await user.click(screen.getByRole('tab', { name: /create account/i }));
+    await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
     await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/password/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
@@ -96,7 +98,7 @@ describe('practice puzzle', () => {
     expect(await screen.findByText(/signed in as learner@example\.test/i)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/auth/register', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ email: 'learner@example.test', password: 'wordpractice123' }),
+      body: JSON.stringify({ email: 'learner@example.test', username: 'learner', password: 'wordpractice123' }),
     }));
     await user.click(screen.getByRole('button', { name: /sign out/i }));
     expect(await screen.findByText(/you’re signed out/i)).toBeInTheDocument();
@@ -112,6 +114,7 @@ describe('practice puzzle', () => {
     render(<App />);
     await user.click(screen.getByText('Account'));
     await user.click(screen.getByRole('tab', { name: /create account/i }));
+    await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
     await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/password/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
@@ -142,9 +145,9 @@ describe('practice puzzle', () => {
     expect(await screen.findByText('apple')).toBeInTheDocument();
     expect(window.location.pathname).toBe('/library');
     expect(screen.queryByText('chair')).toBeNull();
-    await user.click(screen.getByRole('button', { name: /play/i }));
+    await user.click(screen.getByRole('button', { name: /^games$/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/play');
+    expect(window.location.pathname).toBe('/games');
     expect(screen.getByRole('searchbox', { name: /search your words/i })).toHaveValue('');
   });
 
@@ -169,7 +172,7 @@ describe('practice puzzle', () => {
     vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 401 })));
     const user = userEvent.setup();
     render(<App />);
-    await user.click(screen.getByRole('button', { name: /^play$/i }));
+    await user.click(screen.getByRole('button', { name: /^games$/i }));
     expect(screen.getByRole('radio', { name: '5 letters' })).toBeChecked();
     await user.click(screen.getByRole('radio', { name: '8 letters' }));
     expect(screen.getByRole('radio', { name: '8 letters' })).toBeChecked();

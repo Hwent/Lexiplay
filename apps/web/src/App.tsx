@@ -1,6 +1,8 @@
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
 import AccountPanel from './AccountPanel';
 import WordListsPanel from './WordListsPanel';
+import GameCatalog from './GameCatalog';
+import StatisticsPanel from './StatisticsPanel';
 import { normalizeTerm, rememberDictionaryDefinition } from './dictionary-cache';
 import { ApiError, apiRequest as api } from './services/api-client';
 
@@ -8,10 +10,11 @@ type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
 type Section = 'home' | 'play' | 'library' | 'progress' | 'community' | 'settings' | 'licenses';
 const sectionPaths: Record<Section, string> = {
-  home: '/', play: '/play', library: '/library', progress: '/progress', community: '/community', settings: '/settings',
+  home: '/', play: '/games', library: '/library', progress: '/progress', community: '/community', settings: '/settings',
   licenses: '/licenses',
 };
 const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
+pathSections['/play'] = 'play';
 type GuessResult = {
   guess: string;
   feedback: Feedback[];
@@ -22,7 +25,9 @@ type GuessResult = {
   definition?: string;
   answerDefinition?: string;
 };
-type Game = { id: string; wordLength: number; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[] };
+type Game = { id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[] };
+const LAST_GAME_KEY = 'lexiplay-last-game';
+const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, hints: 3 }, { id: 'medium', label: 'Medium', guesses: 6, hints: 2 }, { id: 'hard', label: 'Hard', guesses: 5, hints: 1 }] as const;
 type WordListSummary = { id: string; words: { term: string }[] };
 const LOCAL_WORD_LISTS_KEY = 'lexiplay-local-word-lists';
 
@@ -47,7 +52,7 @@ function savedDefinition(text: string) {
   return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
 }
 
-const lengthName = (length: number) => `${['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight'][length]}-letter`;
+const lengthName = (length: number) => `${['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][length]}-letter`;
 const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 const feedbackRank: Record<Feedback, number> = { ABSENT: 1, PRESENT: 2, CORRECT: 3 };
 
@@ -57,6 +62,10 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [selectedWordLength, setSelectedWordLength] = useState(5);
+  const [selectedGameId, setSelectedGameId] = useState('word-puzzle');
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [restoring, setRestoring] = useState(false);
+  const [accountRevision, setAccountRevision] = useState(0);
   const [playWithMyWords, setPlayWithMyWords] = useState(false);
   const [addedWords, setAddedWords] = useState<Set<string>>(() => new Set());
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
@@ -69,7 +78,6 @@ export default function App() {
       window.dispatchEvent(new Event('lexiplay:before-route-change'));
       const nextSection = pathSections[window.location.pathname] ?? 'home';
       setQuickSearch('');
-      if (nextSection !== 'play') resetGame();
       setActiveSection(nextSection);
     };
     window.addEventListener('popstate', syncSection);
@@ -78,7 +86,6 @@ export default function App() {
 
   function navigateTo(section: Section, search?: string) {
     const path = sectionPaths[section];
-    if (section !== 'play') resetGame();
     if (window.location.pathname !== path) window.dispatchEvent(new Event('lexiplay:before-route-change'));
     if (window.location.pathname !== path) window.history.pushState({}, '', path);
     if (section !== activeSection) setQuickSearch(search ?? '');
@@ -86,11 +93,29 @@ export default function App() {
   }
 
   function resetGame() {
+    try { window.localStorage.removeItem(LAST_GAME_KEY); } catch { /* Storage may be unavailable. */ }
     setGame(null);
     setGuess('');
     setMessage('');
     setAddedWords(new Set());
   }
+
+  useEffect(() => {
+    let active = true;
+    let id: string | null = null;
+    try { id = window.localStorage.getItem(LAST_GAME_KEY); } catch { /* Resume is optional when storage is unavailable. */ }
+    if (id) {
+      setRestoring(true);
+      api<Game>(`/games/${encodeURIComponent(id)}`).then(result => { if (active) setGame(result); }).catch(error => {
+        if (!active) return;
+        if (error instanceof ApiError && [401, 404].includes(error.status)) { try { window.localStorage.removeItem(LAST_GAME_KEY); } catch { /* Storage may be unavailable. */ } }
+        else setMessage('Could not restore your puzzle. Reload to try again.');
+      }).finally(() => { if (active) setRestoring(false); });
+    }
+    const changed = () => { active = false; resetGame(); setRestoring(false); setAccountRevision(value => value + 1); };
+    window.addEventListener('lexiplay:account-change', changed);
+    return () => { active = false; window.removeEventListener('lexiplay:account-change', changed); };
+  }, []);
 
   const finished = game?.guesses.at(-1)?.completed ?? false;
   const attemptsRemaining = game?.guesses.at(-1)?.attemptsRemaining ?? game?.attemptLimit ?? 0;
@@ -110,9 +135,10 @@ export default function App() {
     try {
       const newGame = await api<Game>('/games', {
         method: 'POST',
-        body: JSON.stringify({ wordLength: selectedWordLength, playWithMyWords }),
+        body: JSON.stringify({ kind: 'word-puzzle', wordLength: selectedWordLength, difficulty, playWithMyWords }),
       });
       setGame({ ...newGame, hints: newGame.hints ?? { unused: 3, present: 3 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
+      try { window.localStorage.setItem(LAST_GAME_KEY, newGame.id); } catch { /* Gameplay remains available without browser storage. */ }
       setGuess('');
       try {
         const lists = await api<WordListSummary[]>('/word-lists');
@@ -137,6 +163,7 @@ export default function App() {
         revealedAbsent: [...game.revealedAbsent, ...(result.letters ?? [])],
         revealedPresent: result.letter ? [...game.revealedPresent, result.letter] : game.revealedPresent,
       });
+      setMessage(result.letter ? `${result.letter.toUpperCase()} is in the answer. Its position is still yours to find.` : `${result.letters?.map(letter => letter.toUpperCase()).join(', ')} ${result.letters?.length === 1 ? 'is' : 'are'} not in the answer.`);
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not use this hint.');
     } finally {
@@ -244,7 +271,7 @@ export default function App() {
   }
 
   const sectionTitle: Record<Section, string> = {
-    home: 'Home', play: 'Play', library: 'Word List',
+    home: 'Home', play: 'Games', library: 'Word List',
     progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses',
   };
   const navigation: { key: Section; icon: string }[] = [
@@ -278,6 +305,8 @@ export default function App() {
       </header>
 
       {activeSection === 'play' && <>
+      <GameCatalog selectedId={selectedGameId} onSelect={setSelectedGameId} />
+      {selectedGameId === 'word-puzzle' &&
       <section className="game-card" aria-label="Vocabulary puzzle" onClick={event => {
         const target = event.target;
         if (target instanceof Element && target.closest('button, input, a, select, textarea')) return;
@@ -289,30 +318,32 @@ export default function App() {
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
             <h2>A fresh word is waiting.</h2>
-            <p>Make it your kind of practice. Pick a word length and find the answer in six tries.</p>
+            <p>Make it your kind of practice. Pick your word length and challenge.</p>
             <div className="practice-options">
               <fieldset className="length-options"><legend>Word length</legend><p>A little shorter, or a little more challenging.</p>
                 <div className="length-segments">
-                  {[3, 4, 5, 6, 7, 8].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
+                  {[3, 4, 5, 6, 7, 8, 9].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
                     <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={`${length} letters`} />
                     <span>{length}</span><small>letters</small>
                   </label>)}
                 </div>
               </fieldset>
+              <fieldset className="difficulty-options"><legend>Difficulty</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{option.label}</strong><small>{option.guesses} guesses · {option.hints} of each hint</small></label>)}</div></fieldset>
               <label className="word-pool-option"><span className="word-pool-icon" aria-hidden="true">▤</span><span><strong>Play with my words</strong><small>{playWithMyWords ? 'Answers from your saved vocabulary.' : 'Explore the full game dictionary.'}</small></span>
                 <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /><span className="option-switch" aria-hidden="true" />
               </label>
             </div>
-            <button className="primary-button" onClick={startPractice} disabled={busy}>
-              {busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
+            <button className="primary-button" onClick={startPractice} disabled={busy || restoring}>
+              {restoring ? 'Restoring your puzzle…' : busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
             </button>
           </div>
         ) : (
           <div className="puzzle">
             <div className="puzzle-heading">
-              <div><p className="eyebrow">Today’s practice</p><h2>Find the word</h2></div>
+              <div><p className="eyebrow">{game.difficulty ?? difficulty} · {game.wordLength} letters</p><h2>Find the word</h2></div>
               <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
             </div>
+            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={resetGame} disabled={busy}>Choose a new puzzle</button><span>Your accepted guesses are saved.</span></div>}
             <div className="puzzle-columns">
             <div className="puzzle-play-column">
             <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `${game.wordLength * 5.2 + (game.wordLength - 1) * 0.45}rem` }}>
@@ -329,8 +360,8 @@ export default function App() {
               })}
             </div>
             {!finished && <div className="game-consumables" aria-label="Hints">
-              <button type="button" onClick={() => void useHint('unused')} disabled={busy || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span> Remove 3 unused letters <small>{game.hints.unused} left</small></button>
-              <button type="button" onClick={() => void useHint('present')} disabled={busy || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span> Reveal a yellow letter <small>{game.hints.present} left</small></button>
+              <button className="friendly-hint" type="button" onClick={() => void useHint('unused')} disabled={busy || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span><span><strong>Remove letters</strong><small>Hide up to 3 letters absent from the answer</small></span><span className="hint-count">{game.hints.unused} left</span></button>
+              <button className="friendly-hint" type="button" onClick={() => void useHint('present')} disabled={busy || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span><span><strong>Reveal a letter</strong><small>Show an answer letter, without its position</small></span><span className="hint-count">{game.hints.present} left</span></button>
             </div>}
             {!finished && <>
               {game.revealedPresent.length > 0 && <p className="revealed-letter-hint" aria-live="polite">{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')} {game.revealedPresent.length === 1 ? 'is' : 'are'} in the answer; position unknown.</p>}
@@ -367,16 +398,17 @@ export default function App() {
       {message && <p className="notice" role="status">{message}</p>}
       {finished && <div className="next-game"><button className="primary-button" onClick={resetGame}>Return</button></div>}
       </section>
+      }
       </>}
       {activeSection === 'library' && <section className="library-page">
         <div className="section-intro"><div><p className="eyebrow">YOUR VOCABULARY</p><h2>Word List</h2><p>Keep the words you’re learning close at hand.</p></div><span className="library-mark" aria-hidden="true">✳</span></div>
-        <WordListsPanel pageMode searchQuery={quickSearch} />
+        <WordListsPanel key={accountRevision} pageMode searchQuery={quickSearch} />
       </section>}
       {activeSection === 'home' && <section className="overview-page">
         <div className="welcome-banner"><p className="eyebrow">A LITTLE PRACTICE GOES A LONG WAY</p><h2>Make room for a new word.</h2><p>Build a habit with a quick puzzle or spend a few minutes organizing your vocabulary.</p><button type="button" className="primary-button" onClick={() => navigateTo('play')}>Start a puzzle <span aria-hidden="true">→</span></button></div>
         <div className="overview-cards"><button type="button" onClick={() => navigateTo('library')}><span className="overview-icon" aria-hidden="true">▤</span><strong>Your word list</strong><span>Browse and add words</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('play')}><span className="overview-icon" aria-hidden="true">▦</span><strong>Quick practice</strong><span>Solve a word puzzle</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('progress')}><span className="overview-icon" aria-hidden="true">▥</span><strong>Learning progress</strong><span>Review your activity</span><span className="card-arrow" aria-hidden="true">→</span></button></div>
       </section>}
-      {activeSection === 'progress' && <section className="section-placeholder"><span aria-hidden="true">▥</span><h2>Your learning history will live here.</h2><p>Practice with words from your own lists to build a record of what you’ve learned.</p><button type="button" className="primary-button" onClick={() => navigateTo('library')}>Open your word list <span aria-hidden="true">→</span></button></section>}
+      {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}
       {activeSection === 'community' && <section className="section-placeholder"><span aria-hidden="true">♧</span><h2>Learn alongside others.</h2><p>Community features are being planned. Your private word lists stay yours.</p></section>}
       {activeSection === 'settings' && <section className="settings-page"><h2>Appearance</h2><p>Choose the theme that feels comfortable.</p><button className="theme-toggle" type="button" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '☾ Dark mode'}</button></section>}
       {activeSection === 'licenses' && <section className="licenses-page" aria-label="Licenses and attribution">

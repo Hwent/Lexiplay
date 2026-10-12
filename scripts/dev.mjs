@@ -3,6 +3,7 @@ import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
+import { createServer } from 'node:net';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const apiDirectory = resolve(scriptDirectory, '../apps/api');
@@ -40,7 +41,15 @@ function stopAll() {
 process.on('SIGINT', stopAll);
 process.on('SIGTERM', stopAll);
 
-const api = start(tsx, ['watch', 'src/main.ts'], apiDirectory, { PORT: '0' });
+const webPort = await new Promise((resolve, reject) => {
+  const server = createServer();
+  server.once('error', reject);
+  server.listen(0, '127.0.0.1', () => {
+    const port = server.address().port;
+    server.close(error => error ? reject(error) : resolve(port));
+  });
+});
+const api = start(tsx, ['watch', 'src/main.ts'], apiDirectory, { PORT: '0', PUBLIC_WEB_ORIGIN: process.env.PUBLIC_WEB_ORIGIN ?? `http://127.0.0.1:${webPort}` });
 const apiOrigin = await new Promise((resolve, reject) => {
   let output = '';
   const timeout = setTimeout(() => reject(new Error('API did not start within 30 seconds.')), 30_000);
@@ -59,7 +68,7 @@ const apiOrigin = await new Promise((resolve, reject) => {
   });
 });
 
-const web = start(vite, ['--host', '127.0.0.1', '--port', '0'], webDirectory, { API_ORIGIN: apiOrigin });
+const web = start(vite, ['--host', '127.0.0.1', '--port', String(webPort), '--strictPort'], webDirectory, { API_ORIGIN: apiOrigin });
 let webOutput = '';
 let urlShown = false;
 web.stdout.on('data', chunk => {

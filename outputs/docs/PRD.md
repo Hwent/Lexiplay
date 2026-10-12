@@ -1,6 +1,8 @@
 # LexiPlay — Product Requirements
 
-**Status:** Initial draft · **Version:** 0.1 · **Platform:** Responsive web app
+**Status:** MVP requirements with current implementation notes · **Version:** 0.2 · **Platform:** Responsive web app
+
+Current game/account behavior is documented in [GAMES_AND_ACCOUNTS.md](../../docs/GAMES_AND_ACCOUNTS.md). Games, guesses, hints, Statistics, username/email sign-in, eight-character minimum passwords, and verification/recovery flows are implemented. Deployment, a missed-word review queue, and some launch safeguards below remain future work. The current personal-list design is one overall “My words” list per account, as described in [WORD_LIST_DESIGN.md](WORD_LIST_DESIGN.md).
 
 ## 1. Product summary
 
@@ -31,12 +33,12 @@ English learners who want short, repeatable vocabulary practice, and portfolio r
 
 ### P0 — required for launch
 
-1. **Account:** register, sign in, sign out, and recover access through a secure identity flow. A guest may preview a sample puzzle; persistence and personal lists require an account.
+1. **Account:** register with unique username and email, sign in with either, sign out, verify email, and recover access using expiring single-use links. Passwords allow 8–128 characters. Guests may play persisted browser-owned puzzles; account Statistics and server-side personal lists require sign-in.
 2. **Vocabulary lists:** view starter lists, create/edit/delete owned lists, add/edit/remove words, and select a list for practice. Validate duplicate words, word length, supported characters, and list limits.
 3. **Import:** support `.txt` and Word documents (`.doc`/`.docx`) as the primary import formats, plus pasted text. Accept one word per line and optional inline or following-line definitions; preview parsed rows and actionable row-level issues before commit. Enforce detected-type, file-size, extracted-text, and word-count limits. Treat all imported content as plain text and never execute embedded content or treat it as HTML. CSV is optional secondary compatibility, not a required or primary format.
-4. **Puzzle:** show a fixed-length word grid, on-screen keyboard, focusable input, guess count, feedback colors plus non-color indicators, and accessible instructions. Normalize case and trim input. Reject words that are not eligible answers or guesses with a clear message.
+4. **Games:** provide an extensible catalogue, initially Word puzzle. Support 3–9 letters; Easy has seven guesses/three uses of each hint, Medium six/two, and Hard five/one. Show a fixed-length grid, on-screen keyboard, focusable input, guess count, structured feedback and accessible instructions. Remove letters reveals up to three absent letters; Reveal a letter reveals an answer letter without its position. Normalize case/whitespace; invalid guesses never consume attempts. Preserve accepted guesses and hints across reloads and API restarts.
 5. **Learning result:** on win or loss, reveal the answer and definition when available; offer the next word and add missed words to a review queue.
-6. **Progress:** show recent outcomes, streak, attempts distribution, and review items. Define streak by local calendar day and document timezone behavior.
+6. **Progress:** show completed games, win rate, solved words, recent outcomes, and winning attempts distribution. Count completed practice days (win or loss) in the browser’s IANA timezone; a streak may end today or yesterday. Review items remain future work.
 7. **Responsive experience:** usable at mobile and desktop sizes, with loading, empty, validation, and error states.
 
 ### P1 — only if P0 is stable
@@ -60,7 +62,7 @@ Sign in → dashboard → inspect recent games and streak → open missed-word q
 
 ## 6. Product rules and success measures
 
-- Initial default: five-letter answers and six attempts; store these as game rules/configuration so later modes do not require a schema redesign.
+- Defaults: five-letter answers, Medium difficulty (six guesses and two uses of each hint). Persist game kind and rules so future games/modes can define their own behavior.
 - Guess validation and answer selection are server-authoritative. Do not return the answer in puzzle-start payloads.
 - A game records its selected list, answer reference/snapshot, guesses, result, and timestamps. Retrying a finished game is a new game.
 - Starter content must have a known license/source and attribution record before publication.

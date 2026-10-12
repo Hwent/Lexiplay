@@ -1,6 +1,6 @@
 import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Inject, Post, Res, UseGuards } from '@nestjs/common';
-import { ThrottlerGuard } from '@nestjs/throttler';
-import { AccountCredentialsDto } from './account.dto';
+import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
+import { AccountCredentialsDto, RegisterAccountDto, RecoveryDto, ActionTokenDto, ResetPasswordDto } from './account.dto';
 import { AccountService } from './account.service';
 import { readSessionCookie } from './session-cookie';
 
@@ -8,14 +8,15 @@ type Response = { setHeader(name: string, value: string): void };
 
 @Controller('auth')
 @UseGuards(ThrottlerGuard)
+@Throttle({ default: { ttl: 60_000, limit: 10 } })
 export class AccountController {
   constructor(@Inject(AccountService) private readonly accounts: AccountService) {}
 
   @Post('register')
-  async register(@Body() credentials: AccountCredentialsDto, @Res({ passthrough: true }) response: Response) {
+  async register(@Body() credentials: RegisterAccountDto, @Res({ passthrough: true }) response: Response) {
     const session = await this.accounts.register(credentials);
     response.setHeader('Set-Cookie', this.accounts.cookie(session.token));
-    return { user: session.user };
+    return { user: session.user, verificationSent: session.verificationSent };
   }
 
   @Post('login')
@@ -38,5 +39,14 @@ export class AccountController {
     await this.accounts.logout(token);
     response.setHeader('Set-Cookie', this.accounts.expiredCookie());
   }
+
+  @Post('forgot-password')
+  forgot(@Body() body: RecoveryDto) { return this.accounts.requestReset(body.email); }
+  @Post('reset-password')
+  reset(@Body() body: ResetPasswordDto) { return this.accounts.resetPassword(body.token, body.password); }
+  @Post('verification-request')
+  requestVerification(@Headers('cookie') cookie: string | undefined) { return this.accounts.requestVerification(readSessionCookie(cookie)); }
+  @Post('verify-email')
+  verify(@Body() body: ActionTokenDto) { return this.accounts.verifyEmail(body.token); }
 
 }

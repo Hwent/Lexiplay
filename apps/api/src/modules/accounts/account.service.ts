@@ -1,6 +1,7 @@
-import { ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, UnauthorizedException } from '@nestjs/common';
 import { createHash, randomBytes, scrypt as scryptCallback, timingSafeEqual } from 'node:crypto';
-import { AccountCredentialsDto } from './account.dto';
+import { AccountCredentialsDto, RegisterAccountDto } from './account.dto';
+import { AccountMailService } from './account-mail.service';
 import { AccountRepository, AccountUser } from './account.repository';
 
 const SESSION_MAX_AGE_SECONDS = 60 * 60 * 24 * 14;
@@ -13,20 +14,24 @@ const deriveKey = (password: string, salt: Buffer, length: number) => new Promis
 
 @Injectable()
 export class AccountService {
-  constructor(@Inject(AccountRepository) private readonly accounts: AccountRepository) {}
+  constructor(@Inject(AccountRepository) private readonly accounts: AccountRepository, @Inject(AccountMailService) private readonly mail: AccountMailService) {}
 
-  async register(credentials: AccountCredentialsDto) {
+  async register(credentials: RegisterAccountDto) {
     const email = credentials.email.trim().toLowerCase();
     const passwordHash = await this.hashPassword(credentials.password);
-    const user = await this.accounts.createUser(email, passwordHash);
-    if (!user) throw new ConflictException({ code: 'ACCOUNT_UNAVAILABLE', message: 'An account with this email already exists.' });
-    return { user, token: await this.startSession(user.id) };
+    const user = await this.accounts.createUser(email, passwordHash, credentials.username.trim().toLowerCase());
+    if (!user) throw new ConflictException({ code: 'ACCOUNT_UNAVAILABLE', message: 'That email or username is already in use.' });
+    let verificationSent = false;
+    try { await this.sendAction(user, 'verify'); verificationSent = true; } catch { /* The user can retry verification without losing the newly created account. */ }
+    return { user, token: await this.startSession(user.id), verificationSent };
   }
 
   async login(credentials: AccountCredentialsDto) {
-    const account = await this.accounts.findUser(credentials.email.trim().toLowerCase());
+    const identifier = credentials.identifier ?? credentials.email;
+    if (!identifier?.trim()) throw new BadRequestException('Enter your username or email.');
+    const account = await this.accounts.findUser(identifier.trim().toLowerCase());
     if (!account || !(await this.verifyPassword(credentials.password, account.passwordHash))) {
-      throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS', message: 'Email or password is incorrect.' });
+      throw new UnauthorizedException({ code: 'INVALID_CREDENTIALS', message: 'Username, email, or password is incorrect.' });
     }
     const { passwordHash: _passwordHash, ...user } = account;
     return { user, token: await this.startSession(user.id) };
@@ -41,6 +46,36 @@ export class AccountService {
 
   async logout(token: string | undefined) {
     if (token) await this.accounts.deleteSession(this.hashToken(token));
+  }
+
+  async requestReset(email: string) {
+    const user = await this.accounts.findUser(email.trim().toLowerCase());
+    if (user) {
+      try { await this.sendAction(user, 'reset'); } catch { /* Preserve the same response for existing and unknown addresses. */ }
+    }
+    return { message: 'If that email has an account, a reset link will arrive shortly.' };
+  }
+
+  async requestVerification(session: string | undefined) {
+    const user = await this.current(session);
+    if (!user.emailVerified) await this.sendAction(user, 'verify');
+    return { message: user.emailVerified ? 'Your email is already verified.' : 'Verification link requested. Check your email.' };
+  }
+
+  async verifyEmail(token: string) {
+    if (!await this.accounts.consumeAction(this.hashToken(token), 'verify')) throw new BadRequestException('This link is invalid or expired. Request a new one.');
+    return { message: 'Your email is verified. You can close this panel.' };
+  }
+
+  async resetPassword(token: string, password: string) {
+    if (!await this.accounts.consumeAction(this.hashToken(token), 'reset', await this.hashPassword(password))) throw new BadRequestException('This link is invalid or expired. Request a new one.');
+    return { message: 'Password updated. Sign in with your new password.' };
+  }
+
+  private async sendAction(user: AccountUser, purpose: 'reset' | 'verify') {
+    const token = randomBytes(32).toString('base64url');
+    await this.accounts.createAction(user.id, this.hashToken(token), purpose, new Date(Date.now() + (purpose === 'reset' ? 30 * 60_000 : 24 * 60 * 60_000)));
+    await this.mail.send(user.email, purpose, token);
   }
 
   cookie(token: string, secure = process.env.NODE_ENV === 'production') {
