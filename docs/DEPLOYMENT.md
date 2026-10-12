@@ -35,7 +35,7 @@ In Render, choose **+ New → Web Service**, connect GitHub, and select `Hwent/L
 | Region | Same as the database |
 | Runtime/language | Node |
 | Root Directory | Leave blank; use repository root |
-| Build Command | `corepack enable && corepack prepare pnpm@11.25.0 --activate && pnpm install --frozen-lockfile --prod=false && pnpm build` |
+| Build Command | `corepack pnpm@11.25.0 install --frozen-lockfile --prod=false && corepack pnpm@11.25.0 --recursive --if-present build` |
 | Start Command | `node apps/api/dist/main.js` |
 | Instance Type | Free |
 | Health Check Path | `/api/v1/health` |
@@ -56,6 +56,8 @@ Add the environment variables below in Render before deployment:
 | `RESEND_API_KEY` | Your sending key | Yes |
 
 Leave `PORT` unset; [Render supplies it](https://render.com/docs/web-services). Leave `PUBLIC_WEB_ORIGIN` unset for the generated Render domain: the app uses [`RENDER_EXTERNAL_URL`](https://render.com/docs/environment-variables). For a future custom domain, set `PUBLIC_WEB_ORIGIN=https://your-domain.example` and redeploy.
+
+The repository's `.node-version` pins Node 22 when `NODE_VERSION` is unset. Render gives the environment variable priority over that file; see [runtime version selection](https://render.com/docs/node-version). The build command invokes the pinned pnpm version directly through Corepack and avoids global shim installation. Do not add `corepack enable`: Render's system binary directory can be read-only, causing `EROFS` before dependency installation. Corepack documents [direct invocation and its read-only filesystem workaround](https://github.com/nodejs/corepack#corepack-enable--name).
 
 Review the settings and selected plan, then click **Deploy Web Service**. This is the point where you publish the demo. Watch build and runtime logs. The API binds `0.0.0.0`, validates production settings, and serves `apps/web/dist`; Vite is not used as a production server. HTTPS is handled by Render. The health endpoint confirms HTTP startup, not database connectivity or dictionary readiness.
 
@@ -87,7 +89,7 @@ A local `localhost` or `127.0.0.1` word list cannot automatically move to the Re
 
 ## Troubleshooting and limits
 
-- **Build tool/version error:** check `NODE_VERSION=22`, the pinned Corepack/pnpm command, repository-root setting, and `--prod=false` so TypeScript/Vite are installed for the build.
+- **Build tool/version error:** check `NODE_VERSION=22` (or the repository's `.node-version`), the pinned Corepack/pnpm command, repository-root setting, and `--prod=false` so TypeScript/Vite are installed for the build. If the log reports `EROFS` for `/usr/bin/pnpm`, replace the old command with the direct Corepack command above.
 - **No port detected:** use the compiled start command with `NODE_ENV=production` and `HOST=0.0.0.0`; use Render’s `PORT`.
 - **Startup configuration error:** check the named environment variable in Render. The app does not print its private value.
 - **Games cannot start:** confirm the first import completed against the correct database; an HTTP health success alone does not establish that.
