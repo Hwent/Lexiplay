@@ -1,6 +1,6 @@
 # Games, Statistics, and accounts
 
-Current implementation, updated 2026-10-11. This document describes shipped behavior; the broader deployment and review-queue work in the PRD remains future work.
+Current implementation, updated 2026-10-12. This document describes shipped behavior; the broader deployment and review-queue work in the PRD remains future work.
 
 ## Games
 
@@ -32,11 +32,11 @@ The browser supplies its IANA timezone. The API validates it and groups UTC comp
 
 ## Accounts and email
 
-Registration requires an email, a unique username, and an 8–128 character password. Usernames are case-insensitive, 3–32 letters/numbers/underscores, and start with a letter. Sign-in accepts username or email. Existing accounts retain email sign-in and receive a unique `learner_<id>` username during lazy schema setup; `/auth/me` and the account panel show it. Passwords use the existing scrypt implementation; session tokens are hashed before storage.
+Account functions live on the dedicated `/account` page: sign-in, registration, profile/status, sign-out, recovery, and verification. The shared header contains only a compact Guest/Signed in status link. `useAccount` keeps the current account mounted in `App`, so page navigation does not repeat session checks or lose sign-in status. Failed session checks have a retry state on Account. Registration requires an email, a unique username, and an 8–128 character password. Usernames are case-insensitive, 3–32 letters/numbers/underscores, and start with a letter. Sign-in accepts username or email. Existing accounts retain email sign-in and receive a unique `learner_<id>` username during lazy schema setup; `/auth/me` and Account show it. Passwords use the existing scrypt implementation; session tokens are hashed before storage.
 
-Verification is requested on registration and can be resent from the account panel. An unverified account can sign in and practise; the panel displays verification pending. Registration remains usable when email delivery is unavailable and tells the browser to offer a retry. Password recovery always responds identically for known/unknown email addresses, including when delivery fails.
+Verification is requested on registration and can be resent from Account. An unverified account can sign in and practise; Account displays verification pending. Registration remains usable when email delivery is unavailable and tells the browser to offer a retry. Password recovery always responds identically for known/unknown email addresses, including when delivery fails.
 
-Email verification links expire after 24 hours; password reset links after 30 minutes. Only SHA-256 token hashes are stored in `account_actions`. Each new request replaces the previous link of the same type. Token consumption is transactional and single-use. Resetting a password revokes all existing sessions. Email links carry the action/token in the URL fragment; the account panel removes it from the address bar when loaded and offers an explicit confirmation form.
+Email verification links expire after 24 hours; password reset links after 30 minutes. Only SHA-256 token hashes are stored in `account_actions`. Each new request replaces the previous link of the same type. Token consumption is transactional and single-use. Resetting a password revokes all existing sessions. Email links target `/account#action=verify&token=...` or `/account#action=reset&token=...`. Account removes the token from the address bar and offers a confirmation form. Older root-page action links open Account too. After verification, an existing signed-in session is refreshed so a link for another email cannot incorrectly mark the current account verified.
 
 | API route | Request / behavior |
 | --- | --- |
@@ -62,6 +62,15 @@ For development, `MAIL_MODE=local` writes email previews to `apps/api/.local-mai
 
 For deployment, set `MAIL_MODE=resend`, `PUBLIC_WEB_ORIGIN` to the HTTPS frontend origin, `MAIL_FROM` to a verified sender, and `RESEND_API_KEY` in the server environment. Production refuses local mail mode. Real delivery needs this configuration and has not been exercised by automated tests. No provider account, sender domain, or production resource is provisioned by these changes.
 
+For a first real delivery test without a domain:
+
+1. Create a Resend account using the email that will receive the test.
+2. In [Resend API Keys](https://resend.com/api-keys), create a `LexiPlay` key with **Sending access**. Copy the value when created; it cannot be viewed again. See [API key management](https://resend.com/docs/dashboard/api-keys/introduction).
+3. Copy `.env.example` to the gitignored root `.env`, then set `MAIL_MODE=resend`, `MAIL_FROM="LexiPlay <onboarding@resend.dev>"`, and `RESEND_API_KEY` to that key. Leave `PUBLIC_WEB_ORIGIN` unset locally; the launcher uses its selected web URL. Existing shell variables take precedence over `.env`.
+4. Restart `pnpm dev`, open Account, and register or request verification. The [onboarding sender can deliver only to the email used for the Resend account](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain). Add and verify a domain to send to other addresses; a Gmail address is the recipient, not the Resend sender.
+
+Local links work only on the computer running LexiPlay, while that dev server is active. Inbox receipt, successful link consumption, and provider acceptance are separate checks; a local preview is not evidence of Gmail delivery. Never paste the API key or verification token into chat or commit them.
+
 ## Verification and remaining limits
 
 Run `pnpm test`, `pnpm typecheck`, and `pnpm build`. Ordinary tests use deterministic adapters and mocked mail. For real PostgreSQL tests, point `TEST_DATABASE_URL` at a **separate disposable database named `lexiplay_test_*`**. The integration suite refuses other database names. GitHub CI provisions its own PostgreSQL service and runs these checks.
@@ -70,7 +79,7 @@ Real-database coverage includes API restart, concurrent guesses, ownership, pers
 
 Repositories still apply schema changes lazily; standalone versioned migrations remain future work. Statistics calculates all-time metrics from completed games and displays only the latest 20; history pagination and SQL aggregation are future scaling work. A missed-word review queue, account deletion, and production backup/deployment setup remain unimplemented.
 
-## Milestone validation and changed files
+## Original games milestone validation and changed files
 
 Local verification passed: 19 API tests (including two real PostgreSQL integration cases), 33 web tests, workspace typechecking, and production builds. Live browser checks covered mobile/desktop setup, nine-letter input, hints, refresh restoration, and the narrow account menu. Real external email delivery was not tested. CI execution on GitHub is separate from these local results.
 
@@ -84,3 +93,18 @@ Changed files for this milestone, relative to the repository root:
 - Documentation: `README.md`, `docs/DEVELOPMENT.md`, `docs/learn.md`, `docs/GAMES_AND_ACCOUNTS.md`, `outputs/docs/PRD.md`, `outputs/docs/TECHNICAL_DESIGN.md`, `outputs/docs/WORD_LIST_DESIGN.md`.
 
 The previously untracked `AGENTS.md` and previously deleted `docs/react-standard-evaluation.md` were not part of this milestone’s changes.
+
+## Account page milestone
+
+Account functionality moved from the header dropdown to `/account`; the header retains only a basic status link. Verification/reset email links open the dedicated page. The root `.env` is loaded only for local development through Node’s built-in loader; no dependency was added.
+
+Validation passed: 19 API tests, 37 web tests, workspace typechecking, and production builds. The live Resend onboarding sender delivered a verification message to the requested Gmail inbox. The received link opened Account and the temporary account’s verification flag became true in the disposable local PostgreSQL database. The preview was then switched back to the normal local database. No production resource was changed; API keys and tokens were not committed.
+
+Changed files:
+
+- `apps/web/src/AccountPanel.tsx` renamed to `AccountPage.tsx`; added `AccountPage.test.tsx`, `AccountStatus.tsx`, and `useAccount.ts` in that directory.
+- `apps/web/src/App.tsx`, `App.test.tsx`, `GameUpdates.test.tsx`, `styles.css`, and `game-updates.css`.
+- `apps/api/src/modules/accounts/account-mail.service.ts`, `account-mail.service.test.ts`, and `account.service.ts`.
+- `.env.example`, `scripts/dev.mjs`, `README.md`, `docs/DEVELOPMENT.md`, `docs/learn.md`, and this document.
+
+The private root `.env` is gitignored. Real mail currently uses the onboarding sender for the operator’s own address; sending to other users requires a verified sender domain. Local verification links require the matching development server to stay running.

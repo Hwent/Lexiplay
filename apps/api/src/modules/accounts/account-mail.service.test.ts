@@ -10,7 +10,7 @@ describe('configured account mail delivery', () => {
     await expect(new AccountMailService().send('learner@example.test', 'reset', 'a'.repeat(43))).resolves.toBeUndefined();
     const body = JSON.parse(send.mock.calls[0]![1]!.body as string);
     expect(body.to).toEqual(['learner@example.test']);
-    expect(body.text).toContain('https://lexiplay.example.test/#action=reset&token=');
+    expect(body.text).toContain('https://lexiplay.example.test/account#action=reset&token=');
     expect(body.text).toContain('30 minutes');
   });
   it('refuses local previews in production and refuses unencrypted public email links', async () => {

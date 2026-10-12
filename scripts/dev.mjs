@@ -1,11 +1,13 @@
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { fileURLToPath } from 'node:url';
-import { readFileSync } from 'node:fs';
+import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createServer } from 'node:net';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
+const localEnvPath = resolve(scriptDirectory, '../.env');
+if (existsSync(localEnvPath)) process.loadEnvFile(localEnvPath);
 const apiDirectory = resolve(scriptDirectory, '../apps/api');
 const webDirectory = resolve(scriptDirectory, '../apps/web');
 const apiRequire = createRequire(resolve(apiDirectory, 'package.json'));

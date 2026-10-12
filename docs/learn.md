@@ -80,7 +80,8 @@ Paths in this table are relative to `apps/web/`.
 | [index.html](../apps/web/index.html) | HTML entry document with the root element and script entry. |
 | [src/main.tsx](../apps/web/src/main.tsx) | Finds `#root`, calls React's `createRoot`, renders `App` inside `StrictMode`, and imports styles. |
 | [src/App.tsx](../apps/web/src/App.tsx) | Application shell, section navigation, theme, game options, board, keyboard, hints, and game definitions. Read `sectionPaths`, `navigateTo`, `startPractice`, `submitGuess`, and `useHint`. It imports `apiRequest` as `api` for game and related list requests. |
-| [src/AccountPanel.tsx](../apps/web/src/AccountPanel.tsx) | Username/email sign-in, registration, logout, password recovery, verification, and account messages. Makes requests to `/api/v1/auth/*`. |
+| [src/AccountPage.tsx](../apps/web/src/AccountPage.tsx) | Dedicated `/account` page for sign-in, registration, logout, recovery, verification, and account messages. Makes requests to `/api/v1/auth/*`. |
+| [src/AccountStatus.tsx](../apps/web/src/AccountStatus.tsx) / [src/useAccount.ts](../apps/web/src/useAccount.ts) | Compact header status and a shared account/session lookup that stays mounted across page changes. |
 | [src/GameCatalog.tsx](../apps/web/src/GameCatalog.tsx) | Catalogue of available games, currently Word puzzle; the entry point for future game views. |
 | [src/StatisticsPanel.tsx](../apps/web/src/StatisticsPanel.tsx) | Completed-game metrics, winning guess distribution, recent practice, and guest/error/empty states. |
 | [src/WordListsPanel.tsx](../apps/web/src/WordListsPanel.tsx) | Personal list display, search, pagination, manual edits, Known/Unfamiliar toggles, dictionary saves, and upload preview/confirmation. It imports `apiRequest` as `request`; read `loadLocalLists`, the pending operation maps, and the route-change effect. |
@@ -94,7 +95,7 @@ React `useState` holds values that affect rendering, such as the current guess o
 
 The supplied [React standard](react-standard.md) is a scaffolding template. Keep PascalCase component files with default exports, named utility exports, colocated tests, immutable state updates, cleaned-up effects, semantic controls, and explicit loading/error states. The current app uses TypeScript, History API navigation, and shared stylesheets; it does not implement the template's exact JavaScript folder tree, React Router, or CSS Modules.
 
-`App`, `AccountPanel`, `WordListsPanel`, and `dictionary-cache` all use `services/api-client.ts` for HTTP requests. This applies the standard's service boundary without moving the existing feature components. Feature code still owns response types, caching, guest behavior, and user messages. The generic `T` describes the expected JSON shape at compile time; it does not validate server responses at runtime. `ApiError` here is a browser error class, distinct from the API error payload type in `packages/shared`.
+`App`, `AccountPage`, `useAccount`, `WordListsPanel`, and `dictionary-cache` use `services/api-client.ts` for HTTP requests. Feature code owns response types, caching, guest behavior, and user messages. The generic `T` describes the expected JSON shape at compile time; it does not validate server responses at runtime. `ApiError` here is a browser error class, distinct from the API error payload type in `packages/shared`.
 
 There is no routing library: `App.tsx` maps paths such as `/games`, `/library`, and `/licenses` to sections, calls `history.pushState`, and listens for `popstate`. `/play` remains a compatible games URL. Changing sections dispatches `lexiplay:before-route-change`. For signed-in users, `WordListsPanel.tsx` uses that event to flush queued word edits and status changes. Imports use a separate confirmation request. Guest list changes are stored on the device.
 
@@ -230,7 +231,7 @@ pnpm dev
 
 The seed command needs internet access and loads or refreshes the local dictionary. [scripts/dev.mjs](../scripts/dev.mjs) starts the API with `PORT=0`, reads its actual address, and passes that address to Vite as `API_ORIGIN`. Both servers use available loopback ports; open the printed web URL. PostgreSQL persists through the named Docker volume.
 
-The code reads environment variables from `process.env`. [.env.example](../.env.example) documents sample settings, but the launcher and API do not currently load `.env` automatically. For custom database settings, set `DATABASE_URL` in the shell before running commands. `WEB_ORIGIN` is a documented placeholder and is not currently consumed by the server; the web app uses relative API requests through the Vite proxy.
+The API reads `process.env`. `pnpm dev` loads the gitignored root `.env` through Node’s built-in loader before starting the servers; existing shell values win. [.env.example](../.env.example) documents settings. The launcher supplies `PUBLIC_WEB_ORIGIN` using its actual web port unless explicitly overridden. `WEB_ORIGIN` remains a placeholder; browser API requests use the Vite proxy. Email links target `/account`; older root-page action links still route to Account.
 
 ```powershell
 pnpm test

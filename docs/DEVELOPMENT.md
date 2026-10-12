@@ -35,7 +35,7 @@ Word-list uploads support `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf
 
 ## Local setup
 
-Use Node.js 22+, the pinned pnpm 11.25.0, and Docker Desktop. `.env.example` documents sample settings; the current launcher and API read `process.env` and do not automatically load `.env`. Set custom values such as `DATABASE_URL` in the shell before running commands. Never commit secrets or real user data. Run `pnpm install` from the repository root so the lockfile governs every workspace package.
+Use Node.js 22+, the pinned pnpm 11.25.0, and Docker Desktop. Copy `.env.example` to the gitignored root `.env` for local settings. `pnpm dev` loads that file through Node’s built-in environment loader; existing shell variables take precedence. Standalone API commands still read their environment directly. Restart the launcher after changing email configuration. Never commit secrets or real user data. Run `pnpm install` from the repository root so the lockfile governs every workspace package.
 
 Run `pnpm dev` to start the API and web development server. The dev script selects free loopback ports, sets the web origin used by development email links, and prints the browser URL. Games and accepted guesses persist in PostgreSQL; the browser remembers its latest game ID and restores it on reload. Games use 3–9 letters and Easy/Medium/Hard rules; Statistics groups completed games by the browser’s IANA timezone.
 

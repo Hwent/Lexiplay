@@ -1,28 +1,26 @@
 import { FormEvent, useEffect, useState } from 'react';
 import { apiRequest } from './services/api-client';
+import type { Account } from './useAccount';
 
-type Account = { id: string; email: string; username?: string; emailVerified?: boolean };
 type AccountMode = 'login' | 'register' | 'forgot' | 'reset' | 'verify';
 function initialAction() {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const action = params.get('action');
   return { mode: action === 'reset' || action === 'verify' ? action : 'login', token: params.get('token') ?? '' } as { mode: AccountMode; token: string };
 }
-export default function AccountPanel() {
+export default function AccountPage({ account, setAccount, loading, accountError, onRetry }: {
+  account: Account | null; setAccount: (account: Account | null) => void; loading: boolean; accountError: string; onRetry: () => void;
+}) {
   const [action] = useState(initialAction);
   const [mode, setMode] = useState<AccountMode>(action.mode);
   const [token, setToken] = useState(action.token);
-  const [account, setAccount] = useState<Account | null>(null);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
   const [message, setMessage] = useState('');
   const [busy, setBusy] = useState(false);
   useEffect(() => {
-    let active = true;
-    if (action.token) window.history.replaceState({}, '', window.location.pathname + window.location.search);
-    apiRequest<Account>('/auth/me').then(user => { if (active && user?.id) setAccount(user); }).catch(() => undefined);
-    return () => { active = false; };
+    if (action.token) window.history.replaceState({}, '', '/account' + window.location.search);
   }, [action.token]);
   function notifyAccountChanged() { window.dispatchEvent(new Event('lexiplay:account-change')); }
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -34,7 +32,7 @@ export default function AccountPanel() {
         const result = await apiRequest<{ message: string }>(`/auth/${path}`, { method: 'POST', body: JSON.stringify(body) });
         setMessage(result.message); setPassword('');
         if (mode === 'reset') { setAccount(null); notifyAccountChanged(); }
-        if (mode === 'verify' && account) setAccount({ ...account, emailVerified: true });
+        if (mode === 'verify' && account) onRetry();
         if (mode !== 'forgot') { setToken(''); setMode('login'); }
       } else {
         const body = mode === 'register' ? { email, username, password } : { identifier: email, password };
@@ -58,12 +56,12 @@ export default function AccountPanel() {
     finally { setBusy(false); }
   }
   const actionMode = mode === 'reset' || mode === 'verify';
-  return <details className="account-panel" open={actionMode || undefined}>
-    <summary>{account ? account.username ?? account.email : 'Account'}</summary>
-    <div className="account-content">
-      {account && !actionMode ? <>
+  return <section className="account-page" aria-label="Account management">
+    <div className="section-intro"><div><p className="eyebrow">YOUR ACCOUNT</p><h2>{actionMode ? mode === 'verify' ? 'Verify your email' : 'Choose a new password' : account ? 'Welcome back.' : 'Your words, wherever you learn.'}</h2><p>{actionMode ? 'Complete the request from your email link.' : 'Manage your sign-in and keep your learning progress with you.'}</p></div></div>
+    <div className="account-page-card">
+      {loading ? <p role="status">Loading your account…</p> : accountError ? <><p role="status">{accountError}</p><button className="account-action" onClick={onRetry}>Try again</button></> : account && !actionMode ? <>
         <p className="account-status" role="status">Signed in as {account.username ?? account.email}</p>
-        <p className="account-hint">{account.email}</p>
+        <dl className="account-profile"><div><dt>Username</dt><dd>{account.username ?? 'Not set'}</dd></div><div><dt>Email</dt><dd>{account.email}</dd></div></dl>
         {account.emailVerified === false && <><p className="verification-status">Email verification pending</p><button className="account-action" onClick={() => void resendVerification()} disabled={busy}>Resend verification email</button></>}
         {account.emailVerified && <p className="verification-status verified">Email verified</p>}
         <button className="account-action" onClick={() => void signOut()} disabled={busy}>Sign out</button>
@@ -84,5 +82,5 @@ export default function AccountPanel() {
       </>}
       {message && <p className="account-message" role="status">{message}</p>}
     </div>
-  </details>;
+  </section>;
 }

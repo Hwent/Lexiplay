@@ -77,7 +77,7 @@ describe('practice puzzle', () => {
     expect(fetchMock).toHaveBeenCalledTimes(8);
   });
 
-  it('creates an account through the account panel', async () => {
+  it('creates an account through the account page', async () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response('{}', { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({

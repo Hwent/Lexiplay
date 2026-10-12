@@ -70,10 +70,6 @@ button:focus-visible, input:focus-visible, select:focus-visible, a:focus-visible
 .top-note, footer { color: var(--muted); font-size: .78rem; }
 .theme-toggle { display: inline-flex; align-items: center; gap: .4rem; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; font-size: .75rem; }
 .theme-toggle:hover { background: color-mix(in srgb, var(--text) 7%, transparent); }
-.account-panel { position: relative; color: var(--text); font-size: .75rem; }
-.account-panel summary { max-width: 12rem; overflow: hidden; padding: .4rem .6rem; border: 1px solid var(--line); border-radius: 4px; cursor: pointer; text-overflow: ellipsis; white-space: nowrap; list-style: none; }
-.account-panel summary::-webkit-details-marker { display: none; }
-.account-content { position: absolute; z-index: 50; top: calc(100% + .5rem); right: 0; width: min(19rem, calc(100vw - 1rem)); max-height: min(75dvh, 36rem); overflow-y: auto; padding: 1rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--surface); box-shadow: 0 14px 36px rgb(17 24 39 / 16%); }
 .account-tabs { display: grid; grid-template-columns: 1fr 1fr; gap: .35rem; margin-bottom: .9rem; }
 .account-tabs button, .account-action { min-height: 2.35rem; padding: .4rem .65rem; border: 1px solid var(--line); border-radius: 4px; background: transparent; color: var(--text); cursor: pointer; font-size: .78rem; font-weight: 700; }
 .account-tabs button[aria-selected='true'], .account-action { border-color: var(--correct); background: var(--correct); color: white; }
@@ -193,7 +189,6 @@ footer { min-height: 3.5rem; margin-top: auto; display: flex; align-items: cente
   .header-actions { gap: .45rem; }
   .top-note { display: none; }
   .theme-toggle { padding: .35rem .45rem; font-size: .68rem; }
-  .account-panel summary { max-width: 6.5rem; padding: .35rem .4rem; font-size: .68rem; }
   .word-lists-panel summary { padding: .35rem .4rem; font-size: .68rem; }
   .puzzle { padding-top: .65rem; }
   .puzzle-heading { margin-bottom: .85rem; }
@@ -251,7 +246,7 @@ body { background: var(--page); }
 .header-search input::placeholder { color: var(--muted); opacity: 1; }
 .header-search button { width: 2.35rem; height: 100%; flex: 0 0 auto; border: 0; border-left: 1px solid var(--line); border-radius: 0 .65rem .65rem 0; background: transparent; color: var(--accent); cursor: pointer; font-size: 1.2rem; }
 .header-search button:hover { background: var(--accent-soft); }
-.header-actions .account-panel summary, .theme-toggle { border-radius: .65rem; }
+.theme-toggle { border-radius: .65rem; }
 .game-card { flex: 1; padding: clamp(.5rem, 2vw, 1.5rem); border: 1px solid var(--line); border-radius: 1.1rem; background: var(--surface); box-shadow: 0 8px 28px color-mix(in srgb, var(--text) 4%, transparent); }
 .welcome-card { min-height: 32rem; }
 .workspace-footer { min-height: 3.5rem; margin-top: auto; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); color: var(--muted); font-size: .74rem; }

@@ -64,7 +64,7 @@ export class AccountService {
 
   async verifyEmail(token: string) {
     if (!await this.accounts.consumeAction(this.hashToken(token), 'verify')) throw new BadRequestException('This link is invalid or expired. Request a new one.');
-    return { message: 'Your email is verified. You can close this panel.' };
+    return { message: 'Your email is verified.' };
   }
 
   async resetPassword(token: string, password: string) {

@@ -1,5 +1,7 @@
 import { KeyboardEvent, useEffect, useRef, useState } from 'react';
-import AccountPanel from './AccountPanel';
+import AccountPage from './AccountPage';
+import AccountStatus from './AccountStatus';
+import useAccount from './useAccount';
 import WordListsPanel from './WordListsPanel';
 import GameCatalog from './GameCatalog';
 import StatisticsPanel from './StatisticsPanel';
@@ -8,13 +10,18 @@ import { ApiError, apiRequest as api } from './services/api-client';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
-type Section = 'home' | 'play' | 'library' | 'progress' | 'community' | 'settings' | 'licenses';
+type Section = 'home' | 'play' | 'library' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
 const sectionPaths: Record<Section, string> = {
   home: '/', play: '/games', library: '/library', progress: '/progress', community: '/community', settings: '/settings',
-  licenses: '/licenses',
+  licenses: '/licenses', account: '/account',
 };
 const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
 pathSections['/play'] = 'play';
+function currentSection(): Section {
+  const action = new URLSearchParams(window.location.hash.slice(1)).get('action');
+  if (action === 'reset' || action === 'verify') return 'account';
+  return pathSections[window.location.pathname] ?? 'home';
+}
 type GuessResult = {
   guess: string;
   feedback: Feedback[];
@@ -57,6 +64,7 @@ const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 const feedbackRank: Record<Feedback, number> = { ABSENT: 1, PRESENT: 2, CORRECT: 3 };
 
 export default function App() {
+  const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
   const [guess, setGuess] = useState('');
   const [busy, setBusy] = useState(false);
@@ -69,14 +77,14 @@ export default function App() {
   const [playWithMyWords, setPlayWithMyWords] = useState(false);
   const [addedWords, setAddedWords] = useState<Set<string>>(() => new Set());
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
-  const [activeSection, setActiveSection] = useState<Section>(() => pathSections[window.location.pathname] ?? 'home');
+  const [activeSection, setActiveSection] = useState<Section>(currentSection);
   const [quickSearch, setQuickSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
 
   useEffect(() => {
     const syncSection = () => {
       window.dispatchEvent(new Event('lexiplay:before-route-change'));
-      const nextSection = pathSections[window.location.pathname] ?? 'home';
+      const nextSection = currentSection();
       setQuickSearch('');
       setActiveSection(nextSection);
     };
@@ -272,7 +280,7 @@ export default function App() {
 
   const sectionTitle: Record<Section, string> = {
     home: 'Home', play: 'Games', library: 'Word List',
-    progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses',
+    progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses', account: 'Account',
   };
   const navigation: { key: Section; icon: string }[] = [
     { key: 'home', icon: '⌂' }, { key: 'play', icon: '▦' }, { key: 'library', icon: '▤' },
@@ -297,7 +305,7 @@ export default function App() {
             <input id="quick-search" type="search" value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search words" />
             <button type="submit" aria-label="Search words">⌕</button>
           </form>
-          <AccountPanel />
+          <AccountStatus account={account} loading={accountLoading} error={accountError} onOpen={() => navigateTo('account')} />
           <button className="theme-toggle" type="button" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>
             <span aria-hidden="true">{theme === 'dark' ? '☼' : '☾'}</span> {theme === 'dark' ? 'Light mode' : 'Dark mode'}
           </button>
@@ -408,6 +416,7 @@ export default function App() {
         <div className="welcome-banner"><p className="eyebrow">A LITTLE PRACTICE GOES A LONG WAY</p><h2>Make room for a new word.</h2><p>Build a habit with a quick puzzle or spend a few minutes organizing your vocabulary.</p><button type="button" className="primary-button" onClick={() => navigateTo('play')}>Start a puzzle <span aria-hidden="true">→</span></button></div>
         <div className="overview-cards"><button type="button" onClick={() => navigateTo('library')}><span className="overview-icon" aria-hidden="true">▤</span><strong>Your word list</strong><span>Browse and add words</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('play')}><span className="overview-icon" aria-hidden="true">▦</span><strong>Quick practice</strong><span>Solve a word puzzle</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('progress')}><span className="overview-icon" aria-hidden="true">▥</span><strong>Learning progress</strong><span>Review your activity</span><span className="card-arrow" aria-hidden="true">→</span></button></div>
       </section>}
+      {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}
       {activeSection === 'community' && <section className="section-placeholder"><span aria-hidden="true">♧</span><h2>Learn alongside others.</h2><p>Community features are being planned. Your private word lists stay yours.</p></section>}
       {activeSection === 'settings' && <section className="settings-page"><h2>Appearance</h2><p>Choose the theme that feels comfortable.</p><button className="theme-toggle" type="button" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>{theme === 'dark' ? '☼ Light mode' : '☾ Dark mode'}</button></section>}

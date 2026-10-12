@@ -9,7 +9,7 @@ export class AccountMailService {
     const origin = process.env.PUBLIC_WEB_ORIGIN;
     if (!origin) throw new ServiceUnavailableException('Account email needs PUBLIC_WEB_ORIGIN configuration.');
     let url: URL;
-    try { url = new URL('/', origin); } catch { throw new ServiceUnavailableException('Account email needs a valid web origin.'); }
+    try { url = new URL('/account', origin); } catch { throw new ServiceUnavailableException('Account email needs a valid web origin.'); }
     if (!['http:', 'https:'].includes(url.protocol) || (process.env.NODE_ENV === 'production' && url.protocol !== 'https:')) throw new ServiceUnavailableException('Account email needs a valid web origin.');
     url.hash = new URLSearchParams({ action: purpose, token }).toString();
     const message = {
