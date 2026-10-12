@@ -32,16 +32,6 @@
 .account-status-link > span:last-child { display: flex; flex-direction: column; gap: .1rem; min-width: 0; }
 .account-status-link strong { display: block; max-width: 9rem; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-size: .75rem; }
 .account-status-link small { color: var(--muted); font-size: .62rem; }
-.account-page { width: min(100%, 46rem); margin: 0 auto 2rem; }
-.account-page-card { padding: clamp(1rem, 3vw, 2rem); border: 1px solid var(--line); background: var(--surface); border-radius: 1rem; box-shadow: 0 8px 28px color-mix(in srgb, var(--text) 4%, transparent); }
-.account-page .account-form label { font-size: .85rem; margin-top: .55rem; }
-.account-page .account-form input { min-height: 2.8rem; border-radius: .55rem; font-size: 1rem; }
-.account-page .account-action, .account-page .account-tabs button { min-height: 2.65rem; border-radius: .55rem; font-size: .85rem; }
-.account-page .account-hint, .account-page .account-status, .account-page .account-message { font-size: .8rem; line-height: 1.6; }
-.account-profile { margin: 1.2rem 0; }
-.account-profile > div { display: flex; justify-content: space-between; flex-wrap: wrap; gap: .5rem; padding: .9rem 0; border-top: 1px solid var(--line); }
-.account-profile dt { color: var(--muted); font-size: .8rem; }
-.account-profile dd { margin: 0; font-size: .9rem; overflow-wrap: anywhere; }
 .verification-status { font-size: .76rem; color: var(--muted); }
 .verification-status.verified { color: var(--accent); }
 .stat-cards { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .85rem; }

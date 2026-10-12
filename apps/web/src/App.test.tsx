@@ -92,13 +92,13 @@ describe('practice puzzle', () => {
     await user.click(screen.getByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
     await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
-    await user.type(screen.getByLabelText(/password/i), 'wordpractice123');
+    await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
     expect(await screen.findByText(/signed in as learner@example\.test/i)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/auth/register', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ email: 'learner@example.test', username: 'learner', password: 'wordpractice123' }),
+      body: JSON.stringify({ email: 'learner@example.test', username: 'learner', password: 'wordpractice123', sendVerification: false }),
     }));
     await user.click(screen.getByRole('button', { name: /sign out/i }));
     expect(await screen.findByText(/you’re signed out/i)).toBeInTheDocument();
@@ -116,10 +116,10 @@ describe('practice puzzle', () => {
     await user.click(screen.getByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
     await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
-    await user.type(screen.getByLabelText(/password/i), 'wordpractice123');
+    await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
-    expect(await screen.findByRole('status')).toHaveTextContent('An account with this email already exists.');
+    expect(await screen.findByRole('alert')).toHaveTextContent('An account with this email already exists.');
     expect(screen.queryByText(/signed in as/i)).toBeNull();
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/auth/register', expect.objectContaining({ method: 'POST' }));
   });

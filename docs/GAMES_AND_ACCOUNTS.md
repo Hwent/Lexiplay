@@ -32,9 +32,13 @@ The browser supplies its IANA timezone. The API validates it and groups UTC comp
 
 ## Accounts and email
 
-Account functions live on the dedicated `/account` page: sign-in, registration, profile/status, sign-out, recovery, and verification. The shared header contains only a compact Guest/Signed in status link. `useAccount` keeps the current account mounted in `App`, so page navigation does not repeat session checks or lose sign-in status. Failed session checks have a retry state on Account. Registration requires an email, a unique username, and an 8–128 character password. Usernames are case-insensitive, 3–32 letters/numbers/underscores, and start with a letter. Sign-in accepts username or email. Existing accounts retain email sign-in and receive a unique `learner_<id>` username during lazy schema setup; `/auth/me` and Account show it. Passwords use the existing scrypt implementation; session tokens are hashed before storage.
+Account functions live on the dedicated `/account` page: sign-in, registration, profile/status, sign-out, recovery, optional verification, and deletion. The shared header contains only a compact Guest/Signed in status link. `useAccount` keeps the current account mounted in `App`, so page navigation does not repeat session checks or lose sign-in status. Failed session checks have a retry state on Account. Registration requires a unique username and an 8–128 character password. Email is optional and stored as null when omitted/blank. Usernames are case-insensitive, 3–32 letters/numbers/underscores, and start with a letter. Sign-in accepts username or a linked email. Existing accounts retain email sign-in and receive a unique `learner_<id>` username during lazy schema setup; `/auth/me` and Account show it. Passwords use the existing scrypt implementation; session tokens are hashed before storage.
 
-Verification is requested on registration and can be resent from Account. An unverified account can sign in and practise; Account displays verification pending. Registration remains usable when email delivery is unavailable and tells the browser to offer a retry. Password recovery always responds identically for known/unknown email addresses, including when delivery fails.
+Verification is off by default. Signup sends a message only when an email is supplied and the optional checkbox is selected (`sendVerification: true`). Users can request verification later from Account. An unverified account can sign in and practise. Registration remains usable when requested email delivery is unavailable and offers a retry. A signed-in user without email can add a unique recovery address with their current password; this sends no automatic verification message. Existing recovery addresses cannot be changed through this endpoint.
+
+Forgot password opens an email form and a neutral inbox confirmation; known/unknown addresses receive the same response, including when delivery fails. Recovery requires an email linked before the password was forgotten. A username-only account cannot recover a lost password. Password fields have accessible Show/Hide buttons and return to hidden when cleared or switching modes. The responsive Account page groups profile, recovery, and deletion settings; errors use alert feedback.
+
+Delete account opens a confirmation form requiring the current password and the exact text `DELETE`. Cancel clears the fields. A successful deletion clears the cookie and account/game UI. One PostgreSQL transaction removes the user, owned games/guesses, personal lists/words, sessions, and reset/verification links; other accounts, guest data, and the shared dictionary remain. Game creation holds a lock on its account row so a concurrent deletion cannot leave an orphan game. Deletion is permanent in the running application; production backup retention remains a deployment responsibility.
 
 Email verification links expire after 24 hours; password reset links after 30 minutes. Only SHA-256 token hashes are stored in `account_actions`. Each new request replaces the previous link of the same type. Token consumption is transactional and single-use. Resetting a password revokes all existing sessions. Email links target `/account#action=verify&token=...` or `/account#action=reset&token=...`. Account removes the token from the address bar and offers a confirmation form. Older root-page action links open Account too. After verification, an existing signed-in session is refreshed so a link for another email cannot incorrectly mark the current account verified.
 
@@ -45,12 +49,14 @@ Email verification links expire after 24 hours; password reset links after 30 mi
 | `POST /games/:id/guesses` | `{ guess }`; accept or reject without consuming invalid attempts |
 | `POST /games/:id/hints` | `{ type: "unused" \| "present" }`; persist hint state |
 | `GET /progress/summary?timezone=America%2FToronto` | Authenticated completed-game statistics |
-| `POST /auth/register` | `{ username, email, password }` |
+| `POST /auth/register` | `{ username, password, email?, sendVerification? }`; verification defaults off |
 | `POST /auth/login` | `{ identifier, password }`; legacy `{ email, password }` also works |
 | `POST /auth/forgot-password` | `{ email }`; generic recovery response |
 | `POST /auth/reset-password` | `{ token, password }`; revoke sessions |
 | `POST /auth/verification-request` | Authenticated verification resend |
 | `POST /auth/verify-email` | `{ token }`; verify once |
+| `POST /auth/email` | Authenticated `{ email, password }`; add a recovery email only when none is linked |
+| `DELETE /auth/account` | Authenticated `{ password, confirmation: "DELETE" }`; delete owned data, revoke sessions, and clear cookie |
 
 Paths above have the `/api/v1` prefix. Account endpoints are throttled; game and Statistics endpoints also use the existing throttler.
 
@@ -67,7 +73,7 @@ For a first real delivery test without a domain:
 1. Create a Resend account using the email that will receive the test.
 2. In [Resend API Keys](https://resend.com/api-keys), create a `LexiPlay` key with **Sending access**. Copy the value when created; it cannot be viewed again. See [API key management](https://resend.com/docs/dashboard/api-keys/introduction).
 3. Copy `.env.example` to the gitignored root `.env`, then set `MAIL_MODE=resend`, `MAIL_FROM="LexiPlay <onboarding@resend.dev>"`, and `RESEND_API_KEY` to that key. Leave `PUBLIC_WEB_ORIGIN` unset locally; the launcher uses its selected web URL. Existing shell variables take precedence over `.env`.
-4. Restart `pnpm dev`, open Account, and register or request verification. The [onboarding sender can deliver only to the email used for the Resend account](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain). Add and verify a domain to send to other addresses; a Gmail address is the recipient, not the Resend sender.
+4. Restart `pnpm dev`, open Account, and register with an email and the verification checkbox selected, or request verification from your profile. The [onboarding sender can deliver only to the email used for the Resend account](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain). Add and verify a domain to send to other addresses; a Gmail address is the recipient, not the Resend sender.
 
 Local links work only on the computer running LexiPlay, while that dev server is active. Inbox receipt, successful link consumption, and provider acceptance are separate checks; a local preview is not evidence of Gmail delivery. Never paste the API key or verification token into chat or commit them.
 
@@ -75,9 +81,9 @@ Local links work only on the computer running LexiPlay, while that dev server is
 
 Run `pnpm test`, `pnpm typecheck`, and `pnpm build`. Ordinary tests use deterministic adapters and mocked mail. For real PostgreSQL tests, point `TEST_DATABASE_URL` at a **separate disposable database named `lexiplay_test_*`**. The integration suite refuses other database names. GitHub CI provisions its own PostgreSQL service and runs these checks.
 
-Real-database coverage includes API restart, concurrent guesses, ownership, persisted Statistics, verification, expired/single-use links, and session revocation. UI tests cover nine-letter difficulty controls, hints, resume, Statistics, and account actions. Live mobile verification covers nine-letter guesses and hint restoration.
+Real-database coverage includes API restart, concurrent guesses, ownership, persisted Statistics, optional recovery email, verification, expired/single-use links, session revocation, and account deletion with cleanup and owner isolation. UI tests cover nine-letter difficulty controls, hints, resume, Statistics, signup without email, verification opt-in, password visibility, recovery, and deletion confirmation/failure/success.
 
-Repositories still apply schema changes lazily; standalone versioned migrations remain future work. Statistics calculates all-time metrics from completed games and displays only the latest 20; history pagination and SQL aggregation are future scaling work. A missed-word review queue, account deletion, and production backup/deployment setup remain unimplemented.
+Repositories still apply schema changes lazily; standalone versioned migrations remain future work. Statistics calculates all-time metrics from completed games and displays only the latest 20; history pagination and SQL aggregation are future scaling work. A missed-word review queue and production backup/deployment setup remain unimplemented. Account export and changing/removing an existing recovery email are not implemented.
 
 ## Original games milestone validation and changed files
 
@@ -108,3 +114,19 @@ Changed files:
 - `.env.example`, `scripts/dev.mjs`, `README.md`, `docs/DEVELOPMENT.md`, `docs/learn.md`, and this document.
 
 The private root `.env` is gitignored. Real mail currently uses the onboarding sender for the operator’s own address; sending to other users requires a verified sender domain. Local verification links require the matching development server to stay running.
+
+## Optional email and account controls milestone
+
+Signup now requires only username/password; email and verification are optional, with verification off by default. Account has a responsive layout, Show/Hide password controls, an inbox confirmation for recovery, an authenticated form for adding a recovery email, and permanent deletion with current-password and typed confirmation. Deletion removes owned learning data and links in one transaction.
+
+Validation passed: 21 API tests (including three real PostgreSQL integration cases), 41 web tests, workspace typechecking, and production builds. Browser checks covered desktop signup, unchecked verification, hidden passwords, the 390px mobile form without horizontal overflow, and opening/cancelling deletion. Destructive tests used a disposable local database and mocked email. No live account was deleted and no new external verification/recovery email was sent during this milestone. No dependencies were added.
+
+Files changed in this milestone:
+
+- Accounts: `apps/api/src/modules/accounts/account.controller.ts`, `account.dto.ts`, `account.repository.ts`, `account.service.ts`, and `accounts.e2e.test.ts`.
+- Persistence: `apps/api/src/modules/games/game.repository.ts` and `apps/api/src/persistence.e2e.test.ts`.
+- Account UI: `apps/web/src/AccountPage.tsx`, `AccountPage.test.tsx`, `AccountStatus.tsx`, `PasswordField.tsx`, `account.css`, and `useAccount.ts`.
+- Web integration: `apps/web/src/App.test.tsx`, `game-updates.css`, and `main.tsx`.
+- Documentation: `README.md`, `docs/DEVELOPMENT.md`, `docs/GAMES_AND_ACCOUNTS.md`, `docs/learn.md`, `outputs/docs/PRD.md`, and `outputs/docs/TECHNICAL_DESIGN.md`.
+
+Known limits: username-only accounts cannot recover a forgotten password without a previously linked email; existing recovery addresses cannot yet be changed/removed. Backup retention, account export, and versioned database migrations remain future work.

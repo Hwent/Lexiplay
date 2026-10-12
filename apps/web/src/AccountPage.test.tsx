@@ -26,11 +26,11 @@ describe('dedicated account page', () => {
     await user.type(within(page).getByLabelText('Password'), 'password8');
     await user.click(within(page).getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Signed in as learner')).toBeInTheDocument();
-    expect(screen.getByText('Email verification pending')).toBeInTheDocument();
+    expect(screen.getByText('Email not verified · optional')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Home' }));
     expect(screen.getByRole('link', { name: 'Account' })).toHaveTextContent('learnerSigned in');
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Resend verification email' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Send verification link' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Account' }));
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
     expect(await screen.findByText('Guest')).toBeInTheDocument();
@@ -61,7 +61,102 @@ describe('dedicated account page', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? Response.json({ id: 'user-2', email: 'other@example.test', username: 'other', emailVerified: false }) : Response.json({ message: 'Your email is verified.' }));
     vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('button', { name: 'Verify my email' }));
-    await waitFor(() => expect(screen.getByText('Email verification pending')).toBeInTheDocument());
-    expect(screen.queryByText('Email verified')).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.getByText('Email not verified · optional')).toBeInTheDocument());
+    expect(screen.queryByText('Verified')).not.toBeInTheDocument();
+  });
+  it('creates an account without email and toggles password visibility without submitting', async () => {
+    window.history.replaceState({}, '', '/account');
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
+      ? new Response('{}', { status: 401 })
+      : Response.json({ user: { id: 'user-1', username: 'learner', email: null, emailVerified: false }, verificationSent: false }));
+    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    await user.click(await screen.findByRole('tab', { name: 'Create account' }));
+    expect(screen.getByLabelText('Email optional')).not.toBeRequired();
+    expect(screen.getByRole('checkbox')).not.toBeChecked(); expect(screen.getByRole('checkbox')).toBeDisabled();
+    await user.type(screen.getByLabelText('Username'), 'learner');
+    const password = screen.getByLabelText('Password'); await user.type(password, 'password8');
+    expect(password).toHaveAttribute('type', 'password');
+    await user.click(screen.getByRole('button', { name: 'Show password' }));
+    expect(password).toHaveAttribute('type', 'text');
+    expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Hide password' }));
+    expect(password).toHaveAttribute('type', 'password'); expect(fetchMock).toHaveBeenCalledTimes(1);
+    await user.click(screen.getByRole('button', { name: 'Create account' }));
+    expect(await screen.findByText('Account created. You’re ready to practise.')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/register', expect.objectContaining({ body: JSON.stringify({ username: 'learner', password: 'password8', sendVerification: false }) }));
+    expect(screen.getByText('Not added')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Send verification link' })).not.toBeInTheDocument();
+  });
+  it('offers verification only when explicitly selected during signup', async () => {
+    window.history.replaceState({}, '', '/account');
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
+      ? new Response('{}', { status: 401 })
+      : Response.json({ user: { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false }, verificationSent: true }));
+    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    await user.click(await screen.findByRole('tab', { name: 'Create account' }));
+    await user.type(screen.getByLabelText('Username'), 'learner');
+    await user.type(screen.getByLabelText('Email optional'), 'learner@example.test');
+    await user.type(screen.getByLabelText('Password'), 'password8');
+    expect(screen.getByRole('checkbox')).not.toBeChecked();
+    await user.click(screen.getByRole('checkbox')); await user.click(screen.getByRole('button', { name: 'Create account' }));
+    expect(await screen.findByText('Account created. Check your email for the optional verification link.')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/register', expect.objectContaining({ body: JSON.stringify({ email: 'learner@example.test', username: 'learner', password: 'password8', sendVerification: true }) }));
+  });
+  it('adds a recovery address with the current password and opens the recovery confirmation', async () => {
+    window.history.replaceState({}, '', '/account');
+    const account = { id: 'user-1', username: 'learner', email: null, emailVerified: false };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return Response.json(account);
+      if (path.endsWith('/auth/email')) return Response.json({ user: { ...account, email: 'learner@example.test' } });
+      if (path.endsWith('/auth/forgot-password')) return Response.json({ message: 'If that email has an account, a reset link will arrive shortly.' });
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    await user.type(await screen.findByLabelText('Recovery email'), 'learner@example.test');
+    await user.type(screen.getByLabelText('Current password'), 'password8');
+    await user.click(screen.getByRole('button', { name: 'Add recovery email' }));
+    expect(await screen.findByText('Recovery email added. Verification is optional.')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/email', expect.objectContaining({ body: JSON.stringify({ email: 'learner@example.test', password: 'password8' }) }));
+    await user.click(screen.getByRole('button', { name: 'Reset your password' }));
+    expect(screen.getByLabelText('Email')).toHaveValue('learner@example.test');
+    await user.click(screen.getByRole('button', { name: 'Send reset link' }));
+    expect(await screen.findByText('Check your inbox')).toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/forgot-password', expect.objectContaining({ body: JSON.stringify({ email: 'learner@example.test' }) }));
+    await user.click(screen.getByRole('button', { name: 'Back to account' }));
+    expect(screen.getByText('Signed in as learner')).toBeInTheDocument();
+  });
+  it('requires deletion confirmation, preserves the account on failure, and clears it on success', async () => {
+    window.history.replaceState({}, '', '/account');
+    const account = { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false };
+    let attempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return Response.json(account);
+      if (path.endsWith('/auth/account')) return ++attempts === 1 ? Response.json({ message: 'Your current password is incorrect.' }, { status: 401 }) : new Response(null, { status: 204 });
+      throw new Error(`Unexpected request: ${path}`);
+    });
+    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Delete account' }));
+    expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeDisabled();
+    await user.type(screen.getByLabelText('Current password'), 'password8');
+    await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
+    await user.click(screen.getByRole('button', { name: 'Keep my account' }));
+    expect(attempts).toBe(0);
+    await user.click(screen.getByRole('button', { name: 'Delete account' }));
+    expect(screen.getByLabelText('Current password')).toHaveValue('');
+    expect(screen.getByLabelText('Type DELETE to confirm')).toHaveValue('');
+    await user.type(screen.getByLabelText('Current password'), 'password8');
+    await user.type(screen.getByLabelText('Type DELETE to confirm'), 'delete');
+    expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeDisabled();
+    await user.clear(screen.getByLabelText('Type DELETE to confirm')); await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
+    await user.click(screen.getByRole('button', { name: 'Permanently delete account' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Your current password is incorrect.');
+    expect(screen.getByText('Signed in as learner')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Permanently delete account' }));
+    expect(await screen.findByText('Your account and saved learning data have been deleted.')).toBeInTheDocument();
+    expect(screen.getByText('Guest')).toBeInTheDocument();
+    expect(screen.getByLabelText('Password')).toHaveValue('');
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/account', expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ password: 'password8', confirmation: 'DELETE' }) }));
   });
 });

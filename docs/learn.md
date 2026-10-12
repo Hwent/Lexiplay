@@ -80,7 +80,8 @@ Paths in this table are relative to `apps/web/`.
 | [index.html](../apps/web/index.html) | HTML entry document with the root element and script entry. |
 | [src/main.tsx](../apps/web/src/main.tsx) | Finds `#root`, calls React's `createRoot`, renders `App` inside `StrictMode`, and imports styles. |
 | [src/App.tsx](../apps/web/src/App.tsx) | Application shell, section navigation, theme, game options, board, keyboard, hints, and game definitions. Read `sectionPaths`, `navigateTo`, `startPractice`, `submitGuess`, and `useHint`. It imports `apiRequest` as `api` for game and related list requests. |
-| [src/AccountPage.tsx](../apps/web/src/AccountPage.tsx) | Dedicated `/account` page for sign-in, registration, logout, recovery, verification, and account messages. Makes requests to `/api/v1/auth/*`. |
+| [src/AccountPage.tsx](../apps/web/src/AccountPage.tsx) | Dedicated responsive `/account` page for signup with optional email/verification, sign-in/out, adding recovery email, password recovery, and confirmed deletion. Makes requests to `/api/v1/auth/*`; `account.css` styles the page. |
+| [src/PasswordField.tsx](../apps/web/src/PasswordField.tsx) | Shared password input with accessible Show/Hide controls, autocomplete, and automatic hiding when cleared. |
 | [src/AccountStatus.tsx](../apps/web/src/AccountStatus.tsx) / [src/useAccount.ts](../apps/web/src/useAccount.ts) | Compact header status and a shared account/session lookup that stays mounted across page changes. |
 | [src/GameCatalog.tsx](../apps/web/src/GameCatalog.tsx) | Catalogue of available games, currently Word puzzle; the entry point for future game views. |
 | [src/StatisticsPanel.tsx](../apps/web/src/StatisticsPanel.tsx) | Completed-game metrics, winning guess distribution, recent practice, and guest/error/empty states. |
@@ -119,9 +120,9 @@ NestJS dependency injection supplies objects to constructors through registered 
 
 Files under [apps/api/src/modules/accounts](../apps/api/src/modules/accounts):
 
-- `account.controller.ts` defines `/auth/register`, `/auth/login`, `/auth/logout`, and `/auth/me`, and sets or clears the session cookie.
-- `account.service.ts` normalizes emails, derives password hashes with scrypt, verifies passwords, creates 14-day sessions, and hashes session tokens with SHA-256 before storage.
-- `account.repository.ts` defines `AccountUser` / `AccountRecord` and queries `account_users` and `account_sessions`.
+- `account.controller.ts` defines signup, sign-in/out, current account, recovery/verification, adding recovery email, and deletion routes; it sets or clears the session cookie.
+- `account.service.ts` normalizes optional emails, derives password hashes with scrypt, verifies passwords, creates 14-day sessions, and hashes session tokens with SHA-256 before storage. Email verification is opt-in. Adding email and deleting an account require the current password.
+- `account.repository.ts` defines `AccountUser` / `AccountRecord` and queries account tables. Email is nullable. Account deletion locks the user and atomically removes owned games plus the user; foreign keys cascade personal words/lists, sessions, and action links. Game creation takes a compatible account lock to avoid orphan games during deletion.
 - `account.dto.ts` validates usernames, email addresses, action tokens, and 8–128 character passwords.
 - `account-mail.service.ts` delivers verification/reset links through local development previews or the configured Resend API. `account_actions` stores expiring token hashes, consumed once in a transaction.
 - `session-cookie.ts` extracts and validates the `lexiplay_session` token from the request cookie header.
@@ -173,7 +174,7 @@ The schema is currently defined inside the repository classes and seeder, not in
 
 | Table | Main fields and relationship | Defining code |
 | --- | --- | --- |
-| `account_users` | UUID `id`, unique email/username, verification flag, password hash, creation timestamp. | `AccountRepository.ensureSchema`. |
+| `account_users` | UUID `id`, unique nullable email, unique username, optional verification flag, password hash, creation timestamp. | `AccountRepository.ensureSchema`. |
 | `account_sessions` | Token hash primary key, user ID, expiry and creation timestamps; belongs to an account. | `AccountRepository.ensureSchema`. |
 | `account_actions` | One-use reset/verification token hashes, owner, purpose, and expiry. | `AccountRepository.ensureSchema`. |
 | `practice_games` | UUID `id`, account/hashed-guest owner key, server-only state JSON. | `GameRepository.ensureSchema`. |
@@ -252,7 +253,7 @@ pnpm build
 | [word-lists.e2e.test.ts](../apps/api/src/modules/word-lists/word-lists.e2e.test.ts) | Ownership, dictionary access, status changes, and import preview/confirmation through HTTP. |
 | `wiktionary-definition.test.ts` / `wiktionary-pagination.test.ts` | Definition extraction and continuation parameter replacement. |
 
-Most API HTTP tests use deterministic repository substitutes or spies. `persistence.e2e.test.ts` runs against real PostgreSQL when `TEST_DATABASE_URL` points at a disposable `lexiplay_test_*` database; it covers restart, concurrency, ownership, Statistics, and account links. Browser tests use jsdom and mocked fetch. GitHub [CI](../.github/workflows/ci.yml) supplies a PostgreSQL service, installs the frozen lockfile, then runs tests, typechecking, and builds. Live Wiktionary import and actual email delivery are not part of automated checks.
+Most API HTTP tests use deterministic repository substitutes or spies. `persistence.e2e.test.ts` runs against real PostgreSQL when `TEST_DATABASE_URL` points at a disposable `lexiplay_test_*` database; it covers restart, concurrency, ownership, Statistics, account links, adding recovery email, and account deletion with cleanup/isolation. Browser tests use jsdom and mocked fetch, including signup without email, opt-in verification, password visibility, recovery, and deletion confirmation. GitHub [CI](../.github/workflows/ci.yml) supplies a PostgreSQL service, installs the frozen lockfile, then runs tests, typechecking, and builds. Live Wiktionary import and actual email delivery are not part of automated checks.
 
 ## 8. Current limits to keep in mind while learning
 

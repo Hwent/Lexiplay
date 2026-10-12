@@ -1,6 +1,6 @@
-import { Body, Controller, Get, Headers, HttpCode, HttpStatus, Inject, Post, Res, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Inject, Post, Res, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { AccountCredentialsDto, RegisterAccountDto, RecoveryDto, ActionTokenDto, ResetPasswordDto } from './account.dto';
+import { AccountCredentialsDto, RegisterAccountDto, RecoveryDto, ActionTokenDto, ResetPasswordDto, AddEmailDto, DeleteAccountDto } from './account.dto';
 import { AccountService } from './account.service';
 import { readSessionCookie } from './session-cookie';
 
@@ -48,5 +48,15 @@ export class AccountController {
   requestVerification(@Headers('cookie') cookie: string | undefined) { return this.accounts.requestVerification(readSessionCookie(cookie)); }
   @Post('verify-email')
   verify(@Body() body: ActionTokenDto) { return this.accounts.verifyEmail(body.token); }
+
+  @Post('email')
+  addEmail(@Headers('cookie') cookie: string | undefined, @Body() body: AddEmailDto) { return this.accounts.addEmail(readSessionCookie(cookie), body.email, body.password); }
+
+  @Delete('account')
+  @HttpCode(HttpStatus.NO_CONTENT)
+  async deleteAccount(@Headers('cookie') cookie: string | undefined, @Body() body: DeleteAccountDto, @Res({ passthrough: true }) response: Response) {
+    await this.accounts.deleteAccount(readSessionCookie(cookie), body.password);
+    response.setHeader('Set-Cookie', this.accounts.expiredCookie());
+  }
 
 }

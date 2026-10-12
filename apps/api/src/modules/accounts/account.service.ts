@@ -17,12 +17,15 @@ export class AccountService {
   constructor(@Inject(AccountRepository) private readonly accounts: AccountRepository, @Inject(AccountMailService) private readonly mail: AccountMailService) {}
 
   async register(credentials: RegisterAccountDto) {
-    const email = credentials.email.trim().toLowerCase();
+    const email = credentials.email?.trim().toLowerCase() || null;
+    if (credentials.sendVerification && !email) throw new BadRequestException('Add an email address to request verification.');
     const passwordHash = await this.hashPassword(credentials.password);
     const user = await this.accounts.createUser(email, passwordHash, credentials.username.trim().toLowerCase());
     if (!user) throw new ConflictException({ code: 'ACCOUNT_UNAVAILABLE', message: 'That email or username is already in use.' });
     let verificationSent = false;
-    try { await this.sendAction(user, 'verify'); verificationSent = true; } catch { /* The user can retry verification without losing the newly created account. */ }
+    if (credentials.sendVerification) {
+      try { await this.sendAction(user, 'verify'); verificationSent = true; } catch { /* Verification is optional and can be retried later. */ }
+    }
     return { user, token: await this.startSession(user.id), verificationSent };
   }
 
@@ -48,9 +51,35 @@ export class AccountService {
     if (token) await this.accounts.deleteSession(this.hashToken(token));
   }
 
+  async addEmail(session: string | undefined, email: string, password: string) {
+    const user = await this.current(session);
+    const record = await this.requirePassword(user.id, password);
+    if (record.email) throw new ConflictException('Your account already has a recovery email.');
+    try {
+      const updated = await this.accounts.addEmail(user.id, email.trim().toLowerCase(), record.passwordHash);
+      if (!updated) throw new ConflictException('Your account changed. Refresh and try again.');
+      return { user: updated };
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') throw new ConflictException('That email is already in use.');
+      throw error;
+    }
+  }
+
+  async deleteAccount(session: string | undefined, password: string) {
+    const user = await this.current(session);
+    const record = await this.requirePassword(user.id, password);
+    if (!await this.accounts.deleteAccount(user.id, record.passwordHash)) throw new ConflictException('Your account changed. Sign in again before deleting it.');
+  }
+
+  private async requirePassword(id: string, password: string) {
+    const record = await this.accounts.findById(id);
+    if (!record || !await this.verifyPassword(password, record.passwordHash)) throw new UnauthorizedException('Your current password is incorrect.');
+    return record;
+  }
+
   async requestReset(email: string) {
     const user = await this.accounts.findUser(email.trim().toLowerCase());
-    if (user) {
+    if (user?.email) {
       try { await this.sendAction(user, 'reset'); } catch { /* Preserve the same response for existing and unknown addresses. */ }
     }
     return { message: 'If that email has an account, a reset link will arrive shortly.' };
@@ -58,6 +87,7 @@ export class AccountService {
 
   async requestVerification(session: string | undefined) {
     const user = await this.current(session);
+    if (!user.email) throw new BadRequestException('Add a recovery email before requesting verification.');
     if (!user.emailVerified) await this.sendAction(user, 'verify');
     return { message: user.emailVerified ? 'Your email is already verified.' : 'Verification link requested. Check your email.' };
   }
@@ -73,6 +103,7 @@ export class AccountService {
   }
 
   private async sendAction(user: AccountUser, purpose: 'reset' | 'verify') {
+    if (!user.email) throw new BadRequestException('Add an email address first.');
     const token = randomBytes(32).toString('base64url');
     await this.accounts.createAction(user.id, this.hashToken(token), purpose, new Date(Date.now() + (purpose === 'reset' ? 30 * 60_000 : 24 * 60 * 60_000)));
     await this.mail.send(user.email, purpose, token);

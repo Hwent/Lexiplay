@@ -37,11 +37,11 @@ Choose a workspace/package manager and pin its version. Keep API and web deploya
 ## 3. Authentication and security
 
 - Use a maintained authentication library or a carefully reviewed NestJS integration; prefer secure, HttpOnly, Secure, SameSite cookies for browser sessions. Avoid storing long-lived bearer tokens in local storage.
-- Current passwords use scrypt and allow 8–128 characters; usernames are unique/case-insensitive. Generic auth/recovery errors, throttling, single-use expiring verification/reset tokens, and session revocation on reset are implemented. Real email delivery requires configured Resend credentials and sender; development uses local previews.
+- Current passwords use scrypt and allow 8–128 characters; usernames are unique/case-insensitive. Email is nullable and verification opt-in, with no access gate. Users without email can add a recovery address by confirming their current password. Generic auth/recovery errors, throttling, single-use expiring verification/reset tokens, and session revocation on reset are implemented. Recovery needs a previously linked email. Real email delivery requires configured Resend credentials and sender; development uses local previews.
 - Validate all inputs with DTO validation (allow-list properties, reject unknown fields); enforce ownership checks on every list, word, game, and progress operation.
 - Configure CORS for explicit origins, TLS in production, security headers, CSRF protections appropriate to cookie auth, request/body limits, and throttling on auth/import/game-start routes.
 - Store secrets in the hosting platform's secret manager. Never log passwords, session tokens, imported file contents, or full guess histories.
-- Add privacy policy, retention rules, account deletion, and backup access controls before public release.
+- Account deletion requires an authenticated session, current password, and `DELETE` confirmation. One transaction deletes owned games/guesses and the account, cascading personal lists/words, sessions, and action links. Game creation locks the user row against deletion. Add privacy policy, retention rules, account export, and backup access controls before public release.
 
 ## 4. PostgreSQL data model
 

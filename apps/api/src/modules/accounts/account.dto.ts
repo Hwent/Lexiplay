@@ -1,4 +1,4 @@
-import { IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
+import { Equals, IsBoolean, IsEmail, IsOptional, IsString, Matches, MaxLength, MinLength } from 'class-validator';
 import { Transform } from 'class-transformer';
 
 export class AccountCredentialsDto {
@@ -17,8 +17,9 @@ export class AccountCredentialsDto {
 }
 
 export class RegisterAccountDto {
-  @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
-  @IsEmail() @MaxLength(254) email!: string;
+  @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() || undefined : value)
+  @IsOptional() @IsEmail() @MaxLength(254) email?: string;
+  @IsOptional() @IsBoolean() sendVerification?: boolean;
   @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
   @IsString() @Matches(/^[a-z][a-z0-9_]{2,31}$/) username!: string;
   @IsString() @MinLength(8) @MaxLength(128) password!: string;
@@ -29,3 +30,8 @@ export class RecoveryDto {
 }
 export class ActionTokenDto { @IsString() @Matches(/^[A-Za-z0-9_-]{43}$/) token!: string; }
 export class ResetPasswordDto extends ActionTokenDto { @IsString() @MinLength(8) @MaxLength(128) password!: string; }
+export class AddEmailDto extends RecoveryDto { @IsString() @MinLength(8) @MaxLength(128) password!: string; }
+export class DeleteAccountDto {
+  @IsString() @MinLength(8) @MaxLength(128) password!: string;
+  @IsString() @Equals('DELETE') confirmation!: string;
+}

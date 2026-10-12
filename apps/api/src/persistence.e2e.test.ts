@@ -61,7 +61,7 @@ describe.skipIf(!testUrl)('real PostgreSQL persistence', () => {
     const account = app!.get(AccountService);
     const email = `${randomBytes(5).toString('hex')}@example.test`;
     const username = `test_${randomBytes(5).toString('hex')}`;
-    const registered = await account.register({ email, username, password: 'password8' });
+    const registered = await account.register({ email, username, password: 'password8', sendVerification: true });
     expect(registered.verificationSent).toBe(true);
     await account.verifyEmail(mail[0]!.token);
     await expect(account.verifyEmail(mail[0]!.token)).rejects.toThrow('invalid or expired');
@@ -84,5 +84,50 @@ describe.skipIf(!testUrl)('real PostgreSQL persistence', () => {
     const expired = randomBytes(32).toString('base64url');
     await app!.get(AccountRepository).createAction(registered.user.id, createHash('sha256').update(expired).digest('hex'), 'reset', new Date(Date.now() - 60_000));
     await expect(account.resetPassword(expired, 'password9')).rejects.toThrow('invalid or expired');
+  });
+  it('adds optional recovery email and deletes only the authenticated account and all its owned data', async () => {
+    const url = await boot(); const accounts = app!.get(AccountService);
+    const username = `test_${randomBytes(5).toString('hex')}`;
+    const registered = await accounts.register({ username, password: 'password8' });
+    const other = await accounts.register({ username: `test_${randomBytes(5).toString('hex')}`, password: 'password8' });
+    expect(registered.user).toMatchObject({ email: null, emailVerified: false }); expect(mail).toHaveLength(0);
+    const headers = { 'content-type': 'application/json', cookie: `lexiplay_session=${registered.token}` };
+    expect((await fetch(`${url}/auth/verification-request`, { method: 'POST', headers })).status).toBe(400);
+    const email = `${randomBytes(5).toString('hex')}@example.test`;
+    expect((await fetch(`${url}/auth/email`, { method: 'POST', headers, body: JSON.stringify({ email, password: 'wrongpass' }) })).status).toBe(401);
+    const added = await fetch(`${url}/auth/email`, { method: 'POST', headers, body: JSON.stringify({ email: ` ${email.toUpperCase()} `, password: 'password8' }) });
+    expect(added.status).toBe(201); expect(await added.json()).toMatchObject({ user: { email, emailVerified: false } }); expect(mail).toHaveLength(0);
+    expect((await accounts.login({ identifier: email, password: 'password8' })).user.id).toBe(registered.user.id);
+    expect((await fetch(`${url}/auth/email`, { method: 'POST', headers, body: JSON.stringify({ email, password: 'password8' }) })).status).toBe(409);
+    expect((await fetch(`${url}/auth/verification-request`, { method: 'POST', headers })).status).toBe(201);
+    await accounts.requestReset(email); expect(mail.map(item => item.purpose)).toEqual(['verify', 'reset']);
+    const lists = app!.get(WordListRepository);
+    const ownList = (await lists.findAll(registered.user.id))[0]!; const otherList = (await lists.findAll(other.user.id))[0]!;
+    const word = await lists.addWord(registered.user.id, ownList.id, { term: 'apple', definition: 'A fruit.', partOfSpeech: 'noun' });
+    await lists.addWord(other.user.id, otherList.id, { term: 'paper', definition: 'Writing material.', partOfSpeech: 'noun' });
+    const games = app!.get(GameService); const owner = `user:${registered.user.id}`;
+    const game = await games.start(5, ['apple'], 'medium', owner); await games.submit(game.id, 'apple', owner);
+    const otherGame = await games.start(5, ['apple'], 'hard', `user:${other.user.id}`);
+    expect((await fetch(`${url}/auth/account`, { method: 'DELETE', headers, body: JSON.stringify({ password: 'wrongpass', confirmation: 'DELETE' }) })).status).toBe(401);
+    expect((await fetch(`${url}/auth/account`, { method: 'DELETE', headers, body: JSON.stringify({ password: 'password8', confirmation: 'delete' }) })).status).toBe(400);
+    expect((await fetch(`${url}/auth/account`, { method: 'DELETE', headers, body: JSON.stringify({ password: 'password8', confirmation: 'DELETE', userId: other.user.id }) })).status).toBe(400);
+    expect((await accounts.current(registered.token)).id).toBe(registered.user.id);
+    expect((await games.read(game.id, owner)).guesses).toHaveLength(1);
+    const deleted = await fetch(`${url}/auth/account`, { method: 'DELETE', headers, body: JSON.stringify({ password: 'password8', confirmation: 'DELETE' }) });
+    expect(deleted.status).toBe(204); expect(deleted.headers.get('set-cookie')).toContain('Max-Age=0');
+    expect((await fetch(`${url}/auth/me`, { headers })).status).toBe(401);
+    await expect(accounts.login({ identifier: username, password: 'password8' })).rejects.toThrow('incorrect');
+    for (const action of mail) await expect(action.purpose === 'reset' ? accounts.resetPassword(action.token, 'newpass8') : accounts.verifyEmail(action.token)).rejects.toThrow('invalid or expired');
+    await expect(games.start(5, ['apple'], 'easy', owner)).rejects.toThrow('account no longer exists');
+    const pool = new Pool({ connectionString: testUrl });
+    try {
+      for (const [table, key, value] of [
+        ['account_users', 'id', registered.user.id], ['account_sessions', 'user_id', registered.user.id], ['account_actions', 'user_id', registered.user.id],
+        ['user_word_lists', 'owner_id', registered.user.id], ['user_words', 'id', word!.id], ['practice_games', 'owner_key', owner], ['practice_guesses', 'game_id', game.id],
+      ]) expect((await pool.query(`SELECT count(*)::int AS count FROM ${table} WHERE ${key} = $1`, [value])).rows[0].count).toBe(0);
+    } finally { await pool.end(); }
+    expect((await accounts.current(other.token)).id).toBe(other.user.id);
+    expect((await lists.find(other.user.id, otherList.id))!.words).toHaveLength(1);
+    expect((await games.read(otherGame.id, `user:${other.user.id}`)).id).toBe(otherGame.id);
   });
 });

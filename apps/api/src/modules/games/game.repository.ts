@@ -11,7 +11,16 @@ export class GameRepository implements OnModuleDestroy {
   async create(game: Game) {
     await this.ensureSchema();
     const { guesses: _guesses, ...state } = game;
-    await this.pool.query('INSERT INTO practice_games (id, owner_key, state) VALUES ($1, $2, $3)', [game.id, game.owner, JSON.stringify(state)]);
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      if (game.owner.startsWith('user:')) {
+        const user = await client.query('SELECT id FROM account_users WHERE id = $1 FOR KEY SHARE', [game.owner.slice(5)]);
+        if (!user.rowCount) throw new NotFoundException('This account no longer exists.');
+      }
+      await client.query('INSERT INTO practice_games (id, owner_key, state) VALUES ($1, $2, $3)', [game.id, game.owner, JSON.stringify(state)]);
+      await client.query('COMMIT');
+    } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   }
 
   async read(id: string, owner: string): Promise<Game> {

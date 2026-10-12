@@ -1,7 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Pool } from 'pg';
 
-export type AccountUser = { id: string; email: string; username: string; emailVerified: boolean };
+export type AccountUser = { id: string; email: string | null; username: string; emailVerified: boolean };
 export type AccountRecord = AccountUser & { passwordHash: string };
 
 @Injectable()
@@ -11,7 +11,7 @@ export class AccountRepository implements OnModuleDestroy {
   });
   private schemaReady?: Promise<void>;
 
-  async createUser(email: string, passwordHash: string, username: string): Promise<AccountUser | null> {
+  async createUser(email: string | null, passwordHash: string, username: string): Promise<AccountUser | null> {
     await this.ensureSchema();
     try {
       const result = await this.pool.query<AccountUser>(
@@ -31,6 +31,36 @@ export class AccountRepository implements OnModuleDestroy {
       'SELECT id, email, username, email_verified AS "emailVerified", password_hash AS "passwordHash" FROM account_users WHERE lower(email) = $1 OR lower(username) = $1', [email],
     );
     return result.rows[0] ?? null;
+  }
+
+  async findById(id: string): Promise<AccountRecord | null> {
+    await this.ensureSchema();
+    const result = await this.pool.query<AccountRecord>('SELECT id, email, username, email_verified AS "emailVerified", password_hash AS "passwordHash" FROM account_users WHERE id = $1', [id]);
+    return result.rows[0] ?? null;
+  }
+
+  async addEmail(id: string, email: string, expectedPasswordHash: string): Promise<AccountUser | null> {
+    await this.ensureSchema();
+    const result = await this.pool.query<AccountUser>(`UPDATE account_users SET email = $2, email_verified = false
+      WHERE id = $1 AND email IS NULL AND password_hash = $3
+      RETURNING id, email, username, email_verified AS "emailVerified"`, [id, email, expectedPasswordHash]);
+    return result.rows[0] ?? null;
+  }
+
+  async deleteAccount(id: string, expectedPasswordHash: string): Promise<boolean> {
+    await this.ensureSchema();
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const user = await client.query('SELECT id FROM account_users WHERE id = $1 AND password_hash = $2 FOR UPDATE', [id, expectedPasswordHash]);
+      if (!user.rowCount) { await client.query('ROLLBACK'); return false; }
+      // Games use account/guest owner keys. Lists, sessions, and action tokens have cascading foreign keys.
+      const games = await client.query("SELECT to_regclass('practice_games') AS table_name");
+      if (games.rows[0].table_name) await client.query('DELETE FROM practice_games WHERE owner_key = $1', [`user:${id}`]);
+      await client.query('DELETE FROM account_users WHERE id = $1', [id]);
+      await client.query('COMMIT');
+      return true;
+    } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   }
 
   async createSession(userId: string, tokenHash: string, expiresAt: Date): Promise<void> {
@@ -91,10 +121,11 @@ export class AccountRepository implements OnModuleDestroy {
     this.schemaReady ??= this.pool.query(`
       CREATE TABLE IF NOT EXISTS account_users (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
-        email varchar(254) NOT NULL UNIQUE,
+        email varchar(254) UNIQUE,
         password_hash text NOT NULL,
         created_at timestamptz NOT NULL DEFAULT now()
       );
+      ALTER TABLE account_users ALTER COLUMN email DROP NOT NULL;
       ALTER TABLE account_users ADD COLUMN IF NOT EXISTS username text;
       ALTER TABLE account_users ADD COLUMN IF NOT EXISTS email_verified boolean NOT NULL DEFAULT false;
       UPDATE account_users SET username = 'learner_' || substring(replace(id::text, '-', ''), 1, 24) WHERE username IS NULL;

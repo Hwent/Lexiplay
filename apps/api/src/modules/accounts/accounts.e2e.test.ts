@@ -13,10 +13,10 @@ class MemoryAccountRepository {
   private sessions = new Map<string, string>();
   actions = new Map<string, { userId: string; purpose: string; expiresAt: Date }>();
 
-  async createUser(email: string, passwordHash: string, username: string): Promise<AccountUser | null> {
-    if (this.users.has(email) || [...this.users.values()].some(user => user.username === username)) return null;
+  async createUser(email: string | null, passwordHash: string, username: string): Promise<AccountUser | null> {
+    if ([...this.users.values()].some(user => (email && user.email === email) || user.username === username)) return null;
     const user = { id: `user-${this.users.size + 1}`, email, passwordHash, username, emailVerified: false };
-    this.users.set(email, user);
+    this.users.set(user.id, user);
     return { id: user.id, email, username, emailVerified: false };
   }
   async findUser(identifier: string) { return [...this.users.values()].find(user => user.email === identifier || user.username === identifier) ?? null; }
@@ -96,5 +96,32 @@ describe('account HTTP endpoints', () => {
       finalResponse = await fetch(`${baseUrl}/me`);
     }
     expect(finalResponse?.status).toBe(429);
+  });
+
+  it('allows multiple username-only accounts and sends verification only when requested', async () => {
+    const repository = new MemoryAccountRepository();
+    const sent: string[] = [];
+    @Module({
+      imports: [ThrottlerModule.forRoot([{ ttl: 60_000, limit: 10 }])], controllers: [AccountController],
+      providers: [AccountService, { provide: AccountRepository, useValue: repository }, { provide: AccountMailService, useValue: { send: async (email: string) => { sent.push(email); } } }],
+    }) class OptionalEmailTestModule {}
+    app = await NestFactory.create(OptionalEmailTestModule, { logger: false });
+    app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(new (await import('@nestjs/common')).ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    await app.listen(0, '127.0.0.1');
+    const url = `${await app.getUrl()}/api/v1/auth`;
+    const register = (body: object) => fetch(`${url}/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
+    for (const username of ['learner_one', 'learner_two']) {
+      const response = await register({ username, password: 'password8' });
+      expect(response.status).toBe(201); expect(await response.json()).toMatchObject({ user: { username, email: null, emailVerified: false }, verificationSent: false });
+    }
+    const noVerification = await register({ username: 'learner_three', password: 'password8', email: 'unverified@example.test' });
+    expect(noVerification.status).toBe(201); expect(sent).toHaveLength(0);
+    const optIn = await register({ username: 'learner_four', password: 'password8', email: 'verified@example.test', sendVerification: true });
+    expect(optIn.status).toBe(201); expect(await optIn.json()).toMatchObject({ verificationSent: true }); expect(sent).toEqual(['verified@example.test']);
+    expect((await register({ username: 'learner_five', password: 'password8', sendVerification: true })).status).toBe(400);
+    expect((await register({ username: 'learner_five', password: 'password8', email: 'invalid' })).status).toBe(400);
+    const login = await fetch(`${url}/login`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ identifier: 'learner_one', password: 'password8' }) });
+    expect(login.status).toBe(201);
   });
 });
