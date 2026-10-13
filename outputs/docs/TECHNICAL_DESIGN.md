@@ -2,7 +2,7 @@
 
 **Status:** Design intent with current implementation notes · **Version:** 0.2
 
-The implementation preserves React + NestJS + PostgreSQL and uses the existing `pg` driver rather than Prisma. Schema setup remains lazy in repositories; standalone migration tooling and container deployment remain planned. See [GAMES_AND_ACCOUNTS.md](../../docs/GAMES_AND_ACCOUNTS.md) for current APIs, storage, email configuration, Statistics semantics, and limits. The logical entities below include future review/deployment work and are not a literal schema listing.
+The implementation preserves React + NestJS + PostgreSQL and uses the existing `pg` driver rather than Prisma. Schema setup remains lazy in repositories; standalone migration tooling remains planned. Render serves the compiled API and web app, while Docker Compose runs the local database. Use the [documentation index](../../docs/README.md) for current deployment/database procedures and [GAMES_AND_ACCOUNTS.md](../../docs/GAMES_AND_ACCOUNTS.md) for APIs, storage, email, Statistics, and limits. The entities below include future work and are not a literal schema listing.
 
 ## 1. Architecture
 

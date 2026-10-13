@@ -1,6 +1,6 @@
 # Deploy LexiPlay on Render
 
-This setup serves the React build and NestJS API from one HTTPS origin and uses managed PostgreSQL. It preserves the existing modules and cookie-based sign-in. The following configuration is for a **temporary free demo**, selected on 2026-10-12. No cloud service has been created by the repository changes.
+This setup serves the React build and NestJS API from one HTTPS origin and uses managed PostgreSQL. It preserves the existing modules and cookie-based sign-in. The following configuration is for a **temporary free demo**, selected on 2026-10-12. This is an operator setup/release guide, not a current live-status report. See the dated validation record linked below for historical deployment evidence.
 
 Render’s [free service limits](https://render.com/docs/free) include sleeping after 15 minutes of inactivity, no service shell, and a free PostgreSQL database that expires after 30 days. Free PostgreSQL has no backups. Choose a paid database and arrange backups before keeping real users’ progress long term. Confirm the current plan shown in the dashboard before creating a resource.
 
@@ -97,8 +97,6 @@ A local `localhost` or `127.0.0.1` word list cannot automatically move to the Re
 - **Verification/recovery message missing:** onboarding can send only to the Resend account email; check provider status and the deployed origin. A verified domain is required for other recipients.
 - **Rollback:** with Auto-Deploy off, use Render’s Manual Deploy controls to select an earlier working commit. Take a database backup before schema-changing releases; a code rollback does not undo database changes.
 
-This guide describes the demo setup procedure. The completed 2026-10-12 import and live checks are recorded in [deployment checks](DEPLOYMENT-CHECKS.md), including cleanup and remaining limits. Before a lasting launch, replace the expiring database, set up backups/restore, configure a verified sender, and define the public privacy/retention policy.
+This guide describes the demo setup procedure. The completed 2026-10-12 import and live checks are recorded in [deployment checks](archive/DEPLOYMENT-CHECKS-2026-10-12.md), including cleanup and remaining limits. Before a lasting launch, replace the expiring database, set up backups/restore, configure a verified sender, and define the public privacy/retention policy.
 
-Local validation passed: 27 API tests (including six disposable PostgreSQL cases), 49 web tests, workspace typechecking, and production builds. The compiled server was smoke-tested locally: browser routes and its generated JavaScript asset returned 200, health returned JSON, and missing API/asset paths returned 404. The manual Bash wizard passed syntax checking; ShellCheck was unavailable. The dictionary wrapper passed Node syntax checking and has not been executed against a cloud database.
-
-Files changed for this setup: `apps/api/src/main.ts`, `apps/api/src/http-setup.ts`, `apps/api/src/http-setup.test.ts`, `scripts/seed-deployed.mjs`, root `package.json`, `.env.example`, `README.md`, `docs/DEVELOPMENT.md`, `docs/learn.md`, and this guide. No project dependency was added. The generated five-stage walkthrough is a local, one-run artifact rather than a committed deployment automation.
+Database backup, recovery, refresh, and parallel-environment procedures are maintained in the [database manual](DATABASE-MANUAL.md).

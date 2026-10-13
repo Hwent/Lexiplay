@@ -2,7 +2,7 @@
 
 **Status:** MVP requirements with current implementation notes · **Version:** 0.2 · **Platform:** Responsive web app
 
-Current game/account behavior is documented in [GAMES_AND_ACCOUNTS.md](../../docs/GAMES_AND_ACCOUNTS.md). Games, guesses, hints, Statistics, username/email sign-in, eight-character minimum passwords, optional email and verification, password recovery through a linked email, and authenticated account deletion are implemented. Account has a dedicated responsive page with password visibility controls. Deployment, a missed-word review queue, and some launch safeguards below remain future work. The current personal-list design is one overall “My words” list per account, as described in [WORD_LIST_DESIGN.md](WORD_LIST_DESIGN.md).
+Current game/account behavior is documented in [GAMES_AND_ACCOUNTS.md](../../docs/GAMES_AND_ACCOUNTS.md). Games, guesses, hints, Statistics, username/email sign-in, eight-character minimum passwords, optional email and verification, password recovery through a linked email, and authenticated account deletion are implemented. Account has a dedicated responsive page with password visibility controls. Render deployment and independent local database copies are documented in the [documentation index](../../docs/README.md). A missed-word review queue and some launch safeguards below remain future work. The current personal-list design is one overall “My words” list per account, as described in [WORD_LIST_DESIGN.md](WORD_LIST_DESIGN.md).
 
 ## 1. Product summary
 

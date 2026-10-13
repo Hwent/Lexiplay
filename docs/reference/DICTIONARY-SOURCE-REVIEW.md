@@ -1,5 +1,7 @@
 # Dictionary source review
 
+Historical research supporting the Simple English Wiktionary decision. Provider quotas, prices, and terms below are not maintained as current recommendations; recheck primary sources before a new integration. Operational dictionary procedures are in the [database manual](../DATABASE-MANUAL.md).
+
 ## Why “because” is missing
 
 Before the source update, LexiPlay seeded its dictionary from Princeton WordNet 3.1. The old seed script imported only nouns, verbs, adjectives, and adverbs. WordNet is intentionally a lexical database of those open-class parts of speech; it does not include function words such as conjunctions and prepositions. Princeton’s FAQ explicitly lists “because” among the excluded words. This was a source coverage limitation, not a search failure.

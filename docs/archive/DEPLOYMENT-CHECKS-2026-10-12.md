@@ -1,5 +1,7 @@
 # Render demo checks — 2026-10-12
 
+Historical observation, not current deployment status, credentials, plan settings, or test totals. Use [Deployment](../DEPLOYMENT.md) and the [database manual](../DATABASE-MANUAL.md) for current procedures.
+
 The demo at https://lexiplay.onrender.com is running commit `7b5a6f9`. The first dictionary import completed against `lexiplay-demo-db` in Oregon using verified TLS. It committed **42,462 dictionary entries** from Simple English Wiktionary. The imported definition of `because` was also checked through the live website.
 
 ## Live API and database checks

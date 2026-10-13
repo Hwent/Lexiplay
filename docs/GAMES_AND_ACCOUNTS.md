@@ -1,6 +1,6 @@
 # Games, Statistics, and accounts
 
-Current implementation, updated 2026-10-12. This document describes shipped behavior; the broader deployment and review-queue work in the PRD remains future work.
+Current implementation, updated 2026-10-13. This document describes shipped behavior. Use the [documentation index](README.md) for operations/design guides; earlier validation records are in [implementation milestones](archive/IMPLEMENTATION-MILESTONES.md). The missed-word review queue remains future work.
 
 ## Games
 
@@ -17,6 +17,8 @@ Word puzzle accepts 3–9 letters, with these settings:
 The default length is five. Remove letters reveals up to three previously unknown letters absent from the answer per use. Reveal a letter reveals one previously unknown answer letter without its position. Hints do not consume guesses; exhausted hints are disabled. If no letters remain to reveal, the API rejects the hint without consuming its budget.
 
 Answers and valid guesses come from the database dictionary, filtered to lowercase `a`–`z`, the selected length, and a nonempty definition. Personal-word mode restricts answers to the learner’s saved words intersected with that pool. Known and Unfamiliar words are both eligible. Invalid guesses never consume an attempt. Guess DTOs normalize whitespace/case, accept 3–9 characters, and leave the selected-length and dictionary checks to the service. Tests install the same global validation pipe as the running API.
+
+The start page explains Wordle-style feedback and offers All words, Primary school, Grade 12, IELTS, and grouped CEFR ranges. These are curated practice categories, not certified word-level assessments; availability comes from the live dictionary. The chosen range restricts answers and is saved with the game, while other dictionary words remain valid guesses. Personal-word mode also intersects the chosen range. The play page shows a small range label, automatically submits a full-length guess, and displays invalid-word feedback above the centered grid with an animation. Speaker buttons use browser speech synthesis when available.
 
 `practice_games` stores an owner key and server-only JSON state: game kind, answer, dictionary-pool snapshot, rules, hint counts, revealed letters, and timestamps. `practice_guesses` stores accepted results and definitions in position order, with a unique `(game_id, position)` key. Guesses and game changes commit in one transaction. Row locks serialize simultaneous guesses and hints. Reads use a consistent database snapshot. Answers and dictionary pools are removed from active-game responses; completion reveals the answer in the final guess result.
 
@@ -56,7 +58,8 @@ Account emails use formal subjects and a branded HTML template with an action bu
 
 | API route | Request / behavior |
 | --- | --- |
-| `POST /games` | `{ kind?, wordLength?, difficulty?, playWithMyWords? }`; create owned game |
+| `POST /games` | `{ kind?, wordLength?, difficulty?, playWithMyWords?, vocabularyRange? }`; create owned game |
+| `GET /games/vocabulary-ranges` | Available categories and playable answer counts by length |
 | `GET /games/:id` | Restore the caller’s game, with active answer redaction |
 | `POST /games/:id/guesses` | `{ guess }`; accept or reject without consuming invalid attempts |
 | `POST /games/:id/hints` | `{ type: "unused" \| "present" }`; persist hint state |
@@ -81,12 +84,7 @@ For development, `MAIL_MODE=local` writes email previews to `apps/api/.local-mai
 
 For deployment, set `MAIL_MODE=resend`, `PUBLIC_WEB_ORIGIN` to the HTTPS frontend origin, `MAIL_FROM` to a verified sender, and `RESEND_API_KEY` in the server environment. Production refuses local mail mode. Real delivery needs this configuration and has not been exercised by automated tests. No provider account, sender domain, or production resource is provisioned by these changes.
 
-For a first real delivery test without a domain:
-
-1. Create a Resend account using the email that will receive the test.
-2. In [Resend API Keys](https://resend.com/api-keys), create a `LexiPlay` key with **Sending access**. Copy the value when created; it cannot be viewed again. See [API key management](https://resend.com/docs/dashboard/api-keys/introduction).
-3. Copy `.env.example` to the gitignored root `.env`, then set `MAIL_MODE=resend`, `MAIL_FROM="LexiPlay <onboarding@resend.dev>"`, and `RESEND_API_KEY` to that key. Leave `PUBLIC_WEB_ORIGIN` unset locally; the launcher uses its selected web URL. Existing shell variables take precedence over `.env`.
-4. Restart `pnpm dev`, open Account, and register with an email and the verification checkbox selected, or request verification from your profile. The [onboarding sender can deliver only to the email used for the Resend account](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain). Add and verify a domain to send to other addresses; a Gmail address is the recipient, not the Resend sender.
+`pnpm dev` always forces local preview mode, even if `.env` says `MAIL_MODE=resend`. Use the [Deployment guide](DEPLOYMENT.md#2-prepare-the-email-sender) for real sender setup and a deliberate delivery test against the configured deployed service. The [onboarding sender can deliver only to the Resend account email](https://resend.com/docs/knowledge-base/403-error-resend-dev-domain); other recipients need a verified domain.
 
 Local links work only on the computer running LexiPlay, while that dev server is active. Inbox receipt, successful link consumption, and provider acceptance are separate checks; a local preview is not evidence of Gmail delivery. Never paste the API key or verification token into chat or commit them.
 
@@ -96,64 +94,4 @@ Run `pnpm test`, `pnpm typecheck`, and `pnpm build`. Ordinary tests use determin
 
 Real-database coverage includes API restart, concurrent guesses, ownership, persisted Statistics, optional recovery email, verification, expired/single-use links, session revocation, and account deletion with cleanup and owner isolation. UI tests cover nine-letter difficulty controls, hints, resume, Statistics, signup without email, verification opt-in, password visibility, recovery, and deletion confirmation/failure/success.
 
-Repositories still apply schema changes lazily; standalone versioned migrations remain future work. Statistics calculates all-time metrics from completed games and displays only the latest 20; history pagination and SQL aggregation are future scaling work. A missed-word review queue and production backup/deployment setup remain unimplemented. Account export and changing/removing an existing recovery email are not implemented.
-
-## Original games milestone validation and changed files
-
-Local verification passed: 19 API tests (including two real PostgreSQL integration cases), 33 web tests, workspace typechecking, and production builds. Live browser checks covered mobile/desktop setup, nine-letter input, hints, refresh restoration, and the narrow account menu. Real external email delivery was not tested. CI execution on GitHub is separate from these local results.
-
-Changed files for this milestone, relative to the repository root:
-
-- Configuration: `.env.example`, `.gitignore`, `.github/workflows/ci.yml`, `scripts/dev.mjs`.
-- Accounts: `apps/api/src/modules/accounts/account.controller.ts`, `account.dto.ts`, `account.repository.ts`, `account.service.ts`, `account-mail.service.ts`, `account-mail.service.test.ts`, `accounts.module.ts`, and `accounts.e2e.test.ts` (all under the same accounts directory).
-- Games: `apps/api/src/modules/games/game.controller.ts`, `game.service.ts`, `game.repository.ts`, `game.types.ts`, `game.dto.ts`, `submit-guess.dto.ts`, `statistics.controller.ts`, and `games.module.ts` (all under the same games directory).
-- API checks: `apps/api/src/health.e2e.test.ts`, `apps/api/src/persistence.e2e.test.ts`.
-- Web: `apps/web/src/App.tsx`, `App.test.tsx`, `AccountPanel.tsx`, `GameCatalog.tsx`, `GameUpdates.test.tsx`, `StatisticsPanel.tsx`, `game-updates.css`, and `main.tsx` (all under the same web source directory).
-- Documentation: `README.md`, `docs/DEVELOPMENT.md`, `docs/learn.md`, `docs/GAMES_AND_ACCOUNTS.md`, `outputs/docs/PRD.md`, `outputs/docs/TECHNICAL_DESIGN.md`, `outputs/docs/WORD_LIST_DESIGN.md`.
-
-The previously untracked `AGENTS.md` and previously deleted `docs/react-standard-evaluation.md` were not part of this milestone’s changes.
-
-## Account page milestone
-
-Account functionality moved from the header dropdown to `/account`; the header retains only a basic status link. Verification/reset email links open the dedicated page. The root `.env` is loaded only for local development through Node’s built-in loader; no dependency was added.
-
-Validation passed: 19 API tests, 37 web tests, workspace typechecking, and production builds. The live Resend onboarding sender delivered a verification message to the requested Gmail inbox. The received link opened Account and the temporary account’s verification flag became true in the disposable local PostgreSQL database. The preview was then switched back to the normal local database. No production resource was changed; API keys and tokens were not committed.
-
-Changed files:
-
-- `apps/web/src/AccountPanel.tsx` renamed to `AccountPage.tsx`; added `AccountPage.test.tsx`, `AccountStatus.tsx`, and `useAccount.ts` in that directory.
-- `apps/web/src/App.tsx`, `App.test.tsx`, `GameUpdates.test.tsx`, `styles.css`, and `game-updates.css`.
-- `apps/api/src/modules/accounts/account-mail.service.ts`, `account-mail.service.test.ts`, and `account.service.ts`.
-- `.env.example`, `scripts/dev.mjs`, `README.md`, `docs/DEVELOPMENT.md`, `docs/learn.md`, and this document.
-
-The private root `.env` is gitignored. Real mail currently uses the onboarding sender for the operator’s own address; sending to other users requires a verified sender domain. Local verification links require the matching development server to stay running.
-
-## Optional email and account controls milestone
-
-Signup now requires only username/password; email and verification are optional, with verification off by default. Account has a responsive layout, Show/Hide password controls, an inbox confirmation for recovery, an authenticated form for adding a recovery email, and permanent deletion with current-password and typed confirmation. Deletion removes owned learning data and links in one transaction.
-
-Validation passed: 21 API tests (including three real PostgreSQL integration cases), 41 web tests, workspace typechecking, and production builds. Browser checks covered desktop signup, unchecked verification, hidden passwords, the 390px mobile form without horizontal overflow, and opening/cancelling deletion. Destructive tests used a disposable local database and mocked email. No live account was deleted and no new external verification/recovery email was sent during this milestone. No dependencies were added.
-
-Files changed in this milestone:
-
-- Accounts: `apps/api/src/modules/accounts/account.controller.ts`, `account.dto.ts`, `account.repository.ts`, `account.service.ts`, and `accounts.e2e.test.ts`.
-- Persistence: `apps/api/src/modules/games/game.repository.ts` and `apps/api/src/persistence.e2e.test.ts`.
-- Account UI: `apps/web/src/AccountPage.tsx`, `AccountPage.test.tsx`, `AccountStatus.tsx`, `PasswordField.tsx`, `account.css`, and `useAccount.ts`.
-- Web integration: `apps/web/src/App.test.tsx`, `game-updates.css`, and `main.tsx`.
-- Documentation: `README.md`, `docs/DEVELOPMENT.md`, `docs/GAMES_AND_ACCOUNTS.md`, `docs/learn.md`, `outputs/docs/PRD.md`, and `outputs/docs/TECHNICAL_DESIGN.md`.
-
-Known limits: username-only accounts cannot recover a forgotten password without a previously linked email; existing recovery addresses cannot yet be changed/removed. Backup retention, account export, and versioned database migrations remain future work.
-
-## Guest progress and formal email milestone
-
-Guest words/games now move into the account after signup or sign-in, with account-bound retries and puzzle restoration. Verification and reset messages have formal HTML/plain-text templates. No dependencies were added and no external email was sent for this milestone.
-
-Validation passed: 25 API tests (six real PostgreSQL cases), 49 web tests, workspace typechecking, and production builds. Integration coverage includes signup/login transfer, concurrent retries, preservation of existing words, active guesses/hints, Statistics, restart, account isolation, deletion cleanup, and rollback. Browser tests cover large batches, lost responses, concurrent local edits, retry/reload, and puzzle/word UI restoration. A local dummy-link email preview was inspected through browser accessibility content; screenshot capture was unavailable, and rendering in external email clients was not exercised.
-
-Files changed:
-
-- Accounts: `apps/api/src/modules/accounts/account.repository.ts`, `account-email.ts`, `account-mail.service.ts`, and `account-mail.service.test.ts`.
-- Games/progress: `apps/api/src/modules/games/game.controller.ts`, `game.repository.ts`, `games.module.ts`, `guest-cookie.ts`, `progress-transfer.controller.ts`, `progress-transfer.dto.ts`, and `progress-transfer.repository.ts`.
-- Word storage: `apps/api/src/modules/word-lists/word-list.repository.ts` and `word-lists.module.ts`; integration coverage in `apps/api/src/persistence.e2e.test.ts`.
-- Web: `apps/web/src/AccountPage.tsx`, `AccountPage.test.tsx`, `App.tsx`, `App.test.tsx`, `GameUpdates.test.tsx`, `GuestProgress.test.tsx`, `useAccount.ts`, `services/guest-progress.ts`, and `services/guest-progress.test.ts`.
-- Docs: `README.md`, `docs/DEVELOPMENT.md`, `docs/GAMES_AND_ACCOUNTS.md`, `docs/learn.md`, `outputs/docs/PRD.md`, and `outputs/docs/TECHNICAL_DESIGN.md`.
+Repositories still apply schema changes lazily; standalone versioned migrations remain future work. Statistics calculates all-time metrics from completed games and displays only the latest 20; history pagination and SQL aggregation are future scaling work. A missed-word review queue, account export, and changing/removing an existing recovery email are not implemented. Render deployment is documented and has historical validation; automated backup scheduling and retention remain operator responsibilities described in the [database manual](DATABASE-MANUAL.md).

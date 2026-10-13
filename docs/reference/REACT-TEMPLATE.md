@@ -1,3 +1,9 @@
+# Original React scaffolding template
+
+Supplied reference preserved below. Current LexiPlay conventions are in [Development](../DEVELOPMENT.md); this template does not override the existing architecture.
+
+---
+
 You are a senior React developer. Build [describe the app] using React [18/19], [Vite], React Router v6, and [JavaScript / TypeScript].
 
 ## Scope rule (most important)

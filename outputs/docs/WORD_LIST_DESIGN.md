@@ -1,10 +1,10 @@
 # Word List — Product and API design
 
-**Status:** Current implementation · **Updated:** 2026-10-11
+**Status:** Current implementation · **Updated:** 2026-10-13
 
 ## Product behavior
 
-Each account has one overall personal list named **My words**. The list has no description or folders. Its words are searchable, can be added manually or from the shared dictionary, and can be imported from a file. A word has one of two learner-managed statuses: **Known** and **Unfamiliar**. New words start as **Unfamiliar**.
+Each account has one overall personal list named **My words**. The list has no description or folders. Its words are searchable and can be saved from the shared dictionary or imported from pasted text or a file. The standalone Add word button has been removed; the API still supports manual word creation. A word has one of two learner-managed statuses: **Known** and **Unfamiliar**. New words start as **Unfamiliar**. Speaker buttons use browser speech synthesis when available.
 
 The Word List page combines the user's saved words with dictionary search results. Dictionary matches show the headword, definition, and available part of speech. Adding a result stores a personal copy with its dictionary definition; removing or changing the personal copy does not modify the shared dictionary. Word status is visible next to each saved word and can be toggled between Known and Unfamiliar.
 
@@ -14,7 +14,7 @@ Search matches initially show only clickable headwords and bookmark controls; de
 
 ## Import flow
 
-Supported formats are `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf`. The user selects a file, previews parsed words, then confirms the import. The preview reports duplicates and invalid rows. Imported words receive the Unfamiliar status by default. Definitions are stored as plain text; uploaded files are not retained.
+The upload dialog defaults to pasted text, with word-only or word-and-definition formats, entry count, clear, and select-all controls. Pasted text is prepared as a TXT upload and uses the same preview/confirmation API as files. Supported file formats are `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf`. The user previews parsed words, then confirms the selected entries. The preview reports duplicates and invalid rows. Imported words receive the Unfamiliar status by default. Definitions are stored as plain text; uploaded files are not retained.
 
 Limits are enforced by the API: 5 MB maximum upload, 1,000 preview rows, and PDF extraction from the first 50 pages. Image-only/scanned PDFs need OCR and currently produce no extracted words. Macro-enabled workbooks and legacy `.doc` files are not accepted.
 
@@ -42,11 +42,7 @@ Dictionary rows contain `term`, `definition`, and `part_of_speech`. The former p
 
 The PostgreSQL `dictionary_words` table is LexiPlay’s canonical dictionary. Search, definitions, game answers, and accepted guesses use these stored entries. Simple English Wiktionary supplies the initial data. The seed command reads namespace-zero entry revisions from the MediaWiki API, extracts the first two definition lines and their parts of speech, excludes redirects, and filters entries to terms supported by LexiPlay. Page introductions are not used because many dictionary entries, including “because,” have no introduction:
 
-```powershell
-pnpm --filter @lexiplay/api dictionary:seed
-```
-
-Run this after starting the local database with `docker compose up -d database`; the API seeder needs internet access. A refresh stages the complete import and only replaces the existing dictionary after all pages load successfully. Attribution and source terms are documented in [`SIMPLE-WIKTIONARY-LICENSE`](../../apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE).
+Use the [database manual's dictionary-update procedure](../../docs/DATABASE-MANUAL.md#refresh-the-local-dictionary-from-wiktionary) to load settings explicitly and target the intended database. The API seeder needs internet access. A refresh stages the complete import and only replaces the existing dictionary after all pages load successfully. Numbered parts of speech, such as `Noun 1`, are recognized. Attribution and source terms are documented in [`SIMPLE-WIKTIONARY-LICENSE`](../../apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE).
 
 Games select from dictionary entries of the chosen length (3–9), containing only `a`–`z` and a nonempty definition. The same pool validates guesses. “Play with my words” intersects the personal list with this pool for answer selection; other dictionary words remain valid guesses. Personal notes and manual entries do not change the canonical dictionary. Each game persists its starting pool so a dictionary refresh does not change its valid guesses. An empty dictionary pool produces `DICTIONARY_NOT_READY`; there is no static-file fallback. Public dictionary search and guest games do not require a login; guests use a browser ownership cookie. See [games and accounts](../../docs/GAMES_AND_ACCOUNTS.md) for persistent state and Statistics.
 
