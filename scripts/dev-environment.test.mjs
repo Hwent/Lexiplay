@@ -16,6 +16,18 @@ test('local launch overrides inherited production mode and server settings', () 
 
 test('local launch supplies development defaults when the environment is empty', () => {
   assert.deepEqual(developmentEnvironment({}), {
-    NODE_ENV: 'development', HOST: '127.0.0.1', SERVE_WEB: 'false',
+    NODE_ENV: 'development', HOST: '127.0.0.1', SERVE_WEB: 'false', MAIL_MODE: 'local',
   });
+});
+
+test('local launch blocks remote databases without exposing their credentials', () => {
+  assert.throws(() => developmentEnvironment({ DATABASE_URL: 'postgresql://private:secret@production.example/app' }), {
+    message: 'pnpm dev requires a local PostgreSQL DATABASE_URL. Keep production credentials in .env.deploy, not .env or shell DATABASE_URL.',
+  });
+  assert.throws(() => developmentEnvironment({ DATABASE_URL: 'not-a-url' }), /valid local DATABASE_URL/);
+  assert.throws(() => developmentEnvironment({ DATABASE_URL: 'https://localhost/app' }), /local PostgreSQL/);
+});
+
+test('local launch previews email even when a production sender is inherited', () => {
+  assert.equal(developmentEnvironment({ MAIL_MODE: 'resend' }).MAIL_MODE, 'local');
 });

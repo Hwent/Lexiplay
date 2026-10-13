@@ -52,7 +52,7 @@ const webPort = await new Promise((resolve, reject) => {
     server.close(error => error ? reject(error) : resolve(port));
   });
 });
-const api = start(tsx, ['watch', 'src/main.ts'], apiDirectory, { PORT: '0', PUBLIC_WEB_ORIGIN: process.env.PUBLIC_WEB_ORIGIN ?? `http://127.0.0.1:${webPort}` });
+const api = start(tsx, ['watch', 'src/main.ts'], apiDirectory, { PORT: '0', PUBLIC_WEB_ORIGIN: process.env.PUBLIC_WEB_ORIGIN || `http://127.0.0.1:${webPort}` });
 const apiOrigin = await new Promise((resolve, reject) => {
   let output = '';
   const timeout = setTimeout(() => reject(new Error('API did not start within 30 seconds.')), 30_000);
