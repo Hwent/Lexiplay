@@ -4,6 +4,7 @@ import AccountStatus from './AccountStatus';
 import useAccount from './useAccount';
 import WordListsPanel from './WordListsPanel';
 import GameCatalog from './GameCatalog';
+import HomeRelease from './HomeRelease';
 import StatisticsPanel from './StatisticsPanel';
 import PronunciationButton from './PronunciationButton';
 import useVocabularyRanges from './useVocabularyRanges';
@@ -498,6 +499,7 @@ export default function App() {
       {activeSection === 'home' && <section className="overview-page">
         <div className="welcome-banner"><p className="eyebrow">A LITTLE PRACTICE GOES A LONG WAY</p><h2>Make room for a new word.</h2><p>Build a habit with a quick puzzle or spend a few minutes organizing your vocabulary.</p><button type="button" className="primary-button" onClick={() => navigateTo('play')}>Start a puzzle <span aria-hidden="true">→</span></button></div>
         <div className="overview-cards"><button type="button" onClick={() => navigateTo('library')}><span className="overview-icon" aria-hidden="true">▤</span><strong>Your word list</strong><span>Browse and add words</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('play')}><span className="overview-icon" aria-hidden="true">▦</span><strong>Quick practice</strong><span>Solve a word puzzle</span><span className="card-arrow" aria-hidden="true">→</span></button><button type="button" onClick={() => navigateTo('progress')}><span className="overview-icon" aria-hidden="true">▥</span><strong>Learning progress</strong><span>Review your activity</span><span className="card-arrow" aria-hidden="true">→</span></button></div>
+        <HomeRelease />
       </section>}
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}

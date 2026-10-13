@@ -1,5 +1,7 @@
 # LexiPlay
 
+**v0.1 · Ready for release** — The first complete vocabulary practice release. See [milestones and roadmap](MILESTONES.md) for completed features, current limits, and future plans.
+
 LexiPlay is a vocabulary practice app built with React, NestJS, and PostgreSQL. Learners play word puzzles, practise saved vocabulary, track Statistics, and manage accounts with optional email recovery.
 
 ## Run locally
