@@ -14,16 +14,25 @@ docker compose up -d database
 pnpm dev
 ```
 
-Open the URL printed by the launcher. On first setup, populate the dictionary using the [database manual](docs/DATABASE-MANUAL.md); a copied production database already includes it. Development uses a local database and email previews. See [Development](docs/DEVELOPMENT.md) for conventions and tests.
+Open the URL printed by the launcher. On first setup, populate the dictionary using the local `docs/DATABASE-MANUAL.md`; a copied production database already includes it. Development uses a local database and email previews. Local `docs/DEVELOPMENT.md` covers conventions and tests.
+
+For a fresh local database without dictionary entries, run this before starting games. It loads the local `.env` explicitly:
+
+```powershell
+Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+node --env-file=.env apps/api/node_modules/tsx/dist/cli.mjs apps/api/src/modules/word-lists/seed-simple-wiktionary.ts
+```
 
 ## Documentation
 
-The [documentation index](docs/README.md) organizes current guides, design documents, reference material, and historical records.
+Documentation is kept locally under `docs/` and excluded from Git. The former `outputs/docs/` documents are merged into `docs/design/`. New clones do not include these local files; retain a separate private copy if you need them on another computer. Both `docs/` and future `outputs/` content are ignored.
 
-- [Database manual](docs/DATABASE-MANUAL.md): terminal/DBeaver connections, operations, updates, backups, recovery, and independent production/development databases.
-- [Deployment](docs/DEPLOYMENT.md): Render settings and deliberate releases.
-- [Games and accounts](docs/GAMES_AND_ACCOUNTS.md): gameplay, Statistics, account controls, and email behavior.
-- [Codebase tour](docs/learn.md): file responsibilities, data structures, and request flows.
+- `docs/README.md`: documentation index.
+- `docs/DATABASE-MANUAL.md`: connections, operations, updates, backups, recovery, and parallel environments.
+- `docs/DEPLOYMENT.md`: Render settings and deliberate releases.
+- `docs/GAMES_AND_ACCOUNTS.md`: gameplay, Statistics, and account/email behavior.
+- `docs/learn.md`: file responsibilities, data structures, and request flows.
+- `docs/design/`: product requirements and technical/word-list designs.
 
 ## Repository
 
@@ -32,8 +41,7 @@ The [documentation index](docs/README.md) organizes current guides, design docum
 | `apps/web` | React browser experience |
 | `apps/api` | NestJS API, business rules, PostgreSQL repositories |
 | `packages/shared` | Shared contracts and historical vocabulary/source notices |
-| `docs` | Current operational/development guides, reference material, historical records |
-| `outputs/docs` | Product requirements and technical/word-list designs |
+| `docs` (local, ignored) | Operational/development guides, designs, references, historical records |
 
 ## Checks and releases
 
