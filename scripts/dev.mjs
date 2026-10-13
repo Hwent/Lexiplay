@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createServer } from 'node:net';
+import { developmentEnvironment } from './dev-environment.mjs';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const localEnvPath = resolve(scriptDirectory, '../.env');
@@ -20,7 +21,7 @@ const children = new Set();
 function start(entry, args, cwd, env = {}) {
   const child = spawn(process.execPath, [entry, ...args], {
     cwd,
-    env: { ...process.env, ...env },
+    env: { ...developmentEnvironment(process.env), ...env },
     stdio: ['inherit', 'pipe', 'pipe'],
   });
   children.add(child);
@@ -51,7 +52,7 @@ const webPort = await new Promise((resolve, reject) => {
     server.close(error => error ? reject(error) : resolve(port));
   });
 });
-const api = start(tsx, ['watch', 'src/main.ts'], apiDirectory, { PORT: '0', PUBLIC_WEB_ORIGIN: process.env.PUBLIC_WEB_ORIGIN ?? `http://127.0.0.1:${webPort}` });
+const api = start(tsx, ['watch', 'src/main.ts'], apiDirectory, { PORT: '0', PUBLIC_WEB_ORIGIN: process.env.PUBLIC_WEB_ORIGIN || `http://127.0.0.1:${webPort}` });
 const apiOrigin = await new Promise((resolve, reject) => {
   let output = '';
   const timeout = setTimeout(() => reject(new Error('API did not start within 30 seconds.')), 30_000);

@@ -1,41 +1,56 @@
 # LexiPlay
 
-LexiPlay is a vocabulary practice game. Product requirements and the initial architecture live in [`outputs/docs/PRD.md`](outputs/docs/PRD.md) and [`outputs/docs/TECHNICAL_DESIGN.md`](outputs/docs/TECHNICAL_DESIGN.md).
-
-## Repository structure
-
-- `apps/web` — browser experience (React)
-- `apps/api` — HTTP API and application services (NestJS)
-- `packages/shared` — stable shared contracts and sourced vocabulary data
-- `outputs/docs` — product and technical design source documents
-
-Keep modules cohesive, expose behavior through narrow interfaces, and place automated checks next to the component they protect. Add cross-component flows in dedicated integration or end-to-end suites as those features arrive.
+LexiPlay is a vocabulary practice app built with React, NestJS, and PostgreSQL. Learners play word puzzles, practise saved vocabulary, track Statistics, and manage accounts with optional email recovery.
 
 ## Run locally
 
-Prerequisites: Node.js 22+ and pnpm 11.25.0. The project pins the package manager and includes a lockfile.
+Install Node.js 22+, pnpm 11.25.0, and Docker Desktop. In the repository root:
 
 ```powershell
 pnpm install
+if (!(Test-Path .env)) { Copy-Item .env.example .env }
+Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+docker compose up -d database
 pnpm dev
 ```
 
-The launcher starts the NestJS API and Vite web app on available localhost ports and prints the web URL. Start PostgreSQL with `docker compose up -d database`, then load the dictionary with `pnpm --filter @lexiplay/api dictionary:seed`. Players can register with a username and password, optionally add an email, sign in using username or email, or play as guests. Passwords require at least eight characters. Account sessions, personal words, games, accepted guesses, and hints persist in PostgreSQL.
+Open the URL printed by the launcher. On first setup, populate the dictionary using the local `docs/DATABASE-MANUAL.md`; a copied production database already includes it. Development uses a local database and email previews. Local `docs/DEVELOPMENT.md` covers conventions and tests.
 
-Games currently offers Word puzzle and can accommodate more games. Choose 3–9 letters and Easy (7 guesses, 3 uses of each hint), Medium (6 guesses, 2 uses), or Hard (5 guesses, 1 use). Puzzles restore after refresh or API restart. Statistics shows signed-in practice history, win rate, streak, and winning guess distribution. Dictionary words need lowercase English letters and a stored definition. Each learner has one “My words” list with Known/Unfamiliar status; imports support TXT, DOCX, CSV, XLSX, and text-based PDF with preview before confirmation.
-
-The dedicated `/account` page contains sign-in, registration, sign-out, optional recovery email and verification, password visibility controls, and account deletion. Verification is off by default at signup; an email can be added later with the current password. Recovery needs a previously added email. Deletion requires the current password and typed confirmation, then removes owned learning data and sessions. Other pages show only a compact account status link. Verification and recovery emails open Account using expiring links. `pnpm dev` loads the gitignored root `.env` file. Development email previews are written to `apps/api/.local-mail`; real delivery needs a Resend key and sender. See [games and accounts](docs/GAMES_AND_ACCOUNTS.md) for setup, including the onboarding sender for testing your own email without a domain.
-
-Run the checks with `pnpm test`, `pnpm typecheck`, and `pnpm build`. Tests cover UI, account and owned-list lifecycles, and games at every supported length through the production validation pipeline. Set `TEST_DATABASE_URL` to a disposable `lexiplay_test_*` database to run persistence/restart/concurrency and account-link integration checks; CI supplies one automatically. See [`docs/DEVELOPMENT.md`](docs/DEVELOPMENT.md) for boundaries and conventions.
-
-Sign-in and signup automatically save guest words and games to the account. Existing account words take precedence when terms overlap; new words keep their Known/Unfamiliar status. Active puzzles retain guesses/hints and resume, while completed games contribute to Statistics. Failed transfers keep local data and offer a retry on Account. Verification emails include a formal HTML message, an action button, a fallback link, and a plain-text alternative; verification remains optional.
-
-## GitHub
-
-For the Render demo walkthrough and exact production settings, use [DEPLOYMENT.md](docs/DEPLOYMENT.md). Production serves the built web app and API from one origin; run `pnpm build` then `pnpm start` with the required server environment. The free database expires after 30 days, so use a lasting database plan before keeping real users’ progress.
-
-The remote is `https://github.com/Hwent/Lexiplay.git`. Push future work with:
+For a fresh local database without dictionary entries, run this before starting games. It loads the local `.env` explicitly:
 
 ```powershell
-git push -u origin main
+Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
+node --env-file=.env apps/api/node_modules/tsx/dist/cli.mjs apps/api/src/modules/word-lists/seed-simple-wiktionary.ts
 ```
+
+## Documentation
+
+Documentation is kept locally under `docs/` and excluded from Git. The former `outputs/docs/` documents are merged into `docs/design/`. New clones do not include these local files; retain a separate private copy if you need them on another computer. Both `docs/` and future `outputs/` content are ignored.
+
+- `docs/README.md`: documentation index.
+- `docs/DATABASE-MANUAL.md`: connections, operations, updates, backups, recovery, and parallel environments.
+- `docs/DEPLOYMENT.md`: Render settings and deliberate releases.
+- `docs/GAMES_AND_ACCOUNTS.md`: gameplay, Statistics, and account/email behavior.
+- `docs/learn.md`: file responsibilities, data structures, and request flows.
+- `docs/design/`: product requirements and technical/word-list designs.
+
+## Repository
+
+| Directory | Responsibility |
+| --- | --- |
+| `apps/web` | React browser experience |
+| `apps/api` | NestJS API, business rules, PostgreSQL repositories |
+| `packages/shared` | Shared contracts and historical vocabulary/source notices |
+| `docs` (local, ignored) | Operational/development guides, designs, references, historical records |
+
+## Checks and releases
+
+```powershell
+pnpm test
+pnpm typecheck
+pnpm build
+```
+
+Persistence tests need a separate disposable `lexiplay_test_*` database; GitHub CI supplies one. Production serves the built React app and API from one origin using `pnpm build` and `pnpm start` with Render's server settings. Push reviewed feature branches, merge code into `main`, and deploy deliberately. Git does not copy database data.
+
+The repository remote is `https://github.com/Hwent/Lexiplay.git`. Configuration files, mail previews, and local database backups remain private and outside Git.
