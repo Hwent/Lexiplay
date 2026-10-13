@@ -406,3 +406,32 @@ body { background: var(--page); }
   .overview-cards button { min-height: 6.5rem; }
   .import-preview-row { grid-template-columns: 1.5rem minmax(5rem, .65fr) minmax(5rem, 1.35fr); gap: .3rem; }
 }
+
+/* Home release and milestones */
+.home-release { margin-top: 2rem; }
+.release-heading { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-bottom: 1rem; }
+.release-heading .eyebrow { margin: 0 0 .4rem; color: var(--accent); }
+.release-heading h2 { margin: 0; font-size: clamp(1.3rem, 2.5vw, 1.8rem); }
+.github-profile { display: inline-flex; align-items: center; gap: .55rem; min-height: 2.75rem; padding: .65rem .9rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface); color: var(--text); text-decoration: none; font-size: .85rem; }
+.github-profile:hover { border-color: var(--accent); color: var(--accent); }
+.github-profile:focus-visible { outline: 2px solid var(--accent); outline-offset: 4px; }
+.github-profile svg { flex-shrink: 0; }
+.release-current { padding: clamp(1rem, 3vw, 1.5rem); border: 1px solid var(--line); border-radius: .9rem; background: var(--surface); }
+.release-title { display: flex; align-items: center; flex-wrap: wrap; gap: .75rem; }
+.release-title h3 { margin: 0; font-size: 1.2rem; }
+.release-badge { padding: .3rem .6rem; border-radius: 99px; background: var(--accent-soft); color: var(--accent); font-size: .75rem; font-weight: 700; }
+.release-current > p, .release-features p, .roadmap-heading p, .roadmap-list p { color: var(--muted); font-size: .85rem; line-height: 1.6; }
+.release-features { margin: 1rem 0 0; padding: 0; display: grid; gap: 1rem; list-style: none; }
+.release-features li { display: flex; align-items: flex-start; gap: .65rem; }
+.milestone-check { color: var(--accent); font-weight: 700; }
+.release-features strong { font-size: .9rem; }
+.release-features p { margin: .25rem 0 0; }
+.roadmap-heading { margin: 1.5rem 0 1rem; }
+.roadmap-heading h3 { margin: 0; font-size: 1rem; }
+.roadmap-heading p { margin: .3rem 0 0; }
+.roadmap-list { margin: 0; padding: 0; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; list-style: none; }
+.roadmap-list li { min-width: 0; padding: 1rem; border: 1px solid var(--line); border-radius: .9rem; background: var(--surface); }
+.roadmap-version { color: var(--accent); font-size: .75rem; font-weight: 700; }
+.roadmap-list h4 { margin: .65rem 0 .35rem; font-size: .9rem; }
+.roadmap-list p { margin: 0; }
+@media (max-width: 700px) { .roadmap-list { grid-template-columns: 1fr; } }
