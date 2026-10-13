@@ -4,6 +4,7 @@ import { fileURLToPath } from 'node:url';
 import { existsSync, readFileSync } from 'node:fs';
 import { dirname, resolve } from 'node:path';
 import { createServer } from 'node:net';
+import { developmentEnvironment } from './dev-environment.mjs';
 
 const scriptDirectory = dirname(fileURLToPath(import.meta.url));
 const localEnvPath = resolve(scriptDirectory, '../.env');
@@ -20,7 +21,7 @@ const children = new Set();
 function start(entry, args, cwd, env = {}) {
   const child = spawn(process.execPath, [entry, ...args], {
     cwd,
-    env: { ...process.env, ...env },
+    env: { ...developmentEnvironment(process.env), ...env },
     stdio: ['inherit', 'pipe', 'pipe'],
   });
   children.add(child);

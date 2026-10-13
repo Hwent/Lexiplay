@@ -11,6 +11,6 @@
     "start": "node apps/api/dist/main.js",
     "build": "pnpm --recursive --if-present build",
     "typecheck": "pnpm --recursive --if-present typecheck",
-    "test": "pnpm --recursive --if-present test"
+    "test": "node --test scripts/dev-environment.test.mjs && pnpm --recursive --if-present test"
   }
 }
