@@ -1,3 +1,4 @@
+import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
 import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -18,7 +19,7 @@ describe('practice puzzle', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-4', wordLength: 4, attemptLimit: 6, guesses: [] }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'word', feedback: ['ABSENT', 'PRESENT', 'ABSENT', 'CORRECT'], attemptsRemaining: 5, completed: false }), { status: 201 }));
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
 
     render(<App />);
@@ -45,7 +46,7 @@ describe('practice puzzle', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'plant', definition: 'A living organism.', answerDefinition: 'A living organism.', feedback: ['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT', 'CORRECT'], attemptsRemaining: 4, completed: true, outcome: 'WON', answer: 'plant' }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-2', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
 
     render(<App />);
@@ -85,7 +86,7 @@ describe('practice puzzle', () => {
       if (url.endsWith('/guesses')) return pendingGuess;
       return Response.json({ id: 'game-1', wordLength: 5, attemptLimit: 6, guesses: [] });
     });
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Games' }));
@@ -116,7 +117,7 @@ describe('practice puzzle', () => {
       }
       return Response.json({ id: 'game-1', wordLength: 5, attemptLimit: 6, guesses: [] });
     });
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Games' }));
@@ -133,7 +134,7 @@ describe('practice puzzle', () => {
   });
 
   it('shows rules for the selected length and difficulty before starting', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 401 })));
+    stubFetchWithVocabularyRanges( vi.fn(async () => new Response('{}', { status: 401 })));
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Games' }));
@@ -150,7 +151,7 @@ describe('practice puzzle', () => {
   it('does not restore an old puzzle when an automatic guess finishes after an account change', async () => {
     let resolveGuess!: (response: Response) => void;
     const pendingGuess = new Promise<Response>(resolve => { resolveGuess = resolve; });
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => {
       const url = String(input);
       if (url.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (url.endsWith('/word-lists')) return Response.json([]);
@@ -177,7 +178,7 @@ describe('practice puzzle', () => {
       }), { status: 201 }))
       .mockResolvedValueOnce(Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }))
       .mockResolvedValueOnce(new Response(null, { status: 204 }));
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
 
     render(<App />);
@@ -201,7 +202,7 @@ describe('practice puzzle', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response('{}', { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ message: 'An account with this email already exists.' }), { status: 409 }));
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
 
     render(<App />);
@@ -225,7 +226,7 @@ describe('practice puzzle', () => {
         { id: 'word-2', term: 'chair', definition: 'A seat', status: 'UNFAMILIAR' },
       ] }]), { status: 200 }))
       .mockResolvedValueOnce(new Response('[]', { status: 200 }));
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
 
     render(<App />);
@@ -245,7 +246,7 @@ describe('practice puzzle', () => {
   });
 
   it('clears search on page navigation and keeps attribution on the footer licenses page', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => new Response(String(input).endsWith('/auth/me') ? '{}' : '[]')));
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => new Response(String(input).endsWith('/auth/me') ? '{}' : '[]')));
     const user = userEvent.setup();
     render(<App />);
     const search = screen.getByRole('searchbox', { name: /search your words/i });
@@ -262,7 +263,7 @@ describe('practice puzzle', () => {
   });
 
   it('selects word lengths and the personal pool with the redesigned controls', async () => {
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 401 })));
+    stubFetchWithVocabularyRanges( vi.fn(async () => new Response('{}', { status: 401 })));
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: /^games$/i }));

@@ -6,6 +6,7 @@ import WordListsPanel from './WordListsPanel';
 import GameCatalog from './GameCatalog';
 import StatisticsPanel from './StatisticsPanel';
 import PronunciationButton from './PronunciationButton';
+import useVocabularyRanges from './useVocabularyRanges';
 import { normalizeTerm, rememberDictionaryDefinition } from './dictionary-cache';
 import { ApiError, apiRequest as api } from './services/api-client';
 
@@ -33,7 +34,7 @@ type GuessResult = {
   definition?: string;
   answerDefinition?: string;
 };
-type Game = { id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[] };
+type Game = { id: string; wordLength: number; difficulty?: string; vocabularyRange?: string; vocabularyRangeLabel?: string; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[] };
 const LAST_GAME_KEY = 'lexiplay-last-game';
 const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, hints: 3 }, { id: 'medium', label: 'Medium', guesses: 6, hints: 2 }, { id: 'hard', label: 'Hard', guesses: 5, hints: 1 }] as const;
 type WordListSummary = { id: string; words: { term: string }[] };
@@ -80,11 +81,28 @@ export default function App() {
   const [addedWords, setAddedWords] = useState<Set<string>>(() => new Set());
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
   const [activeSection, setActiveSection] = useState<Section>(currentSection);
+  const [selectedVocabularyRange, setSelectedVocabularyRange] = useState('all');
+  const { ranges: vocabularyRanges, loading: rangesLoading, error: rangesError, retry: retryRanges } = useVocabularyRanges(activeSection === 'play');
+  const vocabularyRange = vocabularyRanges?.find(range => range.id === selectedVocabularyRange);
   const [quickSearch, setQuickSearch] = useState('');
   const inputRef = useRef<HTMLInputElement>(null);
   const puzzleRef = useRef<HTMLDivElement>(null);
   const submittingGuess = useRef(false);
   const guessSession = useRef(0);
+
+  useEffect(() => {
+    if (game) setSelectedVocabularyRange(game.vocabularyRange ?? 'all');
+  }, [game?.id]);
+
+  useEffect(() => {
+    const range = vocabularyRanges?.find(item => item.id === selectedVocabularyRange);
+    if (!range) return;
+    setSelectedWordLength(current => {
+      if (range.wordCounts[current]) return current;
+      const available = [3, 4, 5, 6, 7, 8, 9].filter(length => range.wordCounts[length]);
+      return available.reduce((closest, length) => Math.abs(length - current) < Math.abs(closest - current) ? length : closest, available[0] ?? current);
+    });
+  }, [vocabularyRanges, selectedVocabularyRange]);
 
   useEffect(() => {
     const syncSection = () => {
@@ -164,15 +182,15 @@ export default function App() {
   }, [theme]);
 
   async function startPractice() {
-    if (progressSaving) return;
+    if (progressSaving || rangesLoading || vocabularyRange?.wordCounts[selectedWordLength] === 0) return;
     setBusy(true);
     setMessage('');
     try {
       const newGame = await api<Game>('/games', {
         method: 'POST',
-        body: JSON.stringify({ kind: 'word-puzzle', wordLength: selectedWordLength, difficulty, playWithMyWords }),
+        body: JSON.stringify({ kind: 'word-puzzle', wordLength: selectedWordLength, difficulty, playWithMyWords, ...(selectedVocabularyRange !== 'all' ? { vocabularyRange: selectedVocabularyRange } : {}) }),
       });
-      setGame({ ...newGame, hints: newGame.hints ?? { unused: 3, present: 3 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
+      setGame({ ...newGame, vocabularyRange: newGame.vocabularyRange ?? selectedVocabularyRange, vocabularyRangeLabel: newGame.vocabularyRangeLabel ?? vocabularyRange?.label ?? 'All vocabulary', hints: newGame.hints ?? { unused: 3, present: 3 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
       try { window.localStorage.setItem(LAST_GAME_KEY, newGame.id); } catch { /* Gameplay remains available without browser storage. */ }
       setGuess('');
       try {
@@ -379,10 +397,19 @@ export default function App() {
               <p>Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.</p>
             </section>
             <div className="practice-options">
+              <div className="vocabulary-range-picker">
+                <label htmlFor="vocabulary-range">Vocabulary range</label>
+                <select id="vocabulary-range" value={selectedVocabularyRange} disabled={rangesLoading || !vocabularyRanges} onChange={event => setSelectedVocabularyRange(event.target.value)} aria-describedby="vocabulary-range-help vocabulary-range-note">
+                  {vocabularyRanges ? vocabularyRanges.map(range => <option key={range.id} value={range.id} disabled={!Object.values(range.wordCounts).some(count => count > 0)}>{range.label}{Object.values(range.wordCounts).some(count => count > 0) ? '' : ' — unavailable'}</option>) : <option value="all">{rangesLoading ? 'Loading ranges…' : 'All vocabulary'}</option>}
+                </select>
+                <p id="vocabulary-range-help">{rangesLoading ? 'Checking available words…' : vocabularyRange?.description ?? 'Choose which vocabulary your answers come from.'}{vocabularyRange && <span>{playWithMyWords ? 'Your saved words are filtered by this range.' : `${vocabularyRange.wordCounts[selectedWordLength] ?? 0} answer words available at ${selectedWordLength} letters.`}</span>}</p>
+                <small id="vocabulary-range-note">Curated practice lists; levels are approximate, not official exam lists.</small>
+                {rangesError && <p className="vocabulary-range-error" role="alert">{rangesError} <button type="button" className="text-action" onClick={retryRanges}>Retry ranges</button></p>}
+              </div>
               <fieldset className="length-options"><legend>Word length</legend>
                 <div className="length-segments">
                   {[3, 4, 5, 6, 7, 8, 9].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
-                    <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={`${length} letters`} />
+                    <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} disabled={vocabularyRange?.wordCounts[length] === 0} onChange={() => setSelectedWordLength(length)} aria-label={`${length} letters`} />
                     <span>{length}</span>
                   </label>)}
                 </div>
@@ -392,14 +419,14 @@ export default function App() {
                 <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /><span className="option-switch" aria-hidden="true" />
               </label>
             </div>
-            <button className="primary-button" onClick={startPractice} disabled={busy || progressSaving || restoring}>
+            <button className="primary-button" onClick={startPractice} disabled={busy || progressSaving || restoring || rangesLoading || vocabularyRange?.wordCounts[selectedWordLength] === 0}>
               {progressSaving ? 'Saving your progress…' : restoring ? 'Restoring your puzzle…' : busy ? 'Getting a word…' : 'Start practice'} <span aria-hidden="true">→</span>
             </button>
           </div>
         ) : (
           <div ref={puzzleRef} className="puzzle">
             <div className="puzzle-heading">
-              <div><p className="eyebrow">{game.difficulty ?? difficulty} · {game.wordLength} letters</p></div>
+              <div><p className="eyebrow">{game.difficulty ?? difficulty} · {game.wordLength} letters</p><small className="vocabulary-range-label">Vocab range: {game.vocabularyRangeLabel ?? vocabularyRanges?.find(range => range.id === (game.vocabularyRange ?? 'all'))?.label ?? 'All vocabulary'}</small></div>
               <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
             </div>
             {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={resetGame} disabled={busy || progressSaving}>Choose a new puzzle</button></div>}

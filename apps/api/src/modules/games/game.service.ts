@@ -3,23 +3,37 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { GameRepository } from './game.repository';
 import { DIFFICULTIES, Difficulty, Feedback, Game, Guess, publicGame } from './game.types';
+import { filterVocabularyRange, VOCABULARY_RANGE_IDS, VOCABULARY_RANGES, VocabularyRange, vocabularyRangeDetails } from './vocabulary-ranges';
 
 @Injectable()
 export class GameService {
   constructor(@Inject(WordListsService) private readonly dictionary: WordListsService, @Inject(GameRepository) private readonly games: GameRepository) {}
 
-  async start(wordLength: number = 5, wordList: string[] | undefined, difficulty: Difficulty = 'medium', owner: string) {
+  async vocabularyRanges() {
+    const lengths = [3, 4, 5, 6, 7, 8, 9];
+    const dictionary = await Promise.all(lengths.map(length => this.dictionary.dictionaryGameWords(length)));
+    return VOCABULARY_RANGES.map(range => ({
+      ...range,
+      wordCounts: Object.fromEntries(lengths.map((length, index) => [length, filterVocabularyRange(dictionary[index]!, range.id).length])),
+    }));
+  }
+
+  async start(wordLength: number = 5, wordList: string[] | undefined, difficulty: Difficulty = 'medium', owner: string, vocabularyRange: VocabularyRange = 'all') {
     if (!Number.isInteger(wordLength) || wordLength < 3 || wordLength > 9) throw new BadRequestException({ code: 'INVALID_WORD_LENGTH', message: 'Choose a word length from three to nine letters.' });
     if (!Object.hasOwn(DIFFICULTIES, difficulty)) throw new BadRequestException('Choose a valid difficulty.');
+    if (!VOCABULARY_RANGE_IDS.includes(vocabularyRange)) throw new BadRequestException({ code: 'INVALID_VOCABULARY_RANGE', message: 'Choose a valid vocabulary range.' });
     const rules = DIFFICULTIES[difficulty];
     const allowedWords = await this.dictionary.dictionaryGameWords(wordLength);
     if (!allowedWords.length) throw new ServiceUnavailableException({ code: 'DICTIONARY_NOT_READY', message: `The dictionary has no ${wordLength}-letter game words. Load the dictionary before playing.` });
     const pool = new Set(allowedWords);
-    const answers = wordList === undefined ? allowedWords : [...new Set(wordList)].filter(word => pool.has(word));
-    if (!answers.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words in the game dictionary yet.` });
+    const candidates = wordList === undefined ? allowedWords : [...new Set(wordList)].filter(word => pool.has(word));
+    const answers = filterVocabularyRange(candidates, vocabularyRange);
+    if (!answers.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: vocabularyRange === 'all'
+      ? `Your word list has no ${wordLength}-letter words in the game dictionary yet.`
+      : `${wordList ? 'Your saved words have no' : 'There are no'} ${wordLength}-letter answers in ${vocabularyRangeDetails(vocabularyRange).label}. Choose another word length or vocabulary range.` });
     const game: Game = {
       id: randomUUID(), kind: 'word-puzzle', owner, answer: answers[randomInt(answers.length)]!, allowedWords,
-      wordLength, difficulty, attemptLimit: rules.attemptLimit, guesses: [], completed: false,
+      wordLength, vocabularyRange, difficulty, attemptLimit: rules.attemptLimit, guesses: [], completed: false,
       startedAt: new Date().toISOString(), completedAt: null,
       hints: { unused: rules.hints, present: rules.hints }, revealedAbsent: [], revealedPresent: [],
     };

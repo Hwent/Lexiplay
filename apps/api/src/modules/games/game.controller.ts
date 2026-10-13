@@ -20,8 +20,10 @@ export class GameController {
   async start(@Headers('cookie') cookie: string | undefined, @Body() body: StartGameDto, @Res({ passthrough: true }) response: Response) {
     const owner = await this.owner(cookie, response);
     const words = body.playWithMyWords ? await this.words.playableWords(readSessionCookie(cookie), body.wordLength ?? 5) : undefined;
-    return this.games.start(body.wordLength ?? 5, words, body.difficulty ?? 'medium', owner);
+    return this.games.start(body.wordLength ?? 5, words, body.difficulty ?? 'medium', owner, body.vocabularyRange ?? 'all');
   }
+  @Get('vocabulary-ranges')
+  async vocabularyRanges() { return this.games.vocabularyRanges(); }
   @Get(':gameId')
   async read(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string) { return this.games.read(id, await this.owner(cookie)); }
   @Post(':gameId/guesses')
