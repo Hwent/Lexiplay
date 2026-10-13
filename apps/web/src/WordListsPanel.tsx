@@ -1,6 +1,8 @@
 import { FormEvent, useEffect, useRef, useState } from 'react';
 import { dictionaryDefinition, DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
 import { ApiError, apiRequest as request } from './services/api-client';
+import PronunciationButton from './PronunciationButton';
+import { PasteFormat, preparePastedWords } from './pasted-word-import';
 
 type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 type WordEntry = { id: string; term: string; definition: string; partOfSpeech?: string | null; status: WordStatus };
@@ -48,6 +50,8 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   const [uploadListId, setUploadListId] = useState('');
   const [importSource, setImportSource] = useState<'paste' | 'file'>('paste');
   const [pastedWords, setPastedWords] = useState('');
+  const [pasteFormat, setPasteFormat] = useState<PasteFormat>('words');
+  const pasteInputRef = useRef<HTMLTextAreaElement>(null);
   const [preview, setPreview] = useState<ImportPreview | null>(null);
   const [listSearch, setListSearch] = useState(searchQuery);
   const [wordPage, setWordPage] = useState(1);
@@ -205,8 +209,14 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   }
 
   async function previewImport(listId: string) {
+    if (busy) return;
+    const pasted = preparePastedWords(pastedWords, pasteFormat);
+    if (importSource === 'paste' && pasted.split('\n').length > 1000) {
+      setMessage('Paste up to 1,000 words at a time.');
+      return;
+    }
     const file = importSource === 'paste'
-      ? pastedWords.trim() ? new File([pastedWords], 'pasted-words.txt', { type: 'text/plain' }) : null
+      ? pasted ? new File([pasted], 'pasted-words.txt', { type: 'text/plain' }) : null
       : uploadFile;
     if (!file) return;
     setBusy(true);
@@ -279,6 +289,8 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
   }
 
   const normalizedSearch = listSearch.trim().toLowerCase();
+  const preparedPaste = preparePastedWords(pastedWords, pasteFormat);
+  const pasteCount = preparedPaste ? preparedPaste.split('\n').length : 0;
   const visibleLists = lists.filter(list => !normalizedSearch
     || list.name.toLowerCase().includes(normalizedSearch)
     || list.words.some(word => `${word.term} ${word.definition}`.toLowerCase().includes(normalizedSearch)));
@@ -294,7 +306,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
         const list = lists[0];
         const alreadyAdded = list?.words.some(word => normalizeTerm(word.term) === normalizeTerm(entry.term)) ?? false;
         const definition = dictionaryDefinitions[entry.term];
-        return <article className="dictionary-result" key={entry.term}><div><button className="dictionary-term" type="button" aria-expanded={definition !== undefined} onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerms.has(entry.term)}>{entry.term}</button>{definition !== undefined && <><span>{definition || 'Definition unavailable.'}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</>}{definitionBusyTerms.has(entry.term) && <span role="status">Loading definition…</span>}</div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
+        return <article className="dictionary-result" key={entry.term}><div><div className="word-with-pronunciation"><button className="dictionary-term" type="button" aria-expanded={definition !== undefined} onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerms.has(entry.term)}>{entry.term}</button><PronunciationButton term={entry.term} /></div>{definition !== undefined && <><span>{definition || 'Definition unavailable.'}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</>}{definitionBusyTerms.has(entry.term) && <span role="status">Loading definition…</span>}</div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
       })}</section>}
       {visibleLists.map(list => {
         const listMatches = list.name.toLowerCase().includes(normalizedSearch);
@@ -320,17 +332,23 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
               <button type="button" aria-pressed={importSource === 'file'} disabled={busy} onClick={() => { if (importSource !== 'file') setUploadFile(null); setImportSource('file'); setPreview(null); }}>Upload file</button>
             </div>
             {importSource === 'paste' ? <div className="import-input">
+              <fieldset className="paste-format-options"><legend>What are you pasting?</legend>
+                <label><input type="radio" name={`paste-format-${list.id}`} checked={pasteFormat === 'words'} onChange={() => { setPasteFormat('words'); setPreview(null); }} disabled={busy} />Words only</label>
+                <label><input type="radio" name={`paste-format-${list.id}`} checked={pasteFormat === 'meanings'} onChange={() => { setPasteFormat('meanings'); setPreview(null); }} disabled={busy} />Words and meanings</label>
+              </fieldset>
               <label htmlFor={`paste-words-${list.id}`}>Paste your words</label>
-              <p id={`paste-help-${list.id}`}>One word per line, up to 1,000. Optional meanings: apple — a fruit.</p>
-              <textarea id={`paste-words-${list.id}`} aria-describedby={`paste-help-${list.id}`} rows={6} value={pastedWords} disabled={busy} placeholder={'apple — a fruit\nbrave: showing courage\ncurious'} onChange={event => { setPastedWords(event.target.value); setPreview(null); }} />
+              <p id={`paste-help-${list.id}`}>{pasteFormat === 'words' ? 'Separate words with commas, tabs or new lines. Bullets and numbering are removed.' : 'One word per line. Add a meaning after a colon, dash or tab.'}</p>
+              <textarea ref={pasteInputRef} id={`paste-words-${list.id}`} aria-describedby={`paste-help-${list.id} paste-count-${list.id}`} rows={6} value={pastedWords} disabled={busy} placeholder={pasteFormat === 'words' ? 'apple, brave, curious\nwell-being' : 'apple — a fruit\nbrave: showing courage\ncurious'} onChange={event => { setPastedWords(event.target.value); setPreview(null); }} onKeyDown={event => { if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') { event.preventDefault(); void previewImport(list.id); } }} />
+              <div className="paste-input-footer"><span id={`paste-count-${list.id}`} className={pasteCount > 1000 ? 'over-limit' : ''}>{pasteCount.toLocaleString()} / 1,000 entries{pasteCount > 1000 ? ' — split into smaller batches' : ''}</span><button type="button" className="text-action" disabled={busy || !pastedWords} onClick={() => { setPastedWords(''); setPreview(null); pasteInputRef.current?.focus(); }}>Clear text</button></div>
             </div> : <div className="import-input">
               <label htmlFor={`import-file-${list.id}`}>Choose a file</label>
               <p id={`file-help-${list.id}`}>TXT, DOCX, CSV, XLSX or PDF · up to 5 MB.</p>
               <input id={`import-file-${list.id}`} aria-label="Upload word list" aria-describedby={`file-help-${list.id}`} type="file" disabled={busy} accept=".txt,.docx,.csv,.xlsx,.pdf,application/pdf" onChange={event => { setUploadFile(event.target.files?.[0] ?? null); setPreview(null); }} />
             </div>}
-            <button className="account-action" type="button" onClick={() => void previewImport(list.id)} disabled={busy || (importSource === 'paste' ? !pastedWords.trim() : !uploadFile)}>{busy ? 'Working…' : 'Preview import'}</button>
+            <button className="account-action" type="button" title={importSource === 'paste' ? 'Preview import (Ctrl+Enter or ⌘+Enter)' : undefined} onClick={() => void previewImport(list.id)} disabled={busy || (importSource === 'paste' ? !pasteCount || pasteCount > 1000 : !uploadFile)}>{busy ? 'Working…' : 'Preview import'}</button>
             {preview && <>
               <p className="import-summary" role="status">{preview.totals.ready} ready · {preview.totals.warnings} {preview.totals.warnings === 1 ? 'duplicate' : 'duplicates'} · {preview.totals.rejected} invalid</p>
+              {preview.rows.some(row => !row.issues.length) && <label className="import-select-all"><input type="checkbox" aria-label="Select all ready words" checked={preview.rows.filter(row => !row.issues.length).every(row => row.selected)} ref={input => { if (input) { const ready = preview.rows.filter(row => !row.issues.length); input.indeterminate = ready.some(row => row.selected) && !ready.every(row => row.selected); } }} disabled={busy} onChange={event => { const selected = event.target.checked; setPreview(current => current ? { ...current, rows: current.rows.map(row => row.issues.length ? row : { ...row, selected }) } : current); }} />Select all ready words</label>}
               <div className="import-preview-table" role="table" aria-label="Import preview">
                 {preview.rows.map((row, index) => <div className="import-preview-row" role="row" key={`${row.rowNumber}-${index}`}>
                   <label><input type="checkbox" aria-label={`Include ${row.term || `row ${row.rowNumber}`}`} checked={row.selected} disabled={busy || row.issues.length > 0} onChange={event => setPreview(current => current ? { ...current, rows: current.rows.map((item, itemIndex) => itemIndex === index ? { ...item, selected: event.target.checked } : item) } : current)} /></label>
@@ -354,7 +372,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
                 <button className="text-action" type="button" onClick={() => setEditingWordId('')}>Cancel</button>
                 <button className="text-action remove-word-action" type="button" onClick={() => { deleteWord(list.id, word.id); setEditingWordId(''); }}>Remove word</button>
               </form> : <>
-                <span><strong>{word.term}</strong><small>{word.definition || 'No definition yet'}</small></span>
+                <span><span className="word-with-pronunciation"><strong>{word.term}</strong><PronunciationButton term={word.term} /></span><small>{word.definition || 'No definition yet'}</small></span>
                 <button className={`word-status ${word.status === 'KNOWN' ? 'known' : 'unfamiliar'}`} type="button" aria-pressed={word.status === 'KNOWN'} onClick={() => void changeWordStatus(list.id, word)}>{word.status === 'KNOWN' ? 'Known' : 'Unfamiliar'}</button>
                 <button className="text-action" type="button" aria-label={`Edit ${word.term}`} onClick={() => { setEditingWordId(word.id); setEditingTerm(word.term); setEditingDefinition(word.definition); }}>Edit</button>
               </>}

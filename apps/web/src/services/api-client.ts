@@ -1,5 +1,5 @@
 export class ApiError extends Error {
-  constructor(message: string, readonly status: number) {
+  constructor(message: string, readonly status: number, readonly code?: string) {
     super(message);
     this.name = 'ApiError';
   }
@@ -23,7 +23,8 @@ export async function apiRequest<T>(path: string, init?: RequestInit, fallbackMe
   if (!response.ok) {
     const message = payload && typeof payload === 'object' && 'message' in payload ? payload.message : undefined;
     const text = typeof message === 'string' ? message : Array.isArray(message) ? message.filter(item => typeof item === 'string').join(' ') : '';
-    throw new ApiError(text || fallbackMessage, response.status);
+    const code = payload && typeof payload === 'object' && 'code' in payload && typeof payload.code === 'string' ? payload.code : undefined;
+    throw new ApiError(text || fallbackMessage, response.status, code);
   }
   return payload as T;
 }

@@ -312,4 +312,70 @@ describe('vocabulary list panel', () => {
     const confirmBody = JSON.parse(fetchMock.mock.calls[2]![1]!.body as string) as { rows: { term: string; selected: boolean }[] };
     expect(confirmBody.rows).toMatchObject([{ term: 'apple', selected: true }]);
   });
+
+  it('prepares bulk pasted words, supports select-all and clearing, and blocks oversized batches', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json([list]))
+      .mockResolvedValueOnce(Response.json({ rows: [
+        { rowNumber: 1, term: 'apple', definition: '', partOfSpeech: null, selected: true, issues: [] },
+        { rowNumber: 2, term: 'brave', definition: '', partOfSpeech: null, selected: true, issues: [] },
+        { rowNumber: 3, term: 'bad123', definition: '', partOfSpeech: null, selected: false, issues: ['INVALID_TERM'] },
+      ], totals: { ready: 2, warnings: 0, rejected: 1 } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<WordListsPanel pageMode />);
+    await screen.findByRole('heading', { name: 'Cloud words' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    const input = screen.getByRole('textbox', { name: 'Paste your words' });
+    await user.click(input);
+    await user.paste('• apple, brave\nbad123');
+    expect(screen.getByText('3 / 1,000 entries')).toBeInTheDocument();
+    await user.keyboard('{Control>}{Enter}{/Control}');
+    await screen.findByRole('button', { name: 'Import 2 words' });
+    const file = (fetchMock.mock.calls[1]![1]!.body as FormData).get('file') as File;
+    const text = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(file); });
+    expect(text).toBe('apple\nbrave\nbad123');
+    const selectAll = screen.getByRole('checkbox', { name: 'Select all ready words' });
+    await user.click(selectAll);
+    expect(screen.getByRole('button', { name: 'Import 0 words' })).toBeDisabled();
+    expect(screen.getByRole('checkbox', { name: 'Include bad123' })).not.toBeChecked();
+    await user.click(screen.getByRole('checkbox', { name: 'Include apple' }));
+    expect(selectAll).toBePartiallyChecked();
+    await user.click(selectAll);
+    expect(screen.getByRole('button', { name: 'Import 2 words' })).toBeEnabled();
+    await user.click(screen.getByRole('button', { name: 'Clear text' }));
+    expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
+    expect(screen.queryByRole('table', { name: 'Import preview' })).not.toBeInTheDocument();
+    await user.paste(Array(1001).fill('apple').join(','));
+    expect(screen.getByText(/1,001 \/ 1,000 entries/)).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Preview import' })).toBeDisabled();
+    await user.keyboard('{Control>}{Enter}{/Control}');
+    expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('keeps meaning punctuation intact and invalidates the preview when paste format changes', async () => {
+    const fetchMock = vi.fn()
+      .mockResolvedValueOnce(Response.json([list]))
+      .mockResolvedValueOnce(Response.json({ rows: [{ rowNumber: 1, term: 'apple', definition: 'A fruit, usually red; also green.', partOfSpeech: null, selected: true, issues: [] }], totals: { ready: 1, warnings: 0, rejected: 0 } }));
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<WordListsPanel pageMode />);
+    await screen.findByRole('heading', { name: 'Cloud words' });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Upload' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Upload' }));
+    await user.click(screen.getByRole('radio', { name: 'Words and meanings' }));
+    await user.click(screen.getByRole('textbox', { name: 'Paste your words' }));
+    await user.paste('1. apple: A fruit, usually red; also green.');
+    expect(screen.getByText('1 / 1,000 entries')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Preview import' }));
+    await screen.findByRole('button', { name: 'Import 1 word' });
+    const file = (fetchMock.mock.calls[1]![1]!.body as FormData).get('file') as File;
+    const text = await new Promise(resolve => { const reader = new FileReader(); reader.onload = () => resolve(reader.result); reader.readAsText(file); });
+    expect(text).toBe('apple: A fruit, usually red; also green.');
+    await user.click(screen.getByRole('radio', { name: 'Words only' }));
+    expect(screen.queryByRole('table', { name: 'Import preview' })).not.toBeInTheDocument();
+    expect(screen.getByText('3 / 1,000 entries')).toBeInTheDocument();
+  });
 });
