@@ -42,6 +42,11 @@ describe('browser API client', () => {
     });
   });
 
+  it('preserves the invalid-guess code for specific game feedback', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ code: 'INVALID_GUESS', message: 'Not in dictionary.' }, { status: 400 })));
+    await expect(apiRequest('/games/game/guesses')).rejects.toMatchObject({ status: 400, code: 'INVALID_GUESS' });
+  });
+
   it('preserves unauthorized status even when an error response is not JSON', async () => {
     vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response('Unauthorized', { status: 401 })));
     const result = apiRequest('/word-lists', undefined, 'Please sign in.');

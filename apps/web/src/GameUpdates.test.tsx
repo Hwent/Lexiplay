@@ -1,3 +1,4 @@
+import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,7 +17,7 @@ describe('saved practice and account updates', () => {
       if (init?.method === 'POST') return Response.json(emptyGame);
       throw new Error(`Unexpected request: ${url}`);
     });
-    vi.stubGlobal('fetch', fetchMock);
+    stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup(); render(<App />);
     expect(screen.getByRole('region', { name: 'Available games' })).toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
@@ -36,7 +37,7 @@ describe('saved practice and account updates', () => {
   it('restores saved guesses, hint counts, and definitions after a remount', async () => {
     window.localStorage.setItem('lexiplay-last-game', 'saved-game');
     const saved = { ...emptyGame, guesses: [{ guess: 'beautiful', feedback: Array(9).fill('ABSENT'), attemptsRemaining: 4, completed: false, definition: 'Pleasing to look at.' }], hints: { unused: 0, present: 1 } };
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json(saved)));
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json(saved)));
     render(<App />);
     expect(await screen.findByRole('row', { name: 'beautiful' })).toBeInTheDocument();
     expect(screen.getByText('Pleasing to look at.')).toBeInTheDocument();
@@ -45,7 +46,7 @@ describe('saved practice and account updates', () => {
   });
   it('renders Statistics and an accessible winning distribution from persisted results', async () => {
     window.history.replaceState({}, '', '/progress');
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 2, wins: 1, losses: 1, winRate: 50, streak: 2, timezone: 'America/Toronto', distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 1 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', guesses: [{ outcome: 'WON', answer: 'apple' }] }] })));
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 2, wins: 1, losses: 1, winRate: 50, streak: 2, timezone: 'America/Toronto', distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 1 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', guesses: [{ outcome: 'WON', answer: 'apple' }] }] })));
     render(<App />);
     expect(await screen.findByText('50%')).toBeInTheDocument();
     expect(screen.getByText('2 days')).toBeInTheDocument();
@@ -55,13 +56,13 @@ describe('saved practice and account updates', () => {
   });
   it('shows guest guidance for Statistics instead of stale metrics', async () => {
     window.history.replaceState({}, '', '/progress');
-    vi.stubGlobal('fetch', vi.fn(async () => new Response('{}', { status: 401 })));
+    stubFetchWithVocabularyRanges( vi.fn(async () => new Response('{}', { status: 401 })));
     render(<App />);
     expect(await screen.findByText('Sign in to see your saved learning progress.')).toBeInTheDocument();
   });
   it('requests password recovery without disclosing whether an account exists', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ message: 'If that email has an account, a reset link will arrive shortly.' }));
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(screen.getByText('Account'));
     await user.click(screen.getByRole('button', { name: 'Forgot password?' }));
     await user.type(screen.getByRole('textbox', { name: 'Email' }), 'learner@example.test');
@@ -72,7 +73,7 @@ describe('saved practice and account updates', () => {
   it('consumes an email verification link and removes its token from the URL', async () => {
     window.history.replaceState({}, '', '/#action=verify&token=' + 'a'.repeat(43));
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ message: 'Your email is verified.' }));
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
     await waitFor(() => expect(window.location.hash).toBe(''));
     expect(window.location.pathname).toBe('/account');
     await user.click(screen.getByRole('button', { name: 'Verify email address' }));

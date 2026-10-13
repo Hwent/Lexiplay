@@ -68,6 +68,16 @@
 .welcome-card h2 { font-family: inherit; font-size: clamp(1.8rem, 4vw, 2.3rem); }
 .sample-grid { margin-bottom: 1rem; }
 .practice-options { width: min(100%, 34rem); margin-top: 1.8rem; }
+.vocabulary-range-picker { margin-bottom: 1.5rem; }
+.vocabulary-range-picker > label { display: block; margin-bottom: .65rem; font-size: 1.1rem; font-weight: 700; }
+.welcome-card .vocabulary-range-picker select { width: 100%; margin: 0; padding: .75rem 1rem; min-height: 3rem; appearance: auto; border-radius: .75rem; font-size: 1rem; }
+.vocabulary-range-picker p { margin: .65rem 0 .25rem; color: var(--soft-text); font-size: .95rem; line-height: 1.6; }
+.vocabulary-range-picker p > span { display: block; margin-top: .25rem; color: var(--accent); }
+.vocabulary-range-picker > small { color: var(--muted); font-size: .8rem; line-height: 1.5; }
+.vocabulary-range-error .text-action { color: var(--accent); font-size: 1rem; }
+.vocabulary-range-label { display: block; margin-top: .35rem; color: var(--muted); font-size: .85rem; line-height: 1.4; }
+.length-segments label:has(input:disabled) { opacity: .4; cursor: not-allowed; }
+.length-segments label:has(input:disabled):hover { background: transparent; }
 .length-options legend, .difficulty-options legend { font-size: 1.1rem; margin-bottom: .75rem; }
 .length-segments label { min-height: 3.25rem; }
 .length-segments label > span { font-size: 1.5rem; }
@@ -84,6 +94,46 @@
 .attempt-counter { font-size: 1rem; border-radius: 99px; background: var(--surface-soft); }
 .puzzle-tools { margin: -.4rem 0 1rem; }
 .puzzle-tools .account-link { font-size: 1rem; }
+.puzzle-heading { min-height: 2.5rem; margin-bottom: .25rem; }
+.puzzle-heading .eyebrow { margin: 0; }
+.puzzle-message { position: sticky; top: .5rem; z-index: 3; margin: 0 0 1rem; padding: .75rem 1rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--surface); color: var(--soft-text); font-size: 1rem; line-height: 1.5; text-align: center; }
+.puzzle-message.invalid { border-color: #d8796e; color: var(--notice); }
+.puzzle-revealed-hints { margin: -.25rem 0 1rem; display: flex; justify-content: center; flex-wrap: wrap; gap: .5rem; font-size: .95rem; }
+.puzzle-revealed-hints > span { padding: .5rem .75rem; border: 1px solid var(--line); border-radius: .6rem; background: var(--accent-soft); color: var(--soft-text); line-height: 1.5; }
+.invalid-guess { animation: invalid-word-shake .45s ease-in-out; }
+.invalid-guess .letter-tile { border-color: #d8796e; }
+@keyframes invalid-word-shake {
+  0%, 100% { transform: translateX(0); }
+  20%, 60% { transform: translateX(-7px); }
+  40%, 80% { transform: translateX(7px); }
+}
+.game-rules { width: min(100%, 34rem); margin-top: 1.25rem; padding: 1rem 1.2rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface-soft); text-align: left; }
+.game-rules h3 { margin: 0; font-size: 1.1rem; }
+.game-rules p { margin: .65rem 0 0; font-size: .95rem; color: var(--soft-text); line-height: 1.6; }
+.rule-colors { display: flex; flex-wrap: wrap; gap: .75rem 1.2rem; margin-top: 1rem; }
+.rule-colors > span { display: inline-flex; align-items: center; gap: .45rem; color: var(--text); font-size: .9rem; }
+.rule-swatch { width: 1.3rem; height: 1.3rem; border-radius: .25rem; flex: 0 0 auto; }
+.rule-swatch.correct { background: var(--correct); }
+.rule-swatch.present { background: var(--present); }
+.rule-swatch.absent { background: var(--absent); border: 1px solid var(--line); }
+.word-with-pronunciation { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
+.word-with-pronunciation > strong { overflow-wrap: anywhere; }
+.pronunciation-control { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .35rem; }
+.word-with-pronunciation .pronunciation-button { display: inline-grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; padding: .55rem; border: 1px solid transparent; border-radius: .65rem; background: transparent; color: var(--accent); cursor: pointer; }
+.pronunciation-button svg { width: 1.3rem; height: 1.3rem; }
+.word-with-pronunciation .pronunciation-button:hover:not(:disabled), .word-with-pronunciation .pronunciation-button[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent); }
+.word-with-pronunciation .pronunciation-button:disabled { opacity: .4; cursor: default; }
+.pronunciation-control .pronunciation-error { max-width: 16rem; font-size: .85rem; color: var(--notice); line-height: 1.4; white-space: normal; }
+.paste-format-options { margin: 0 0 .5rem; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
+.paste-format-options legend { margin-bottom: .5rem; font-size: 1rem; font-weight: 650; }
+.paste-format-options label { display: inline-flex; align-items: center; gap: .5rem; min-height: 2.75rem; }
+.paste-format-options input[type='radio'], .import-select-all input[type='checkbox'] { width: 1.2rem; height: 1.2rem; margin: 0; padding: 0; accent-color: var(--accent); flex: 0 0 auto; }
+.paste-input-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; color: var(--muted); font-size: .9rem; }
+.paste-input-footer .over-limit { color: var(--notice); font-weight: 650; }
+.import-select-all { display: flex; align-items: center; gap: .6rem; min-height: 2.75rem; font-size: .95rem; }
+.main-navigation .nav-label { width: auto; color: inherit; font: inherit; text-align: left; }
+.main-navigation .nav-mobile-label { display: none; }
+@media (prefers-reduced-motion: reduce) { .invalid-guess { animation: none; } }
 .guess-board { margin-inline: auto; gap: .35rem; container-type: inline-size; }
 .guess-row { gap: .35rem; }
 .letter-tile { border-radius: .4rem; font-size: clamp(1.15rem, 6cqi, 2.25rem); }
@@ -151,6 +201,18 @@
 .import-preview-row small { font-size: .85rem; }
 .import-preview-row input[type='checkbox'] { width: 1.25rem; height: 1.25rem; accent-color: var(--accent); }
 @media (max-width: 560px) {
+  .sidebar { padding: .5rem .25rem calc(.5rem + env(safe-area-inset-bottom)); }
+  .main-navigation { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: .1rem; }
+  .main-navigation button { width: 100%; min-width: 0; height: 4.5rem; padding: .35rem .1rem; gap: .35rem; font-size: clamp(.75rem, 3vw, .875rem); line-height: 1.1; }
+  .main-navigation .nav-icon { width: auto; font-size: 1.65rem; line-height: 1.2; }
+  .main-navigation .nav-label { display: none; }
+  .main-navigation .nav-mobile-label { display: block; width: auto; color: inherit; font: inherit; }
+  .workspace { padding-bottom: calc(6rem + env(safe-area-inset-bottom)); }
+  .game-rules { padding: 1rem; }
+  .game-rules p { font-size: .9rem; }
+  .rule-colors { gap: .65rem 1rem; }
+  .puzzle-message { font-size: .95rem; padding: .65rem .75rem; }
+  .guess-board { --puzzle-tile-size: clamp(1.75rem, calc((100svh - 31rem) / var(--puzzle-attempts)), 3.6rem); }
   .workspace .topbar { flex-wrap: wrap; padding-block: .75rem; gap: .75rem; }
   .header-actions { width: 100%; }
   .header-search { flex: 1; height: 2.75rem; }
@@ -170,7 +232,7 @@
   .game-consumables { grid-template-columns: 1fr 1fr; gap: .4rem; }
   .game-consumables .friendly-hint { flex-wrap: wrap; padding: .6rem; gap: .25rem; }
   .friendly-hint strong { font-size: .9rem; }
-  .game-consumables .friendly-hint small { font-size: .8rem; }
+  .game-consumables .friendly-hint small { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0, 0, 0, 0); white-space: nowrap; border: 0; }
   .hint-icon { display: none; }
   .keyboard-row { gap: .25rem; }
   .keyboard-key { font-size: 1.05rem; min-height: 3rem; }

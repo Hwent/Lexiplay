@@ -1,3 +1,4 @@
+import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -24,7 +25,7 @@ describe('guest progress on authentication', () => {
       if (path.endsWith(`/games/${gameId}`)) return Response.json(game);
       if (path.endsWith('/word-lists')) return Response.json([{ id: 'account-list', name: 'My words', words: [{ ...word, id: 'account-word' }] }]);
       throw new Error(`Unexpected request: ${path}`);
-    }); vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    }); stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
     if (mode === 'Create account') { await user.click(await screen.findByRole('tab', { name: mode })); await user.type(screen.getByLabelText('Username'), 'learner'); }
     else await user.type(await screen.findByLabelText('Username or email'), 'learner');
     await user.type(screen.getByLabelText('Password'), 'password8'); await user.click(screen.getByRole('button', { name: mode }));
@@ -46,7 +47,7 @@ describe('guest progress on authentication', () => {
       if (path.endsWith('/progress/claim')) return ++attempts === 1 ? Response.json({ message: 'Temporarily unavailable.' }, { status: 503 }) : Response.json({ wordsAdded: 1, wordsAlreadySaved: 0, gamesTransferred: 1, resumeGameId: gameId });
       if (path.endsWith(`/games/${gameId}`)) return Response.json(game);
       throw new Error(`Unexpected request: ${path}`);
-    }); vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    }); stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
     await user.type(await screen.findByLabelText('Username or email'), 'learner'); await user.type(screen.getByLabelText('Password'), 'password8');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('You’re signed in, but guest progress has not finished saving.');
@@ -59,7 +60,7 @@ describe('guest progress on authentication', () => {
   });
   it('resumes a pending transfer after reloading with an existing account session', async () => {
     window.localStorage.setItem(TRANSFER_KEY, JSON.stringify({ accountId: account.id, source: window.localStorage.getItem(LOCAL_WORDS_KEY), lastGameId: gameId, batches: [{ id: crypto.randomUUID(), words: [{ term: word.term, definition: word.definition, status: word.status, partOfSpeech: null }] }], next: 0, result: { wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null } }));
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return Response.json(account);
       if (path.endsWith('/progress/claim')) return Response.json({ wordsAdded: 1, wordsAlreadySaved: 0, gamesTransferred: 1, resumeGameId: gameId });

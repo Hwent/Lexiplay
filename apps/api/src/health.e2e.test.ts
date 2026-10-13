@@ -61,9 +61,51 @@ describe('game HTTP endpoints and rules', () => {
       expect(restored.guesses).toHaveLength(1);
       expect(restored.guesses[0].definition).toBe(`Definition of ${word}.`);
     }
-    for (const body of [{ wordLength: 10 }, { difficulty: 'impossible' }, { wordLength: '5' }, { playWithMyWords: 'true' }, { answer: 'apple' }]) {
+    for (const body of [{ wordLength: 10 }, { difficulty: 'impossible' }, { vocabularyRange: 'cefr-z9' }, { wordLength: '5' }, { playWithMyWords: 'true' }, { answer: 'apple' }]) {
       expect((await fetch(`${url}/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).status).toBe(400);
     }
+  });
+
+  it('lists dictionary-backed range counts and limits answers while accepting guesses outside the range', async () => {
+    const words = ['cat', 'apple', 'paper', 'irony', 'lucid', 'scope', 'thesis', 'paradox', 'beautiful'];
+    vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockImplementation(async length => words.filter(word => word.length === length));
+    const url = await startApp();
+    const catalogResponse = await fetch(`${url}/games/vocabulary-ranges`);
+    expect(catalogResponse.status).toBe(200);
+    const catalog = await catalogResponse.json();
+    expect(catalog.find((range: { id: string }) => range.id === 'all').wordCounts[5]).toBe(5);
+    expect(catalog.find((range: { id: string }) => range.id === 'primary').wordCounts[5]).toBe(2);
+    expect(catalog.find((range: { id: string }) => range.id === 'ielts').wordCounts[5]).toBe(1);
+    const response = await fetch(`${url}/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wordLength: 5, vocabularyRange: 'primary' }) });
+    expect(response.status).toBe(201);
+    const game = await response.json();
+    expect(game).toMatchObject({ vocabularyRange: 'primary', vocabularyRangeLabel: 'Primary school' });
+    expect(['apple', 'paper']).toContain(stored.get(game.id)!.answer);
+    expect(game).not.toHaveProperty('allowedWords');
+    const cookie = response.headers.get('set-cookie')!.split(';')[0]!;
+    const headers = { cookie, 'content-type': 'application/json' };
+    const guess = await fetch(`${url}/games/${game.id}/guesses`, { method: 'POST', headers, body: JSON.stringify({ guess: 'scope' }) });
+    expect(guess.status).toBe(201);
+    expect(await guess.json()).toMatchObject({ completed: false, attemptsRemaining: 5 });
+    const restored = await (await fetch(`${url}/games/${game.id}`, { headers })).json();
+    expect(restored).toMatchObject({ vocabularyRange: 'primary', vocabularyRangeLabel: 'Primary school' });
+    // Games created before ranges were introduced still restore with the full dictionary label.
+    delete stored.get(game.id)!.vocabularyRange;
+    expect(await (await fetch(`${url}/games/${game.id}`, { headers })).json()).toMatchObject({ vocabularyRange: 'all', vocabularyRangeLabel: 'All vocabulary' });
+  });
+
+  it('intersects personal words with a selected range and never silently falls back to all vocabulary', async () => {
+    const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'lucid', 'scope']);
+    await startApp();
+    const games = app!.get(GameService);
+    const game = await games.start(5, ['apple', 'lucid'], 'medium', 'test', 'primary');
+    expect(stored.get(game.id)!.answer).toBe('apple');
+    await expect(games.start(5, ['lucid'], 'medium', 'test', 'primary')).rejects.toThrow('Your saved words have no 5-letter answers in Primary school');
+    dictionary.mockResolvedValue(['scope']);
+    await expect(games.start(5, undefined, 'medium', 'test', 'primary')).rejects.toThrow('There are no 5-letter answers in Primary school');
+    const unrestricted = await games.start(5, undefined, 'medium', 'test');
+    expect(unrestricted.vocabularyRange).toBe('all');
+    expect(stored.get(unrestricted.id)!.answer).toBe('scope');
   });
   it('keeps the dictionary pool stable and checks the selected length without consuming invalid guesses', async () => {
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
