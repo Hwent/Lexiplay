@@ -37,7 +37,8 @@ export function parseWiktionaryDefinition(content: string) {
   for (const line of content.split(/\r?\n/)) {
     const heading = line.match(/^(={2,})\s*(.*?)\s*\1\s*$/);
     if (heading && heading[1]!.length <= 2) {
-      const label = heading[2]!.trim().toLowerCase();
+      // Homographs use numbered sections (for example, tear: Noun 1 / Noun 2).
+      const label = heading[2]!.trim().toLowerCase().replace(/\s+\d+$/, '');
       position = partsOfSpeech.has(label) ? label : undefined;
     }
     const sense = line.match(/^#{1,2}(?![#:*])\s*(.+)$/);

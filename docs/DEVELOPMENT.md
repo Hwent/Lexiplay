@@ -33,6 +33,8 @@ Every account has one overall “My words” list. `GET /api/v1/word-lists` ensu
 
 The shared dictionary is seeded from Simple English Wiktionary through its public MediaWiki API. After starting PostgreSQL with `docker compose up -d database`, load or refresh it with `pnpm --filter @lexiplay/api dictionary:seed`; this replaces the shared dictionary rows atomically after a successful import. The API requires internet access while seeding. Preserve attribution and the source’s share-alike terms as described in [`SIMPLE-WIKTIONARY-LICENSE`](../apps/api/src/modules/word-lists/SIMPLE-WIKTIONARY-LICENSE). `GET /api/v1/word-lists/dictionary?q=...` searches the shared dictionary, and `POST /api/v1/word-lists/:listId/dictionary` adds an entry to the owner’s list. Gameplay uses this same database dictionary.
 
+The importer accepts numbered parts of speech such as `Noun 1` and `Verb 2` for words with distinct meanings, including `tear`. Entries keep the first two distinct definitions and all recognized parts of speech. After updating the importer, refresh the dictionary in the intended database to recover entries skipped by an older parser; deploying the code alone does not update existing dictionary rows.
+
 Word-list uploads support `.txt`, `.docx`, `.csv`, `.xlsx`, and text-based `.pdf` files. Preview and confirmation stay separate; PDF extraction is limited to the first 50 pages, upload size is capped at 5 MB, and each confirmed row defaults to unfamiliar. Scanned PDFs without extractable text need OCR and currently preview as empty. API and UI boundaries are in [`outputs/docs/WORD_LIST_DESIGN.md`](../outputs/docs/WORD_LIST_DESIGN.md).
 
 ## Local setup
