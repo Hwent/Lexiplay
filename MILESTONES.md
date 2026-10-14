@@ -6,10 +6,10 @@ This records the implemented v0.1 scope and the proposed roadmap. Readiness desc
 
 ## v0.1 — Completed product scope
 
-- [x] Word puzzles with 3–8 letter options, difficulty selection, keyboard feedback, and continued practice.
-- [x] Vocabulary ranges: all vocabulary, primary school, Grade 12, IELTS practice, and CEFR practice bands.
+- [x] Word puzzles with 3–9 letter options, difficulty selection, keyboard feedback, and continued practice.
+- [x] Full-dictionary, CEFR A1–C2 and personal-word game pools; family-based vocabulary collections.
 - [x] Dictionary definitions, browser pronunciation where supported, and saving game words to a personal list.
-- [x] Personal word lists: create lists, add/edit/delete words, search the dictionary, pagination, and familiarity status.
+- [x] One My Word List per account, dictionary search, selected-word imports, pagination, familiarity and simple review scheduling.
 - [x] Import pasted words or words with meanings, plus TXT, CSV, DOCX, XLSX, and PDF files; preview and select rows before confirming.
 - [x] Guest practice and local word lists, with progress transfer to an account after sign-in.
 - [x] Username/password registration, sign-in/out, optional recovery email and verification, password reset, and account deletion.
@@ -23,11 +23,11 @@ This records the implemented v0.1 scope and the proposed roadmap. Readiness desc
 - Community is a placeholder; sharing and community challenges are planned.
 - The game catalog currently contains one playable mode: Word puzzle.
 - Pronunciation depends on browser speech support. Recovery emails require the deployment's mail configuration.
-- Statistics are available to signed-in learners. Vocabulary practice bands are curated practice filters, not proficiency certification.
+- Statistics are available to signed-in learners. CEFR collections are learning selections, not proficiency certification; IELTS and TOEFL collections are unavailable.
 
 ## v0.2 — Review habit (planned)
 
-- [ ] Spaced repetition for saved vocabulary.
+- [ ] Automated spaced repetition beyond the current review controls.
 - [ ] Daily practice goals.
 - [ ] Clearer progress trends across practice sessions.
 

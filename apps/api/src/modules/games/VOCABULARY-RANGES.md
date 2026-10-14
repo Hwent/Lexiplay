@@ -1,3 +1,3 @@
 # Vocabulary selection
 
-As of v0.2, practice uses the full imported dictionary for the selected word length. Personal-word mode intersects saved words with that dictionary. Curated ranges and their hard-coded word sets have been retired.
+Practice supports the full imported dictionary, a CEFR A1–C2 pool or personal words at the selected 3–9-letter length. CEFR and personal modes restrict answers; guesses use the full dictionary pool. An empty selected pool returns an error. The former primary-school, Grade 12 and IELTS ranges are retired.

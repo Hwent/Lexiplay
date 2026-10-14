@@ -10,7 +10,7 @@ These five lists are generated from the supplied `test_materials/en-LEVEL.json` 
 | B2 | 1,297 |
 | C1 | 1,278 |
 
-No C2 source was supplied. Each JSON file stores the list identity, author, level, terms, and normalized source parts of speech. Source definitions and pronunciation fields are not copied.
+Each JSON file stores identity, author, level, terms and normalized source parts of speech. Source definitions and pronunciation fields are not copied. The separate [C2 selection](C2-SELECTION.md) uses Octanove and the curated starter; it is not attributed to Oxford.
 
 Run `pnpm cefr:build` from the repository root to regenerate the assets. The API initializes the five records in `game_word_pools`; signed-in additions are references in `user_game_pools`, while guest additions are stored on the device.
 

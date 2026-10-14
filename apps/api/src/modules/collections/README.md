@@ -1,6 +1,6 @@
 # Vocabulary Collections
 
-System collections store word/part-of-speech references and source metadata, never imported source definitions. The supplied Oxford A1–C1 files are built with `pnpm cefr:build`; C2, IELTS and TOEFL remain unavailable until real datasets and their licensing information are supplied. `Core` is a LexiPlay learning stage, independent of CEFR.
+System collections store word/part-of-speech references and source metadata, never imported source definitions. The supplied Oxford A1–C1 files are built with `pnpm cefr:build`; the expanded C2 selection is documented in [C2 selection](../word-lists/pools/C2-SELECTION.md). IELTS and TOEFL remain unavailable. `Core` is a learning stage, independent of CEFR.
 
 Run `pnpm db:migrate:local` before starting an existing local database. The command accepts only localhost PostgreSQL and baselines the existing legacy schema before deploying incremental Prisma migrations. Back up existing data first. Build, typecheck, tests and development startup generate the Prisma client automatically.
 
