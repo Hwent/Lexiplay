@@ -26,10 +26,7 @@ function loadLocalLists(): WordList[] {
 }
 
 function savedDefinition(value: string) {
-  const valueTrimmed = value.trim();
-  const firstSemicolon = valueTrimmed.indexOf(';');
-  const secondSemicolon = firstSemicolon < 0 ? -1 : valueTrimmed.indexOf(';', firstSemicolon + 1);
-  const trimmed = secondSemicolon < 0 ? valueTrimmed : valueTrimmed.slice(0, secondSemicolon + 1).trim();
+  const trimmed = value.trim();
   return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
 }
 
@@ -306,7 +303,7 @@ export default function WordListsPanel({ pageMode = false, searchQuery = '' }: {
         const list = lists[0];
         const alreadyAdded = list?.words.some(word => normalizeTerm(word.term) === normalizeTerm(entry.term)) ?? false;
         const definition = dictionaryDefinitions[entry.term];
-        return <article className="dictionary-result" key={entry.term}><div><div className="word-with-pronunciation"><button className="dictionary-term" type="button" aria-expanded={definition !== undefined} onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerms.has(entry.term)}>{entry.term}</button><PronunciationButton term={entry.term} /></div>{definition !== undefined && <><span>{definition || 'Definition unavailable.'}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</>}{definitionBusyTerms.has(entry.term) && <span role="status">Loading definition…</span>}</div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
+        return <article className="dictionary-result" key={entry.term}><div><div className="word-with-pronunciation"><button className="dictionary-term" type="button" aria-expanded={definition !== undefined} onClick={() => void loadDictionaryDefinition(entry.term)} disabled={definitionBusyTerms.has(entry.term)}>{entry.term}</button><PronunciationButton term={entry.term} /></div>{definition !== undefined && <>{entry.senses?.length ? entry.senses.map(sense => <section className="dictionary-sense" aria-label={`${sense.partOfSpeech} definitions`} key={sense.partOfSpeech}><small>{sense.partOfSpeech}</small><span>{sense.definitions.join('; ')}</span></section>) : <><span>{definition || 'Definition unavailable.'}</span>{entry.partOfSpeech.length > 0 && <small>{entry.partOfSpeech.join(', ')}</small>}</>}</>}{definitionBusyTerms.has(entry.term) && <span role="status">Loading definition…</span>}</div><button className="bookmark-button" type="button" aria-label={alreadyAdded ? 'Already in word list' : `Save ${entry.term} to word list`} title={alreadyAdded ? 'Already in word list' : 'Save to word list'} disabled={alreadyAdded || !list || definition === undefined} onClick={() => list && definition !== undefined && addDictionaryWord(list.id, { ...entry, definition })}><BookmarkIcon added={alreadyAdded} />{alreadyAdded && <span>Added</span>}</button></article>;
       })}</section>}
       {visibleLists.map(list => {
         const listMatches = list.name.toLowerCase().includes(normalizedSearch);

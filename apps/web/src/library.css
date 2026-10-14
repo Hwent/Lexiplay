@@ -1,0 +1,163 @@
+.library-page {
+  --library-accent: #a6cb9c;
+  --library-soft: #263329;
+  --library-card: #1b1e1c;
+  --library-border: #343c36;
+}
+:root[data-theme='light'] .library-page {
+  --library-accent: #376747;
+  --library-soft: #e7eee4;
+  --library-card: #fff;
+  --library-border: #dce4da;
+}
+.library-introduction { display: flex; justify-content: space-between; align-items: center; gap: 2rem; padding: 2rem 0 2.2rem; }
+.library-eyebrow { margin: 0 0 .8rem; color: var(--library-accent); font-size: .68rem; font-weight: 750; letter-spacing: .16em; }
+.library-introduction h2 { margin: 0; font-size: clamp(2rem, 3.2vw, 3rem); font-weight: 650; line-height: 1.13; letter-spacing: -.055em; }
+.library-introduction h2 span { color: var(--library-accent); }
+.library-introduction > div > p:last-child { max-width: 29rem; margin: 1rem 0 0; color: var(--muted); font-size: .9rem; line-height: 1.7; }
+.library-art { position: relative; display: flex; flex-direction: column; justify-content: center; width: 12rem; height: 9rem; flex-shrink: 0; padding: 1.3rem; border: 1px solid var(--library-border); border-radius: 1.2rem; background: var(--library-soft); color: var(--library-accent); transform: rotate(-6deg); box-shadow: 7px 7px 0 var(--library-card), 8px 8px 0 var(--library-border); }
+.library-art > span:first-child { font-family: Georgia, serif; font-size: 4.6rem; line-height: 1; letter-spacing: -.08em; }
+.library-art > span:nth-child(2) { margin-top: .7rem; font-size: .7rem; }
+.library-art i { position: absolute; right: -1rem; top: -1rem; width: 2.5rem; height: 2.5rem; display: grid; place-items: center; border: 4px solid var(--page); border-radius: 50%; background: var(--library-accent); color: var(--page); font-style: normal; font-size: 1.5rem; }
+.library-page .vocabulary-library-tabs { gap: 1.5rem; margin: 0 0 1.8rem; border-bottom: 1px solid var(--library-border); }
+.library-page .vocabulary-library-tabs button { display: flex; align-items: center; gap: .55rem; min-height: 3.3rem; padding: .8rem .1rem; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font-size: .88rem; font-weight: 600; }
+.library-page .vocabulary-library-tabs button[aria-selected='true'] { border-bottom-color: var(--library-accent); background: transparent; color: var(--library-accent); }
+.vocabulary-library-tabs button span { font-size: 1.15rem; }
+.library-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; }
+.library-section-heading h2 { margin: 0 0 .4rem; font-size: 1.2rem; letter-spacing: -.025em; }
+.library-page .collection-intro { margin: 0; font-size: .85rem; line-height: 1.6; }
+.library-count { flex-shrink: 0; padding: .45rem .7rem; border: 1px solid var(--library-border); border-radius: 999px; color: var(--muted); font-size: .72rem; }
+.library-page .vocabulary-collection-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.library-page .vocabulary-collection-card { gap: .65rem; padding: 1.3rem; border-color: var(--library-border); border-radius: 1rem; background: var(--library-card); transition: border-color .18s, box-shadow .18s; }
+.library-page .vocabulary-collection-card[data-available='true']:hover { border-color: var(--library-accent); box-shadow: 0 6px 20px rgb(0 0 0 / 8%); }
+.collection-card-top { display: flex; align-items: center; justify-content: space-between; gap: .75rem; width: 100%; margin-bottom: .4rem; }
+.collection-level-mark { display: grid; place-items: center; width: 3rem; height: 3rem; flex-shrink: 0; border-radius: .85rem; background: var(--library-soft); color: var(--library-accent); font-size: 1.2rem; font-weight: 750; letter-spacing: -.04em; }
+[data-level='A2'] .collection-level-mark { background: #233942; color: #a0ccdb; }
+[data-level='B1'] .collection-level-mark { background: #393044; color: #d0b4ec; }
+[data-level='B2'] .collection-level-mark { background: #3e3525; color: #dfc796; }
+[data-level='C1'] .collection-level-mark { background: #3c2c30; color: #dfadb9; }
+:root[data-theme='light'] [data-level='A2'] .collection-level-mark { background: #e5f0f4; color: #346778; }
+:root[data-theme='light'] [data-level='B1'] .collection-level-mark { background: #f0e9f7; color: #795898; }
+:root[data-theme='light'] [data-level='B2'] .collection-level-mark { background: #f5efdf; color: #81672e; }
+:root[data-theme='light'] [data-level='C1'] .collection-level-mark { background: #f6e8eb; color: #985667; }
+.collection-category-label { color: var(--muted); font-size: .58rem; letter-spacing: .08em; font-weight: 650; text-align: right; }
+.library-page .collection-card-heading { min-height: 1.6rem; }
+.library-page .collection-card-heading h3 { font-size: 1rem; line-height: 1.4; letter-spacing: -.02em; }
+.library-page .collection-saved-badge { min-width: 0; color: var(--library-accent); font-size: .68rem; }
+.library-page .vocabulary-collection-card > p { min-height: 2.8em; color: var(--muted); font-size: .82rem; line-height: 1.55; }
+.library-page .vocabulary-collection-card > small { margin: .2rem 0 .5rem; font-size: .72rem; }
+.library-page .vocabulary-collection-card .account-action { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 2.65rem; margin-top: auto; padding: .65rem .85rem; border: 1px solid var(--library-border); border-radius: .6rem; background: var(--library-soft); color: var(--library-accent); font-size: .78rem; }
+.library-page .vocabulary-collection-card .account-action:disabled { background: transparent; color: var(--muted); cursor: default; }
+.library-page .collection-detail-heading { display: flex; align-items: center; gap: 1rem; margin: 1.4rem 0; padding: 1.3rem; border: 1px solid var(--library-border); border-radius: 1rem; background: var(--library-card); }
+.collection-detail-heading > div { flex: 1; }
+.library-page .collection-detail-heading h2 { margin: .2rem 0 .4rem; font-size: 1.6rem; }
+.library-page .collection-detail-heading p { margin: 0; font-size: .85rem; line-height: 1.5; }
+.library-page .collection-detail-heading .library-eyebrow { font-size: .6rem; }
+.library-page .collection-bulk-actions { padding: .8rem; border: 1px solid var(--library-border); border-radius: .8rem; background: var(--library-card); }
+.library-page .collection-bulk-actions button, .library-page .personal-entry-actions button, .library-page .personal-word-rows form button { min-height: 2.5rem; padding: .5rem .8rem; border: 1px solid var(--library-border); border-radius: .55rem; background: var(--control-bg); color: var(--text); font-size: .75rem; font-weight: 600; cursor: pointer; }
+.library-page .collection-bulk-actions .account-action, .library-page .personal-entry-actions button:first-child { margin: 0; border-color: var(--library-border); background: var(--library-soft); color: var(--library-accent); }
+.library-page button:disabled { cursor: default; }
+.library-page .personal-entry-actions button:disabled { opacity: .5; }
+.library-page .collection-word-rows { border: 1px solid var(--library-border); border-radius: .85rem; overflow: hidden; background: var(--library-card); }
+.library-page .collection-word-rows > li { padding: 1rem 1.2rem; border-color: var(--library-border); }
+.library-page .collection-word-rows > li:last-child { border-bottom: 0; }
+.library-page .collection-word-rows > li > input { width: 1.1rem; height: 1.1rem; accent-color: var(--library-accent); }
+.library-page .collection-word-rows .word-with-pronunciation strong { font-size: 1rem; }
+.library-page .collection-word-rows small { font-size: .72rem; }
+.library-page .collection-word-rows p { margin: .55rem 0; font-size: .85rem; line-height: 1.6; }
+.personal-word-heading { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.word-familiarity { flex-shrink: 0; text-align: right; }
+.familiarity-dots { display: flex; justify-content: flex-end; gap: 4px; margin-top: .5rem; }
+.familiarity-dots i { width: 1rem; height: .3rem; border-radius: 2px; background: var(--library-border); }
+.familiarity-dots i[data-filled='true'] { background: var(--library-accent); }
+.personal-word-meta { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .5rem; }
+.library-page .personal-word-meta small, .library-page .personal-word-meta p { margin: 0; color: var(--muted); font-size: .68rem; }
+.library-page .personal-entry-actions { gap: .5rem; margin: .8rem 0 0; }
+.library-page .personal-word-rows form { padding: 1rem; margin-top: .8rem; border: 1px solid var(--library-border); border-radius: .7rem; background: var(--surface-soft); }
+.library-page .personal-word-rows form button { margin: .5rem .5rem 0 0; }
+.library-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1rem 1.2rem; margin-bottom: 1rem; border: 1px dashed var(--library-border); border-radius: .8rem; }
+.library-tools > span { display: flex; flex-direction: column; gap: .3rem; }
+.library-tools strong { font-size: .82rem; }
+.library-tools small { color: var(--muted); font-size: .75rem; }
+.library-tools .text-action { padding: .6rem .8rem; border: 1px solid var(--library-border); border-radius: .55rem; color: var(--library-accent); font-size: .75rem; text-decoration: none; }
+.library-page .word-pagination { display: flex; align-items: center; justify-content: space-between; gap: .8rem; margin: 1rem 0; color: var(--muted); font-size: .75rem; }
+.library-page .word-pagination button { min-height: 2.5rem; padding: .5rem .8rem; border: 1px solid var(--library-border); border-radius: .55rem; background: var(--library-card); color: var(--text); font-size: .75rem; cursor: pointer; }
+.library-page .word-pagination button:disabled { opacity: .4; cursor: default; }
+.library-page [role='alert'], .library-page .library-empty { padding: 1rem; border: 1px solid var(--library-border); border-radius: .8rem; background: var(--library-card); line-height: 1.6; }
+.library-page .text-action:hover, .library-page .personal-entry-actions button:hover:enabled { color: var(--library-accent); }
+.ui-icon { display: inline-block; width: 1.15rem; height: 1.15rem; flex: 0 0 auto; vertical-align: middle; }
+.selection-control { position: relative; display: inline-flex; align-items: center; gap: .65rem; cursor: pointer; flex-shrink: 0; }
+.selection-control input { position: absolute; opacity: 0; width: 1px; height: 1px; margin: 0; }
+.selection-control-mark { display: inline-flex; align-items: center; justify-content: center; width: 2rem; height: 2rem; border: 1px solid var(--library-border); border-radius: 50%; color: var(--muted); background: var(--control-bg); transition: background .15s,color .15s; }
+.selection-control input:checked + .selection-control-mark { background: var(--library-accent); border-color: var(--library-accent); color: var(--library-card); }
+.selection-control input:focus-visible + .selection-control-mark { outline: 2px solid var(--library-accent); outline-offset: 3px; }
+.selection-control:has(input:disabled) { opacity: .45; cursor: default; }
+.collection-local-actions { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; margin: .9rem 0; font-size: .78rem; color: var(--muted); }
+.collection-local-actions button { display: inline-flex; align-items: center; gap: .5rem; border: 1px solid var(--library-border); background: var(--library-soft); color: var(--library-accent); border-radius: .65rem; padding: .65rem .9rem; cursor: pointer; }
+.word-selection-banner { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .8rem; margin: 1rem 0; padding: .9rem 1rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--accent-soft); color: var(--text); font-size: .8rem; line-height: 1.5; }
+.word-selection-banner button { padding: .6rem .8rem; border: 1px solid var(--line); border-radius: .55rem; background: var(--control-bg); color: var(--text); font-size: .75rem; cursor: pointer; }
+.word-selection-banner button:disabled { opacity: .5; cursor: default; }
+.word-selection-error, .word-selection-notice { padding: .8rem 1rem; border: 1px solid var(--line); border-radius: .7rem; color: var(--text); font-size: .8rem; line-height: 1.6; overflow-wrap: anywhere; }
+.nav-icon .ui-icon { width: 1.05rem; height: 1.05rem; }
+.library-back, .library-tools .text-action { display: inline-flex; align-items: center; gap: .5rem; }
+.collection-family-cards { display: grid; gap: 1rem; margin: 1rem 0; }
+.collection-family-card { overflow: hidden; border: 1px solid var(--library-border); border-radius: 1rem; background: var(--library-card); }
+.collection-family-card > header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1.2rem 1.3rem; background: var(--library-soft); }
+.collection-family-card h3 { margin: .4rem 0 0; font-size: 1.2rem; letter-spacing: -.02em; }
+.collection-family-card header label { display: inline-flex; gap: .5rem; align-items: center; font-size: .75rem; color: var(--muted); }
+.collection-family-card .collection-word-rows { margin: 0; }
+.family-related { padding: 1rem 1.3rem; border-top: 1px solid var(--library-border); color: var(--muted); font-size: .8rem; }
+.family-related summary { cursor: pointer; }
+.family-related ul { list-style: none; display: flex; flex-wrap: wrap; gap: .6rem; padding: 0; margin-top: 1rem; }
+.family-related li { display: flex; flex-direction: column; gap: .3rem; padding: .6rem .8rem; border-radius: .5rem; background: var(--library-soft); }
+.family-related p { line-height: 1.5; }
+.library-loading { padding: 2rem 1rem; border: 1px solid var(--library-border); border-radius: .85rem; color: var(--muted); text-align: center; }
+.dictionary-tools-panel { margin: 1rem 0 1.5rem; padding: 1.5rem; border: 1px solid var(--library-border); border-radius: 1rem; background: var(--library-card); }
+.dictionary-tools-panel > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; }
+.dictionary-tools-panel > header > .ui-icon { width: 2rem; height: 2rem; color: var(--library-accent); }
+.dictionary-tools-panel h3 { margin: .4rem 0 .6rem; font-size: 1.15rem; letter-spacing: -.02em; }
+.dictionary-tools-panel header p:last-child, .dictionary-tool-hint { color: var(--muted); font-size: .8rem; line-height: 1.65; }
+.dictionary-tool-tabs { display: flex; gap: .4rem; width: fit-content; margin: 1rem 0 1.3rem; padding: .3rem; border: 1px solid var(--library-border); border-radius: .65rem; background: var(--surface-soft); }
+.dictionary-tools-panel button { display: inline-flex; align-items: center; justify-content: center; gap: .5rem; min-height: 2.6rem; padding: .6rem .85rem; border: 1px solid var(--library-border); border-radius: .55rem; background: var(--control-bg); color: var(--text); font-size: .78rem; font-weight: 600; cursor: pointer; }
+.dictionary-tools-panel button:disabled { opacity: .5; cursor: default; }
+.dictionary-tool-tabs button { border: 1px solid transparent; background: transparent; }
+.dictionary-tool-tabs button[aria-pressed='true'] { border-color: var(--library-border); background: var(--library-soft); color: var(--library-accent); }
+.dictionary-search-label { display: block; margin: 1rem 0 .6rem; font-size: .82rem; font-weight: 600; }
+.dictionary-tools-panel input[type='search'], .dictionary-tools-panel textarea { width: 100%; padding: .9rem 1rem; border: 1px solid var(--library-border); border-radius: .6rem; background: var(--control-bg); color: var(--text); font: inherit; }
+.dictionary-tools-panel textarea { resize: vertical; line-height: 1.6; }
+.dictionary-tool-results { list-style: none; margin: 1rem 0 0; padding: 0; }
+.dictionary-tool-results li { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; padding: 1.1rem 0; border-top: 1px solid var(--library-border); }
+.dictionary-tool-results li > div { flex: 1; min-width: 0; overflow-wrap: anywhere; }
+.dictionary-tool-results strong { font-size: 1rem; }
+.dictionary-tool-results small { display: block; color: var(--muted); margin-top: .35rem; font-size: .7rem; }
+.dictionary-tool-results p { margin: .55rem 0 0; font-size: .82rem; line-height: 1.65; }
+.dictionary-tool-results li > button, .dictionary-import-actions > button { flex-shrink: 0; background: var(--library-soft); color: var(--library-accent); }
+.dictionary-import-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .8rem; margin-top: 1rem; }
+.dictionary-file-label { display: flex; flex-direction: column; gap: .5rem; flex: 1 1 200px; min-width: 0; font-size: .75rem; }
+.dictionary-file-label input { width: 100%; font-size: .75rem; color: var(--muted); }
+.dictionary-file-label input::file-selector-button { padding: .5rem .65rem; margin-right: .7rem; border: 1px solid var(--library-border); border-radius: .5rem; background: var(--control-bg); color: var(--text); cursor: pointer; }
+.dictionary-import-actions > span { color: var(--muted); font-size: .75rem; }
+.dictionary-import-summary { margin-top: 1rem; padding: .8rem 1rem; border-radius: .65rem; background: var(--library-soft); color: var(--library-accent); font-size: .8rem; line-height: 1.65; overflow-wrap: anywhere; }
+.dictionary-import-summary p { margin: .25rem 0; }
+@media (max-width: 1050px) { .library-page .vocabulary-collection-grid { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 600px) {
+  .library-introduction { padding: 1.4rem 0 1.8rem; gap: 1rem; }
+  .library-introduction h2 { font-size: 2rem; }
+  .library-introduction > div > p:last-child { font-size: .8rem; }
+  .library-art { display: none; }
+  .library-page .vocabulary-library-tabs { gap: 1.1rem; }
+  .library-page .vocabulary-library-tabs button { font-size: .8rem; }
+  .library-section-heading { align-items: flex-start; flex-direction: column; gap: .65rem; }
+  .library-page .vocabulary-collection-grid { grid-template-columns: 1fr; }
+  .library-page .collection-detail-heading { flex-wrap: wrap; }
+  .library-page .collection-detail-heading > .library-count { margin-left: 4rem; }
+  .library-page .collection-word-rows > li { padding: 1rem; }
+  .library-page .word-pagination { display: grid; grid-template-columns: auto minmax(0,1fr) auto; gap: .5rem; }
+  .library-page .word-pagination span { font-size: .68rem; text-align: center; }
+  .library-page .personal-entry-actions button { min-height: 44px; flex: 1 1 auto; }
+  .library-tools .text-action { width: 100%; min-height: 44px; text-align: left; }
+  .dictionary-tools-panel { padding: 1rem; }
+  .dictionary-tool-results li { flex-wrap: wrap; }
+  .dictionary-tool-results li > div { flex-basis: 100%; }
+  .dictionary-tool-results li > button, .dictionary-import-actions > button { width: 100%; min-height: 44px; }
+}

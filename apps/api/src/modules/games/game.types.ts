@@ -1,5 +1,3 @@
-import { VocabularyRange, vocabularyRangeDetails } from './vocabulary-ranges';
-
 export type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 export type Difficulty = 'easy' | 'medium' | 'hard';
 export const DIFFICULTIES = {
@@ -12,14 +10,13 @@ export type Guess = {
   outcome?: 'WON' | 'LOST'; answer?: string; definition?: string; answerDefinition?: string;
 };
 export type Game = {
+  pool?: { id: string; name: string; author: string };
   id: string; kind: 'word-puzzle'; owner: string; answer: string; allowedWords: string[];
   wordLength: number; difficulty: Difficulty; attemptLimit: number; guesses: Guess[];
-  vocabularyRange?: VocabularyRange;
   completed: boolean; startedAt: string; completedAt: string | null;
   hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[];
 };
 export function publicGame(game: Game) {
   const { owner: _owner, answer: _answer, allowedWords: _words, ...result } = game;
-  const vocabularyRange = game.vocabularyRange ?? 'all';
-  return { ...result, vocabularyRange, vocabularyRangeLabel: vocabularyRangeDetails(vocabularyRange).label };
+  return result;
 }

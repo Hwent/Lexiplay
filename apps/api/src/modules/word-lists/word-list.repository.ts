@@ -5,7 +5,7 @@ export type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 export type WordEntry = { id: string; term: string; definition: string; partOfSpeech: string | null; status: WordStatus };
 export type WordList = { id: string; name: string; words: WordEntry[] };
 type WordListRow = Omit<WordList, 'words'>;
-export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[] };
+export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[]; senses?: { partOfSpeech: string; definitions: string[] }[] };
 
 @Injectable()
 export class WordListRepository implements OnModuleDestroy {
@@ -18,6 +18,12 @@ export class WordListRepository implements OnModuleDestroy {
   async findAll(ownerId: string): Promise<WordList[]> {
     await this.ensureSchema();
     return [await this.ensureDefaultList(ownerId)];
+  }
+  async ensurePersonalList(ownerId: string): Promise<void> {
+    await this.ensureSchema();
+    const existing = await this.pool.query('SELECT id FROM user_word_lists WHERE owner_id=$1 AND is_default LIMIT 1', [ownerId]);
+    if (existing.rowCount) return;
+    await this.pool.query("INSERT INTO user_word_lists(owner_id,name,is_default) VALUES ($1,'My words',true) ON CONFLICT(owner_id) WHERE is_default DO NOTHING", [ownerId]);
   }
 
   async find(ownerId: string, id: string): Promise<WordList | null> {
@@ -32,8 +38,8 @@ export class WordListRepository implements OnModuleDestroy {
     await this.ensureDictionarySchema();
     const normalized = query.trim().toLowerCase();
     const { rows } = await this.pool.query<DictionaryEntry>(
-      `SELECT term, part_of_speech AS "partOfSpeech"
-       FROM dictionary_words WHERE term LIKE $1 || '%' OR term = $2
+      `SELECT term, part_of_speech AS "partOfSpeech", senses
+       FROM dictionary_words WHERE lower(term) LIKE $1 || '%' OR term = $2
        ORDER BY CASE WHEN term = $2 THEN 0 ELSE 1 END, term LIMIT $3`,
       [normalized, normalized, Math.min(limit, 10)],
     );
@@ -43,16 +49,24 @@ export class WordListRepository implements OnModuleDestroy {
   async getDictionaryDefinition(term: string): Promise<string> {
     await this.ensureDictionarySchema();
     const { rows } = await this.pool.query<{ definition: string }>(
-      'SELECT definition FROM dictionary_words WHERE term = $1', [term.trim().toLowerCase()],
+      'SELECT definition FROM dictionary_words WHERE lower(term) = lower($1) ORDER BY (term = $1) DESC, term LIMIT 1', [term.trim()],
     );
     return rows[0]?.definition ?? '';
+  }
+
+  async poolDictionaryEntries(terms: string[]) {
+    await this.ensureDictionarySchema();
+    const { rows } = await this.pool.query<{ term: string; senses: { partOfSpeech: string; definitions: string[] }[] }>(
+      `SELECT DISTINCT ON (lower(term)) lower(term) AS term, senses FROM dictionary_words
+       WHERE lower(term)=ANY($1::text[]) ORDER BY lower(term), (term=lower(term)) DESC, (btrim(definition)<>'') DESC, term`, [terms]);
+    return rows;
   }
 
   async dictionaryGameWords(wordLength: number): Promise<string[]> {
     await this.ensureDictionarySchema();
     const { rows } = await this.pool.query<{ term: string }>(
-      `SELECT term FROM dictionary_words
-       WHERE char_length(term) = $1 AND term ~ '^[a-z]+$' AND btrim(definition) <> ''
+      `SELECT DISTINCT lower(term) AS term FROM dictionary_words
+       WHERE char_length(term) = $1 AND lower(term) ~ '^[a-z]+$' AND btrim(definition) <> ''
        ORDER BY term`, [wordLength],
     );
     return rows.map(row => row.term);
@@ -62,14 +76,15 @@ export class WordListRepository implements OnModuleDestroy {
     await this.ensureSchema();
     const { rows } = await this.pool.query<WordEntry>(
       `INSERT INTO user_words (list_id, term, definition, part_of_speech)
-       SELECT lists.id, dictionary.term,
+       SELECT lists.id, lower(dictionary.term),
               CASE WHEN char_length(dictionary.definition) > 500
                 THEN left(dictionary.definition, 499) || '…'
                 ELSE dictionary.definition
               END,
-              dictionary.part_of_speech[1]
+              array_to_string(dictionary.part_of_speech, ', ')
        FROM user_word_lists AS lists CROSS JOIN dictionary_words AS dictionary
-       WHERE lists.owner_id = $1 AND lists.id = $2 AND dictionary.term = $3
+       WHERE lists.owner_id = $1 AND lists.id = $2 AND lower(dictionary.term) = lower($3)
+       ORDER BY (dictionary.term = $3) DESC, dictionary.term LIMIT 1
        ON CONFLICT (list_id, term) DO UPDATE SET term = EXCLUDED.term
        RETURNING id, term, definition, part_of_speech AS "partOfSpeech", status`,
       [ownerId, listId, term],
@@ -145,7 +160,7 @@ export class WordListRepository implements OnModuleDestroy {
 
   async mergeGuestWords(client: PoolClient, ownerId: string, words: Omit<WordEntry, 'id'>[]) {
     if (!words.length) return { wordsAdded: 0, wordsAlreadySaved: 0 };
-    const list = await client.query<{ id: string }>("INSERT INTO user_word_lists (owner_id, name) VALUES ($1, 'My words') ON CONFLICT (owner_id) DO UPDATE SET name = 'My words' RETURNING id", [ownerId]);
+    const list = await client.query<{ id: string }>("INSERT INTO user_word_lists (owner_id, name, is_default) VALUES ($1, 'My words', true) ON CONFLICT (owner_id) WHERE is_default DO UPDATE SET is_default = true RETURNING id", [ownerId]);
     const added = await client.query(`INSERT INTO user_words (list_id, term, definition, part_of_speech, status)
       SELECT $1, incoming.term, incoming.definition, incoming.part_of_speech, incoming.status
       FROM UNNEST($2::text[], $3::text[], $4::text[], $5::text[]) AS incoming(term, definition, part_of_speech, status)
@@ -178,7 +193,7 @@ export class WordListRepository implements OnModuleDestroy {
       CREATE TABLE IF NOT EXISTS user_words (
         id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
         list_id uuid NOT NULL REFERENCES user_word_lists(id) ON DELETE CASCADE,
-        term varchar(100) NOT NULL CHECK (term ~ '^[a-z][a-z ''-]{0,99}$'),
+        term varchar(100) NOT NULL CHECK (btrim(term) <> ''),
         definition varchar(500) NOT NULL DEFAULT '',
         part_of_speech varchar(40),
         status varchar(16) NOT NULL DEFAULT 'UNFAMILIAR' CHECK (status IN ('KNOWN', 'UNFAMILIAR')),
@@ -187,36 +202,26 @@ export class WordListRepository implements OnModuleDestroy {
         UNIQUE (list_id, term)
       );
       ALTER TABLE user_words DROP COLUMN IF EXISTS example;
-      ALTER TABLE user_words ALTER COLUMN definition TYPE varchar(500)
-        USING CASE WHEN char_length(definition) > 500 THEN left(definition, 499) || '…' ELSE definition END;
-      UPDATE user_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
+      ALTER TABLE user_words ALTER COLUMN part_of_speech TYPE text;
+      ALTER TABLE user_words ALTER COLUMN definition TYPE text;
       ALTER TABLE user_words ALTER COLUMN term TYPE varchar(100);
       ALTER TABLE user_words DROP CONSTRAINT IF EXISTS user_words_term_check;
-      ALTER TABLE user_words ADD CONSTRAINT user_words_term_check CHECK (term ~ '^[a-z][a-z ''-]{0,99}$');
+      ALTER TABLE user_words ADD CONSTRAINT user_words_term_check CHECK (btrim(term) <> '');
       ALTER TABLE user_words ADD COLUMN IF NOT EXISTS status varchar(16) NOT NULL DEFAULT 'UNFAMILIAR';
       ALTER TABLE user_words DROP CONSTRAINT IF EXISTS user_words_status_check;
       ALTER TABLE user_words ADD CONSTRAINT user_words_status_check CHECK (status IN ('KNOWN', 'UNFAMILIAR'));
       CREATE INDEX IF NOT EXISTS user_words_list_created_idx ON user_words(list_id, created_at);
-      WITH ranked AS (
-        SELECT id, first_value(id) OVER (PARTITION BY owner_id ORDER BY created_at, id) AS keep_id,
-               row_number() OVER (PARTITION BY owner_id ORDER BY created_at, id) AS list_rank
-        FROM user_word_lists
-      ), word_ranked AS (
-        SELECT words.id, ranked.keep_id,
-               row_number() OVER (PARTITION BY ranked.keep_id, lower(words.term) ORDER BY (words.list_id = ranked.keep_id) DESC, words.created_at, words.id) AS word_rank
-        FROM user_words AS words JOIN ranked ON ranked.id = words.list_id
-      )
-      DELETE FROM user_words WHERE id IN (SELECT id FROM word_ranked WHERE word_rank > 1);
-      WITH ranked AS (
-        SELECT id, first_value(id) OVER (PARTITION BY owner_id ORDER BY created_at, id) AS keep_id,
-               row_number() OVER (PARTITION BY owner_id ORDER BY created_at, id) AS list_rank
-        FROM user_word_lists
-      )
-      UPDATE user_words AS words SET list_id = ranked.keep_id FROM ranked WHERE words.list_id = ranked.id AND ranked.list_rank > 1;
-      WITH ranked AS (
-        SELECT id, row_number() OVER (PARTITION BY owner_id ORDER BY created_at, id) AS list_rank FROM user_word_lists
-      ) DELETE FROM user_word_lists WHERE id IN (SELECT id FROM ranked WHERE list_rank > 1);
-      CREATE UNIQUE INDEX IF NOT EXISTS user_word_lists_one_per_owner_idx ON user_word_lists(owner_id);
+      ALTER TABLE user_word_lists ADD COLUMN IF NOT EXISTS is_default boolean NOT NULL DEFAULT false;
+      ALTER TABLE user_word_lists ADD COLUMN IF NOT EXISTS preferred_language text NOT NULL DEFAULT 'en';
+      WITH ranked AS (SELECT id, row_number() OVER(PARTITION BY owner_id ORDER BY created_at,id) AS rank FROM user_word_lists)
+      UPDATE user_word_lists AS lists SET is_default=true FROM ranked WHERE lists.id=ranked.id AND ranked.rank=1
+        AND NOT EXISTS(SELECT 1 FROM user_word_lists existing WHERE existing.owner_id=lists.owner_id AND existing.is_default);
+      DROP INDEX IF EXISTS user_word_lists_one_per_owner_idx;
+      CREATE UNIQUE INDEX IF NOT EXISTS user_word_lists_default_per_owner_idx ON user_word_lists(owner_id) WHERE is_default;
+      ALTER TABLE user_words ADD COLUMN IF NOT EXISTS learning_stage text NOT NULL DEFAULT 'Core';
+      ALTER TABLE user_words ADD COLUMN IF NOT EXISTS custom_language text;
+      ALTER TABLE user_words ADD COLUMN IF NOT EXISTS familiarity integer NOT NULL DEFAULT 0;
+      ALTER TABLE user_words ADD COLUMN IF NOT EXISTS next_review_at timestamptz;
     `)).then(() => undefined);
     return this.schemaReady;
   }
@@ -224,20 +229,22 @@ export class WordListRepository implements OnModuleDestroy {
   private ensureDictionarySchema(): Promise<void> {
     this.dictionarySchemaReady ??= this.pool.query(`
       CREATE TABLE IF NOT EXISTS dictionary_words (
-        term varchar(100) PRIMARY KEY,
+        term text PRIMARY KEY,
         definition text NOT NULL,
         part_of_speech text[] NOT NULL DEFAULT '{}'
       );
       ALTER TABLE dictionary_words DROP COLUMN IF EXISTS source;
+      ALTER TABLE dictionary_words ALTER COLUMN term TYPE text;
+      ALTER TABLE dictionary_words ADD COLUMN IF NOT EXISTS senses jsonb NOT NULL DEFAULT '[]';
+      CREATE INDEX IF NOT EXISTS dictionary_words_lower_term_prefix_idx ON dictionary_words(lower(term) text_pattern_ops);
       CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
-      UPDATE dictionary_words SET definition = substring(definition FROM '^(([^;]*;){2})') WHERE definition ~ '^[^;]*;[^;]*;';
     `).then(() => undefined);
     return this.dictionarySchemaReady;
   }
 
   private async ensureDefaultList(ownerId: string): Promise<WordList> {
     const { rows } = await this.pool.query<WordListRow>(
-      "INSERT INTO user_word_lists (owner_id, name) VALUES ($1, 'My words') ON CONFLICT (owner_id) DO UPDATE SET name = 'My words' RETURNING id, name",
+      "INSERT INTO user_word_lists (owner_id, name, is_default) VALUES ($1, 'My words', true) ON CONFLICT (owner_id) WHERE is_default DO UPDATE SET is_default = true RETURNING id, name",
       [ownerId],
     );
     return (await this.includeWords(rows))[0]!;

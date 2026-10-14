@@ -23,6 +23,9 @@ describe('guest progress on authentication', () => {
       if (path.endsWith('/auth/login') || path.endsWith('/auth/register')) return Response.json({ user: account });
       if (path.endsWith('/progress/claim')) return Response.json({ wordsAdded: 1, wordsAlreadySaved: 0, gamesTransferred: 2, resumeGameId: gameId });
       if (path.endsWith(`/games/${gameId}`)) return Response.json(game);
+      if (path.endsWith('/collections')) return Response.json([]);
+      if (path.endsWith('/word-lists/mine')) return Response.json([{ id:'account-list',name:'My words',isDefault:true,preferredLanguage:'en',wordCount:1 }]);
+      if (path.includes('/word-lists/account-list/entries?')) return Response.json({ list:{id:'account-list',name:'My words',preferredLanguage:'en'},page:1,pageSize:25,total:1,words:[{id:'account-word',lemma:'chair',partOfSpeech:'noun',stage:'Core',definition:'A seat.',customDefinition:'A seat.',customLanguage:'en',language:'en',definitionSource:'custom',familiarity:5,nextReviewAt:null}] });
       if (path.endsWith('/word-lists')) return Response.json([{ id: 'account-list', name: 'My words', words: [{ ...word, id: 'account-word' }] }]);
       throw new Error(`Unexpected request: ${path}`);
     }); stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
@@ -36,7 +39,8 @@ describe('guest progress on authentication', () => {
     expect(await screen.findByRole('row', { name: 'paper' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /reveal a letter.*1 left/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Word List' }));
-    expect(await screen.findByText('chair')).toBeInTheDocument(); expect(screen.getByRole('button', { name: 'Known' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('tab', { name: 'My Word List' }));
+    expect(await screen.findByText('chair')).toBeInTheDocument(); expect(screen.getByText(/Familiarity 5\/5/)).toBeInTheDocument();
   });
   it('keeps authentication successful when transfer fails and offers a retry without losing progress', async () => {
     let attempts = 0;

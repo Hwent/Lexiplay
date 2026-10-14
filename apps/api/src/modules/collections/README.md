@@ -1,0 +1,11 @@
+# Vocabulary Collections
+
+System collections store word/part-of-speech references and source metadata, never imported source definitions. The supplied Oxford A1–C1 files are built with `pnpm cefr:build`; the expanded C2 selection is documented in [C2 selection](../word-lists/pools/C2-SELECTION.md). IELTS and TOEFL remain unavailable. `Core` is a learning stage, independent of CEFR.
+
+Run `pnpm db:migrate:local` before starting an existing local database. The command accepts only localhost PostgreSQL and baselines the existing legacy schema before deploying incremental Prisma migrations. Back up existing data first. Build, typecheck, tests and development startup generate the Prisma client automatically.
+
+Dictionary entries provide normalized lemma/part-of-speech identities. Existing English senses are resolved live from `dictionary_words`; reviewed multilingual DictionaryDefinition records extend that dictionary. Private definitions remain on personal entries. Display precedence is custom definition, approved preferred-language definition, approved English definition, then existing English senses, then null.
+
+Imports validate ownership and collection membership, lock the destination list, bulk-create references and skip duplicates. An omitted selection imports all entries; an empty selection is rejected. Preview never inserts. Legacy personal notes, language and progress survive imports. Each user has one overall My Word List, enforced by a unique owner constraint. POST /word-lists returns that list idempotently. Official collections are saved through POST /collections/:slug/save as user-owned references; saving does not copy words. Selecting words explicitly still adds private entries to the overall list. The consolidation migration snapshots all former lists, notes and progress in word_list_consolidation_backup before merging; existing overall-list entries win duplicate conflicts.
+
+The integration suite requires a disposable `TEST_DATABASE_URL` named `lexiplay_test_*`. Database suites execute sequentially because legacy schema initialization is shared. Collection tests exercise simultaneous imports within one suite; request throttling is mocked there so validation cases do not consume the authentication rate limit. Existing HTTP rate-limit tests run separately.

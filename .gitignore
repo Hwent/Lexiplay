@@ -10,8 +10,17 @@ coverage/
 .turbo/
 .next/
 test_materials/
+/dictionary_materials/
+/dictionary-materials/
+/dump/
+/dumps/
+*.dump
+*.dump.gz
+*.sql.gz
 /docs/
 /outputs/
 *.log
 .DS_Store
 Thumbs.db
+
+/apps/api/src/generated/prisma/

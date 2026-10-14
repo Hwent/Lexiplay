@@ -1,0 +1,2 @@
+-- Baseline marker: pre-existing account, dictionary, and gameplay tables remain managed by their legacy adapters.
+-- The following additive migration creates the collection-owned schema and upgrades personal-list metadata.

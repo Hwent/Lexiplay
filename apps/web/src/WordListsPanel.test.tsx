@@ -1,4 +1,4 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import WordListsPanel from './WordListsPanel';
@@ -12,6 +12,24 @@ describe('vocabulary list panel', () => {
     clearDictionaryCache();
     vi.unstubAllGlobals();
     window.localStorage.clear();
+  });
+
+  it('shows each definition with its matching part of speech', async () => {
+    const senses = [{ partOfSpeech: 'noun', definitions: ['A drop from an eye.'] }, { partOfSpeech: 'verb', definitions: ['To rip apart.'] }];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/word-lists')) return Response.json([list]);
+      if (path.includes('/dictionary?q=tear')) return Response.json([{ term: 'tear', partOfSpeech: ['noun', 'verb'], senses }]);
+      return Response.json({ definition: 'noun: A drop from an eye.\nverb: To rip apart.' });
+    }));
+    const user = userEvent.setup();
+    render(<WordListsPanel pageMode searchQuery="tear" />);
+    await user.click(await screen.findByRole('button', { name: 'tear' }));
+    const noun = await screen.findByRole('region', { name: 'noun definitions' });
+    const verb = screen.getByRole('region', { name: 'verb definitions' });
+    expect(within(noun).getByText('A drop from an eye.')).toBeInTheDocument();
+    expect(within(noun).queryByText('To rip apart.')).not.toBeInTheDocument();
+    expect(within(verb).getByText('To rip apart.')).toBeInTheDocument();
   });
 
   it('keeps status changes local until leaving the route', async () => {

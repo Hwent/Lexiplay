@@ -186,7 +186,7 @@ describe('owned vocabulary list HTTP endpoints', () => {
       method: 'POST', headers, body: JSON.stringify({ term: 'pear', definition: 'first sense; second sense; third sense' }),
     });
     const pear = await semicolonDefinition.json() as { id: string; definition: string };
-    expect(pear.definition).toBe('first sense; second sense;');
+    expect(pear.definition).toBe('first sense; second sense; third sense');
     await fetch(`${baseUrl}/${list.id}/words/${pear.id}`, { method: 'DELETE', headers });
 
     const addedLongDictionaryWord = await fetch(`${baseUrl}/${list.id}/dictionary`, {

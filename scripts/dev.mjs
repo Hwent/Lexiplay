@@ -44,6 +44,14 @@ function stopAll() {
 process.on('SIGINT', stopAll);
 process.on('SIGTERM', stopAll);
 
+// Generate the local Prisma client before loading API modules on a fresh checkout.
+await new Promise((resolveGeneration, rejectGeneration) => {
+  const entry = resolve(dirname(apiRequire.resolve('prisma/package.json')), 'build/index.js');
+  const child = spawn(process.execPath, [entry, 'generate'], { cwd: apiDirectory, env: developmentEnvironment(process.env), stdio: 'inherit', windowsHide: true });
+  child.once('error', rejectGeneration);
+  child.once('exit', code => code === 0 ? resolveGeneration() : rejectGeneration(new Error('Could not generate the collection data client.')));
+});
+
 const webPort = await new Promise((resolve, reject) => {
   const server = createServer();
   server.once('error', reject);
