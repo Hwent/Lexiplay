@@ -11,6 +11,8 @@
     "start": "node apps/api/dist/main.js",
     "build": "pnpm --recursive --if-present build",
     "typecheck": "pnpm --recursive --if-present typecheck",
-    "test": "node --test scripts/dev-environment.test.mjs && pnpm --recursive --if-present test"
+    "test": "node --test scripts/dev-environment.test.mjs scripts/copy-production-config.test.mjs && pnpm --recursive --if-present test",
+    "cefr:build": "node scripts/build-cefr-pools.mjs",
+    "db:migrate:local": "node scripts/migrate-local-collections.mjs"
   }
 }

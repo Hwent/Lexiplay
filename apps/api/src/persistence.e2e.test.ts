@@ -32,6 +32,41 @@ describe.skipIf(!testUrl)('real PostgreSQL persistence', () => {
     app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
     await app.listen(0, '127.0.0.1'); return `${await app.getUrl()}/api/v1`;
   }
+  it('stores definition-free CEFR pools, resolves senses on add, persists subscriptions, and plays from the selected list', async () => {
+    let url = await boot();
+    const catalogResponse = await fetch(url + '/word-lists/pools');
+    expect(catalogResponse.status).toBe(200);
+    const catalog = await catalogResponse.json();
+    expect(catalog.map((pool: { level: string }) => pool.level)).toEqual(['A1','A2','B1','B2','C1']);
+    expect(catalog.every((pool: { author: string }) => pool.author === 'oxford_3000_5000')).toBe(true);
+    expect((await fetch(url + '/word-lists/pools/oxford-a1', { method: 'POST' })).status).toBe(401);
+    await app!.get(WordListRepository).poolDictionaryEntries(['apple']);
+    const pool = new Pool({ connectionString: testUrl! });
+    try {
+      await pool.query(`INSERT INTO dictionary_words(term,definition,part_of_speech,senses) VALUES ('apple','A fruit.',ARRAY['noun'],'[{"partOfSpeech":"noun","definitions":["A fruit."]}]'::jsonb)
+        ON CONFLICT(term) DO UPDATE SET senses=EXCLUDED.senses,definition=EXCLUDED.definition`);
+      const user = await app!.get(AccountService).register({ username: 'pool_' + randomBytes(5).toString('hex'), password: 'password8' });
+      const headers = { cookie: 'lexiplay_session=' + user.token, 'content-type': 'application/json' };
+      for (let repeat = 0; repeat < 2; repeat++) {
+        const response = await fetch(url + '/word-lists/pools/oxford-a1', { method: 'POST', headers });
+        expect(response.status).toBe(201);
+        const added = await response.json();
+        expect(added.words.find((word: { term: string }) => word.term === 'apple')).toMatchObject({ definition: 'A fruit.', available: true });
+      }
+      expect(Number((await pool.query('SELECT count(*) FROM user_game_pools WHERE owner_id=$1', [user.user.id])).rows[0].count)).toBe(1);
+      const stored = (await pool.query('SELECT author,words FROM game_word_pools')).rows;
+      expect(stored).toHaveLength(5);
+      for (const row of stored) for (const word of row.words) expect(Object.keys(word).sort()).toEqual(['partsOfSpeech','term']);
+      const game = await fetch(url + '/games', { method: 'POST', headers, body: JSON.stringify({ wordLength: 5, poolId: 'oxford-a1' }) });
+      expect(game.status).toBe(201);
+      expect(await game.json()).toMatchObject({ pool: { id: 'oxford-a1', author: 'oxford_3000_5000' } });
+      const empty = await fetch(url + '/games', { method: 'POST', headers, body: JSON.stringify({ wordLength: 7, poolId: 'oxford-a1' }) });
+      expect(empty.status).toBe(400);
+      await app!.close(); app = undefined; url = await boot();
+      expect(await (await fetch(url + '/word-lists/pools/added', { headers })).json()).toEqual([expect.objectContaining({id:'oxford-a1'})]);
+    } finally { await pool.end(); }
+  });
+
   it('survives API restart, serializes concurrent guesses, rejects another owner, and reports saved Statistics', async () => {
     let url = await boot();
     const accounts = app!.get(AccountService);

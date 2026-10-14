@@ -1,4 +1,6 @@
-import { Body, Controller, Get, Headers, Inject, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import { CollectionsService } from '../collections/collections.service';
+import { CefrPoolsService } from '../word-lists/cefr-pools.service';
+import { BadRequestException, Body, Controller, Get, Headers, Inject, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { randomBytes } from 'node:crypto';
 import { GameService } from './game.service';
@@ -14,16 +16,15 @@ type Response = { setHeader(name: string, value: string): void };
 @UseGuards(ThrottlerGuard)
 @Throttle({ default: { ttl: 60_000, limit: 60 } })
 export class GameController {
-  constructor(@Inject(GameService) private readonly games: GameService, @Inject(WordListsService) private readonly words: WordListsService, @Inject(AccountService) private readonly accounts: AccountService) {}
+  constructor(@Inject(CollectionsService) private readonly collections: CollectionsService, @Inject(CefrPoolsService) private readonly pools: CefrPoolsService, @Inject(GameService) private readonly games: GameService, @Inject(WordListsService) private readonly words: WordListsService, @Inject(AccountService) private readonly accounts: AccountService) {}
 
   @Post()
   async start(@Headers('cookie') cookie: string | undefined, @Body() body: StartGameDto, @Res({ passthrough: true }) response: Response) {
+    if (body.poolId && (body.playWithMyWords || body.wordListId)) throw new BadRequestException('Choose either a CEFR list or your saved words.');
     const owner = await this.owner(cookie, response);
-    const words = body.playWithMyWords ? await this.words.playableWords(readSessionCookie(cookie), body.wordLength ?? 5) : undefined;
-    return this.games.start(body.wordLength ?? 5, words, body.difficulty ?? 'medium', owner, body.vocabularyRange ?? 'all');
+    const words = body.wordListId ? await this.collections.gameWords(readSessionCookie(cookie), body.wordListId, body.wordLength ?? 5) : body.poolId ? await this.pools.gameWords(body.poolId, body.wordLength ?? 5) : body.playWithMyWords ? await this.words.playableWords(readSessionCookie(cookie), body.wordLength ?? 5) : undefined;
+    return this.games.start(body.wordLength ?? 5, words, body.difficulty ?? 'medium', owner, body.poolId ? this.pools.summary(body.poolId) : undefined);
   }
-  @Get('vocabulary-ranges')
-  async vocabularyRanges() { return this.games.vocabularyRanges(); }
   @Get(':gameId')
   async read(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string) { return this.games.read(id, await this.owner(cookie)); }
   @Post(':gameId/guesses')

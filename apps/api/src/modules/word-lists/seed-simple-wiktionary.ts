@@ -1,12 +1,11 @@
 import { Pool } from 'pg';
 import { applyContinuation } from './wiktionary-pagination';
-import { parseWiktionaryDefinition } from './wiktionary-definition';
+import { WikiPage, WiktionaryEntryCollector } from './wiktionary-entry';
 
 const apiUrl = 'https://simple.wiktionary.org/w/api.php';
 const pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
 
-type WikiPage = { title: string; revisions?: Array<{ slots?: { main?: { content?: string } } }> };
-type ImportedEntry = { term: string; definition: string; partOfSpeech: string[] };
+type ImportedEntry = { term: string; definition: string; partOfSpeech: string[]; senses: { partOfSpeech: string; definitions: string[] }[] };
 type WikiResponse = {
   continue?: Record<string, string>;
   query?: { pages?: WikiPage[] };
@@ -69,6 +68,7 @@ async function* wiktionaryEntries() {
   });
   let continuationKeys: string[] = [];
   const seenRequests = new Set<string>();
+  const collector = new WiktionaryEntryCollector();
 
   while (true) {
     const cursor = JSON.stringify([...params].filter(([key]) => key === 'continue' || key.endsWith('continue')).sort(([left], [right]) => left.localeCompare(right)));
@@ -77,14 +77,12 @@ async function* wiktionaryEntries() {
     }
     seenRequests.add(cursor);
     const result = await fetchPageBatch(params);
-    for (const page of result.query?.pages ?? []) {
-      const term = page.title.toLowerCase();
-      const { definition, partOfSpeech } = parseWiktionaryDefinition(page.revisions?.[0]?.slots?.main?.content ?? '');
-      if (!/^[a-z][a-z '-]{0,99}$/.test(term) || !definition) continue;
-      yield { term, definition, partOfSpeech };
-    }
+    yield* collector.collect(result.query?.pages ?? []);
 
-    if (!result.continue) break;
+    if (!result.continue) {
+      collector.assertComplete();
+      break;
+    }
     continuationKeys = applyContinuation(params, continuationKeys, result.continue);
     await new Promise(resolve => setTimeout(resolve, 250));
   }
@@ -98,19 +96,23 @@ async function seed() {
   try {
     await client.query(`
       CREATE TABLE IF NOT EXISTS dictionary_words (
-        term varchar(100) PRIMARY KEY,
+        term text PRIMARY KEY,
         definition text NOT NULL,
-        part_of_speech text[] NOT NULL DEFAULT '{}'
+        part_of_speech text[] NOT NULL DEFAULT '{}',
+        senses jsonb NOT NULL DEFAULT '[]'
       );
       CREATE INDEX IF NOT EXISTS dictionary_words_term_prefix_idx ON dictionary_words(term text_pattern_ops);
     `);
     await client.query('BEGIN');
     await client.query('ALTER TABLE dictionary_words DROP COLUMN IF EXISTS source');
+    await client.query('ALTER TABLE dictionary_words ALTER COLUMN term TYPE text');
+    await client.query("ALTER TABLE dictionary_words ADD COLUMN IF NOT EXISTS senses jsonb NOT NULL DEFAULT '[]'");
     await client.query(`
       CREATE TEMP TABLE dictionary_words_stage (
-        term varchar(100) PRIMARY KEY,
+        term text PRIMARY KEY,
         definition text NOT NULL,
-        part_of_speech text[] NOT NULL DEFAULT '{}'
+        part_of_speech text[] NOT NULL DEFAULT '{}',
+        senses jsonb NOT NULL DEFAULT '[]'
       ) ON COMMIT DROP;
     `);
 
@@ -119,19 +121,21 @@ async function seed() {
       const grouped = new Map<string, ImportedEntry>();
       for (const item of batch) {
         const existing = grouped.get(item.term);
-        if (!existing || item.definition.length < existing.definition.length) grouped.set(item.term, item);
+        if (!existing || item.definition.length > existing.definition.length) grouped.set(item.term, item);
       }
       const terms = [...grouped.keys()];
       const definitions = [...grouped.values()].map(item => item.definition);
       const positions = [...grouped.values()].map(item => item.partOfSpeech.join(','));
+      const senses = [...grouped.values()].map(item => JSON.stringify(item.senses));
       await client.query(
-        `INSERT INTO dictionary_words_stage (term, definition, part_of_speech)
-         SELECT incoming.term, incoming.definition, string_to_array(incoming.positions, ',')
-         FROM UNNEST($1::text[], $2::text[], $3::text[]) AS incoming(term, definition, positions)
+        `INSERT INTO dictionary_words_stage (term, definition, part_of_speech, senses)
+         SELECT incoming.term, incoming.definition, string_to_array(incoming.positions, ','), incoming.senses::jsonb
+         FROM UNNEST($1::text[], $2::text[], $3::text[], $4::text[]) AS incoming(term, definition, positions, senses)
          ON CONFLICT (term) DO UPDATE SET
-           definition = CASE WHEN length(EXCLUDED.definition) < length(dictionary_words_stage.definition)
-             THEN EXCLUDED.definition ELSE dictionary_words_stage.definition END`,
-        [terms, definitions, positions],
+           definition = CASE WHEN length(EXCLUDED.definition) > length(dictionary_words_stage.definition)
+             THEN EXCLUDED.definition ELSE dictionary_words_stage.definition END,
+           part_of_speech = EXCLUDED.part_of_speech, senses = EXCLUDED.senses`,
+        [terms, definitions, positions, senses],
       );
       count += grouped.size;
       batch = [];
@@ -149,8 +153,14 @@ async function seed() {
     const entryCount = Number(countRows[0]?.count ?? 0);
     const { rows: sentinel } = await client.query("SELECT term FROM dictionary_words_stage WHERE term = 'because'");
     if (!sentinel.length) throw new Error('The import is missing the common word because; the existing dictionary was kept.');
+    const expectedCount = process.env.DICTIONARY_EXPECTED_COUNT;
+    if (expectedCount && (!/^\d+$/.test(expectedCount) || entryCount !== Number(expectedCount))) {
+      throw new Error('Expected ' + expectedCount + ' source entries, received ' + entryCount + '; the existing dictionary was kept.');
+    }
+    const { rows: missing } = await client.query<{ term: string }>("SELECT term FROM dictionary_words_stage WHERE btrim(definition) = '' ORDER BY term");
+    if (missing.length) console.warn(missing.length + ' entries retained without parsed definitions:', missing.map(row => row.term));
     await client.query('DELETE FROM dictionary_words');
-    await client.query('INSERT INTO dictionary_words (term, definition, part_of_speech) SELECT term, definition, part_of_speech FROM dictionary_words_stage');
+    await client.query('INSERT INTO dictionary_words (term, definition, part_of_speech, senses) SELECT term, definition, part_of_speech, senses FROM dictionary_words_stage');
     await client.query('COMMIT');
     console.log(`Simple English Wiktionary loaded; ${entryCount.toLocaleString()} dictionary entries are available.`);
   } catch (error) {

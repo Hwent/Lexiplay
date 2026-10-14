@@ -5,13 +5,6 @@ import { WordListRepository } from './word-list.repository';
 import { ConfirmWordImportDto } from './word-list.dto';
 import { WordListImportService } from './word-list-import';
 
-function trimDefinitionAtSecondSemicolon(value: string) {
-  const firstSemicolon = value.indexOf(';');
-  if (firstSemicolon < 0) return value;
-  const secondSemicolon = value.indexOf(';', firstSemicolon + 1);
-  return secondSemicolon < 0 ? value : value.slice(0, secondSemicolon + 1).trim();
-}
-
 @Injectable()
 export class WordListsService {
   constructor(
@@ -48,7 +41,7 @@ export class WordListsService {
     try {
       const word = await this.lists.addWord(user.id, listId, {
         term: input.term.trim().toLowerCase(),
-        definition: trimDefinitionAtSecondSemicolon(input.definition?.trim() ?? ''),
+        definition: input.definition?.trim() ?? '',
         partOfSpeech: input.partOfSpeech?.trim() || null,
       });
       if (!word) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
@@ -60,8 +53,8 @@ export class WordListsService {
 
   async searchDictionary(query: string) {
     const normalized = query.trim().toLowerCase();
-    if (!/^[a-z][a-z '-]{0,99}$/.test(normalized)) {
-      throw new BadRequestException({ code: 'INVALID_DICTIONARY_QUERY', message: 'Search for a word using letters, spaces, or hyphens.' });
+    if (!normalized || normalized.length > 100 || /[\u0000-\u001f]/.test(normalized)) {
+      throw new BadRequestException({ code: 'INVALID_DICTIONARY_QUERY', message: 'Enter a dictionary search of 1 to 100 characters.' });
     }
     return this.lists.searchDictionary(normalized);
   }
@@ -76,8 +69,7 @@ export class WordListsService {
 
   async addDictionaryWord(cookie: string | undefined, listId: string, term: string) {
     const user = await this.accounts.current(cookie);
-    const normalized = term.trim().toLowerCase();
-    const word = await this.lists.addDictionaryWord(user.id, listId, normalized);
+    const word = await this.lists.addDictionaryWord(user.id, listId, term.trim());
     if (!word) throw new NotFoundException({ code: 'DICTIONARY_WORD_NOT_FOUND', message: 'That dictionary word could not be found.' });
     return word;
   }
@@ -88,7 +80,7 @@ export class WordListsService {
     try {
       const word = await this.lists.updateWord(user.id, listId, wordId, {
         ...(input.term !== undefined ? { term: input.term.trim().toLowerCase() } : {}),
-        ...(input.definition !== undefined ? { definition: trimDefinitionAtSecondSemicolon(input.definition.trim()) } : {}),
+        ...(input.definition !== undefined ? { definition: input.definition.trim() } : {}),
         ...(input.partOfSpeech !== undefined ? { partOfSpeech: input.partOfSpeech.trim() || null } : {}),
         ...(input.status !== undefined ? { status: input.status } : {}),
       });
@@ -118,7 +110,7 @@ export class WordListsService {
     if (!list) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
     const selected = input.rows.filter(row => row.selected).map(row => ({
       term: row.term.trim().toLowerCase(),
-      definition: trimDefinitionAtSecondSemicolon(row.definition.trim()),
+      definition: row.definition.trim(),
       partOfSpeech: row.partOfSpeech?.trim() || null,
     }));
     const repeated = new Set<string>();

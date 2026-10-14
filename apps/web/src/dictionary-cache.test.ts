@@ -20,9 +20,19 @@ describe('shared browser dictionary cache', () => {
     expect(second).toEqual(first);
     await searchDictionary('Apple');
     expect(fetchMock).toHaveBeenCalledTimes(1);
-    expect(await Promise.all([dictionaryDefinition(' APPLE '), dictionaryDefinition('apple')])).toEqual(['A fruit.', 'A fruit.']);
+    expect(await Promise.all([dictionaryDefinition(' apple '), dictionaryDefinition('apple')])).toEqual(['A fruit.', 'A fruit.']);
     expect(await dictionaryDefinition('apple')).toBe('A fruit.');
     expect(fetchMock).toHaveBeenCalledTimes(2);
+  });
+
+  it('preserves case-distinct source entries and definitions', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => Response.json(
+      String(input).includes('?q=') ? [{ term: 'Polish', partOfSpeech: ['adjective'] }, { term: 'polish', partOfSpeech: ['verb'] }]
+        : { definition: String(input).includes('/Polish/') ? 'From Poland.' : 'To shine.' }
+    )));
+    expect((await searchDictionary('polish')).map(word => word.term)).toEqual(['Polish', 'polish']);
+    expect(await dictionaryDefinition('Polish')).toBe('From Poland.');
+    expect(await dictionaryDefinition('polish')).toBe('To shine.');
   });
 
   it('restores cached data after a page reload without calling the API', async () => {

@@ -1,3 +1,4 @@
+import { CopyConfigurationError, productionCopySource } from './copy-production-config.mjs';
 import { spawn } from 'node:child_process';
 import { createRequire } from 'node:module';
 import { mkdir, readFile, writeFile } from 'node:fs/promises';
@@ -25,11 +26,9 @@ function run(args, env = process.env) {
 }
 
 async function main() {
-  const source = new URL(process.env.SEED_DATABASE_URL ?? '');
-  if (!['postgres:', 'postgresql:'].includes(source.protocol) || ['localhost', '127.0.0.1', '[::1]'].includes(source.hostname)) {
-    throw new Error('Use the production external PostgreSQL URL in .env.deploy.');
-  }
-  source.searchParams.set('sslmode', 'verify-full');
+  const source = await productionCopySource(project);
+  stage = 'Docker availability';
+  await run(['info', '--format', '{{.ServerVersion}}']);
   const pool = new Pool({ connectionString: source.href, connectionTimeoutMillis: 20000, max: 1 });
   const quote = value => `"${value.replaceAll('"', '""')}"`;
   let expected;
@@ -100,7 +99,8 @@ async function main() {
   console.log(JSON.stringify({ localDatabase: name, verifiedTables: Object.keys(counts).length, counts, configuredLocalEnv: true }, null, 2));
 }
 
-main().catch(() => {
+main().catch(error => {
+  if (error instanceof CopyConfigurationError) console.error(error.message);
   console.error(`Database copy stopped during ${stage}. Production was only read; existing local databases were preserved. Check Docker, external database access, TLS, and PostgreSQL version compatibility. No credentials are printed.`);
   process.exitCode = 1;
 });

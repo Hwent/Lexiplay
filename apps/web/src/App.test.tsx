@@ -219,14 +219,16 @@ describe('practice puzzle', () => {
   });
 
   it('navigates between the learning library and Wordle practice', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response('{}', { status: 401 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([{ id: 'list-1', name: 'Classroom', description: '', words: [
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/word-lists')) return Response.json([{ id: 'list-1', name: 'Classroom', words: [
         { id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' },
         { id: 'word-2', term: 'chair', definition: 'A seat', status: 'UNFAMILIAR' },
-      ] }]), { status: 200 }))
-      .mockResolvedValueOnce(new Response('[]', { status: 200 }));
-    stubFetchWithVocabularyRanges( fetchMock);
+      ] }]);
+      return Response.json([]);
+    });
+    stubFetchWithVocabularyRanges(fetchMock);
     const user = userEvent.setup();
 
     render(<App />);

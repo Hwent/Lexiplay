@@ -1,8 +1,8 @@
 import { apiRequest } from './services/api-client';
 
-export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[] };
+export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[]; senses?: { partOfSpeech: string; definitions: string[] }[] };
 type Cached<T> = { value: T; expiresAt: number };
-const STORAGE_KEY = 'lexiplay-dictionary-cache-v1';
+const STORAGE_KEY = 'lexiplay-dictionary-cache-v4';
 const CACHE_LIFETIME = 24 * 60 * 60 * 1000;
 const searches = new Map<string, Cached<DictionaryEntry[]>>();
 const definitions = new Map<string, Cached<string>>();
@@ -58,14 +58,14 @@ function sharedRequest<T>(key: string, fetchValue: () => Promise<T>): Promise<T>
 }
 
 export function cachedDictionaryDefinition(term: string) {
-  return cached(definitions, normalizeTerm(term));
+  return cached(definitions, term.trim());
 }
 
 // Only canonical dictionary/API game definitions belong here, never personal notes.
 export function rememberDictionaryDefinition(term: string, definition: string) {
   if (!definition.trim()) return;
   load();
-  definitions.set(normalizeTerm(term), { value: definition, expiresAt: Date.now() + CACHE_LIFETIME });
+  definitions.set(term.trim(), { value: definition, expiresAt: Date.now() + CACHE_LIFETIME });
   persist();
 }
 
@@ -76,7 +76,7 @@ export function searchDictionary(query: string): Promise<DictionaryEntry[]> {
   return sharedRequest(`search:${normalized}`, async () => {
     const words = await request<DictionaryEntry[]>(`dictionary?q=${encodeURIComponent(normalized)}`);
     // A term can appear only once even if a provider returns duplicate matches.
-    const results = [...new Map(words.map(word => [normalizeTerm(word.term), { ...word, term: normalizeTerm(word.term) }])).values()];
+    const results = [...new Map(words.map(word => [word.term, word])).values()];
     searches.set(normalized, { value: results, expiresAt: Date.now() + CACHE_LIFETIME });
     for (const word of results) if (word.definition) rememberDictionaryDefinition(word.term, word.definition);
     persist();
@@ -85,7 +85,7 @@ export function searchDictionary(query: string): Promise<DictionaryEntry[]> {
 }
 
 export function dictionaryDefinition(term: string): Promise<string> {
-  const normalized = normalizeTerm(term);
+  const normalized = term.trim();
   const hit = cachedDictionaryDefinition(normalized);
   if (hit !== undefined) return Promise.resolve(hit);
   return sharedRequest(`definition:${normalized}`, async () => {

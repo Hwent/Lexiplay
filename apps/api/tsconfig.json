@@ -10,7 +10,12 @@
     "emitDecoratorMetadata": true,
     "esModuleInterop": true,
     "strictPropertyInitialization": false,
-    "types": ["node"]
+    "types": [
+      "node"
+    ],
+    "resolveJsonModule": true
   },
-  "include": ["src/**/*.ts"]
+  "include": [
+    "src/**/*.ts"
+  ]
 }

@@ -3,7 +3,8 @@ import { Type } from 'class-transformer';
 
 export class AddDictionaryWordDto {
   @IsString()
-  @Matches(/^[a-zA-Z][a-zA-Z '-]{0,99}$/)
+  @MinLength(1)
+  @MaxLength(100)
   term!: string;
 }
 

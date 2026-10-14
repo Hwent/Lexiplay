@@ -1,0 +1,7676 @@
+{
+  "id": "oxford-c1",
+  "name": "Oxford C1",
+  "level": "C1",
+  "author": "oxford_3000_5000",
+  "words": [
+    {
+      "term": "abolish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "abortion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "absence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "absent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "absurd",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "abundance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "abuse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "academy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accelerate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "acceptance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accessible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "accomplishment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accordance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accordingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "accountability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accountable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "accumulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "accumulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accusation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accused",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "acquisition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "acre",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "activation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "activist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "acute",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "adaptation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "adhere",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "adjacent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "adjustment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "administer",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "administrative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "administrator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "admission",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "adolescent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "adoption",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "adverse",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "advocate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "aesthetic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "affection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "aftermath",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "aggression",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "agricultural",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "aide",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "albeit",
+      "partsOfSpeech": [
+        "conjunction"
+      ]
+    },
+    {
+      "term": "alert",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "align",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "alignment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "alike",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "allegation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "allege",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "allegedly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "alliance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "allocate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "allocation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "allowance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ally",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "aluminium",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "amateur",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ambassador",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "amend",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "amendment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "amid",
+      "partsOfSpeech": [
+        "preposition"
+      ]
+    },
+    {
+      "term": "analogy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "anchor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "angel",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "anonymous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "apparatus",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "appealing",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "appetite",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "applaud",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "applicable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "appoint",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "appreciation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "arbitrary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "architectural",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "archive",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "arena",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "arguably",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "array",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "articulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ash",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "aspiration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "aspire",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "assassination",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "assault",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "assemble",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "assembly",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "assert",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "assertion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "assurance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "asylum",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "atrocity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "attain",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "attendance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "attorney",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "attribute",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "audit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "authentic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "authorize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "auto",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "autonomy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "availability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "await",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "backdrop",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "backing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "backup",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bail",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ballot",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "banner",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bare",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "barrel",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bass",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "battlefield",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bay",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "beam",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "beast",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "behalf",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "beloved",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "bench",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "benchmark",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "beneath",
+      "partsOfSpeech": [
+        "preposition"
+      ]
+    },
+    {
+      "term": "beneficiary",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "betray",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "bind",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "biography",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bishop",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bizarre",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "blade",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "blast",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bleed",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "blend",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bless",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "blessing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "boast",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "bonus",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "boom",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bounce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "boundary",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bow",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "breach",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "breakdown",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "breakthrough",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "breed",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "broadband",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "browser",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "brutal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "buck",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "buddy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "buffer",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bulk",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "burden",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bureaucracy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "burial",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "burst",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cabinet",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "calculation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "canvas",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "capability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "capitalism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "capitalist",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "cargo",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "carriage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "carve",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "casino",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "casualty",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "catalogue",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cater",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cattle",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "caution",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cautious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "cease",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cemetery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "chamber",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "chaos",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "characterize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "charm",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "charter",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "chronic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "chunk",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "circulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "circulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "citizenship",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "civic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "civilian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "clarity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "clash",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "classification",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cling",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "clinical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "closure",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cluster",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "coalition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "coastal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "cocktail",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cognitive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "coincide",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "collaborate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "collaboration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "collective",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "collision",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "colonial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "columnist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "combat",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "commence",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "commentary",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "commentator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "commerce",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "commissioner",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "commodity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "communist",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "companion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "comparable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "compassion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "compel",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "compelling",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "compensate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "compensation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "competence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "competent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "compile",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "complement",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "complexity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "compliance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "complication",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "comply",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "composition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "compromise",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "compute",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conceal",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "concede",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conceive",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conception",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "concession",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "condemn",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "confer",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "confession",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "configuration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "confine",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "confirmation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "confront",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "confrontation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "congratulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "congregation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "congressional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "conquer",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conscience",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "consciousness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "consecutive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "consensus",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "consent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "conserve",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "consistency",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "consolidate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "constituency",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "constitute",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "constitution",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "constitutional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "constraint",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "consultation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "contemplate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "contempt",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "contend",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "contender",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "contention",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "continually",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "contractor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "contradiction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "contrary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "contributor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "conversion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "convict",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conviction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cooperate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cooperative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "coordinate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "coordination",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "coordinator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cop",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "copper",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "copyright",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "correction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "correlate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "correlation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "correspond",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "correspondence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "correspondent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "corresponding",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "corrupt",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "corruption",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "costly",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "councillor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "counselling",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "counsellor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "counterpart",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "countless",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "coup",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "courtesy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "crawl",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "creator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "credibility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "credible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "creep",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "critique",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "crown",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "crude",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "crush",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "crystal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cult",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "cultivate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "curiosity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "custody",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cutting",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cynical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "dam",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "damaging",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "dawn",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "debris",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "debut",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "decision-making",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "decisive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "declaration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dedicated",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "dedication",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "deed",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "deem",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "default",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "defect",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "defensive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "deficiency",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "deficit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "defy",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "delegate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "delegation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "delicate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "demon",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "denial",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "denounce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dense",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "density",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dependence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "depict",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "deploy",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "deployment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "deprive",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "deputy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "descend",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "descent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "designate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "desirable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "desktop",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "destructive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "detain",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "detection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "detention",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "deteriorate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "devastate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "devil",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "devise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "diagnose",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "diagnosis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dictate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dictator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "differentiate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dignity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dilemma",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dimension",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "diminish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dip",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "diplomat",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "diplomatic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "directory",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "disastrous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "discard",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "discharge",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "disclose",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "disclosure",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "discourse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "discretion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "discrimination",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dismissal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "displace",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "disposal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dispose",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dispute",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "disrupt",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "disruption",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dissolve",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "distinction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "distinctive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "distort",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "distress",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "disturbing",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "divert",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "divine",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "doctrine",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "documentation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "domain",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dominance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "donor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dose",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "drain",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "drift",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "drown",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dual",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "dub",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dumb",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "duo",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "eager",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "earnings",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ease",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "echo",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ecological",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "educator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "effectiveness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "efficiency",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ego",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "elaborate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "electoral",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "elevate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "eligible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "elite",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "embark",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "embarrassment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "embassy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "embed",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "embody",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "emergence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "empirical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "empower",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "enact",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "encompass",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "encouragement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "encouraging",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "endeavour",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "endless",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "endorse",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "endorsement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "endure",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "enforce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "enforcement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "engagement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "engaging",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "enquire",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "enrich",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "enrol",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ensue",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "enterprise",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "enthusiast",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "entitle",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "entity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "epidemic",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "equality",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "equation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "erect",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "escalate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "essence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "establishment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "eternal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "evacuate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "evoke",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "evolutionary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "exaggerate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "excellence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "exceptional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "excess",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "exclusion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "exclusive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "exclusively",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "execute",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "execution",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "exert",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "exile",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "expenditure",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "experimental",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "expire",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "explicit",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "explicitly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "exploitation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "explosive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "extremist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "facilitate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "faction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "faculty",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "fade",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fairness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "fatal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "fate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "favourable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "feat",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "feminist",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "fibre",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "fierce",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "film-maker",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "filter",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "firearm",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "fixture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "flaw",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "flawed",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "flee",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fleet",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "flesh",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "flexibility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "flourish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fluid",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "footage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "foreigner",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "forge",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "formula",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "formulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "forth",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "forthcoming",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "foster",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fragile",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "franchise",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "frankly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "frustrated",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "frustrating",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "frustration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "functional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "fundraising",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "funeral",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gallon",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gambling",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gathering",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gaze",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gear",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "generic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "genocide",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "glance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "glimpse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "glorious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "glory",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "governance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grace",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grasp",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grave",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "gravity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grid",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grief",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grin",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grind",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "grip",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gross",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "guerrilla",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "guidance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "guilt",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gut",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hail",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "halfway",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "halt",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "handful",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "handling",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "handy",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "harassment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hardware",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "harmony",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "harsh",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "harvest",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hatred",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "haunt",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "hazard",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "heighten",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "heritage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hierarchy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "high-profile",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "hint",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "homeland",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hopeful",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "horizon",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "horn",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hostage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hostile",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "hostility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "humanitarian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "humanity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "humble",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "hydrogen",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "identification",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ideological",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ideology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "idiot",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ignorance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "imagery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "immense",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "imminent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "implementation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "imprison",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "imprisonment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "inability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "inadequate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inappropriate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "incidence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "inclined",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inclusion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "incur",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "indicator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "indictment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "indigenous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "induce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "indulge",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "inequality",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "infamous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "infant",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "infect",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "inflict",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "influential",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inherent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inhibit",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "initiate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "inject",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "injection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "injustice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "inmate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "insertion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "insider",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "inspect",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "inspection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "inspiration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "instinct",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "institutional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "instruct",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "instrumental",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "insufficient",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "insult",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "intact",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "intake",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "integral",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "integrated",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "integration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "integrity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "intensify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "intensity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "intensive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "intent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "interactive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "interface",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "interfere",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "interference",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "interim",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "interior",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "intermediate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "intervene",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "intervention",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "intimate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "intriguing",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "investigator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "invisible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "invoke",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "involvement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ironic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ironically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "irony",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "irrelevant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "isolation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "judicial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "junction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "jurisdiction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "justification",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "kidnap",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "kidney",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "kingdom",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "lad",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "landlord",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "landmark",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "lap",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "large-scale",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "laser",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "latter",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "lawn",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "lawsuit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "layout",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "leak",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "leap",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "legacy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "legendary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "legislation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "legislative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "legislature",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "legitimate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "lengthy",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "lesbian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "lesser",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "lethal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "liable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "liberal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "liberation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "liberty",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "license",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "lifelong",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "likelihood",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "limb",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "line-up",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "linear",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "linger",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "listing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "literacy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "liver",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "lobby",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "log",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "logic",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "long-standing",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "long-time",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "loom",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "loop",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "loyalty",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "machinery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "magical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "magistrate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "magnetic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "magnitude",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mainland",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mainstream",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "maintenance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mandate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mandatory",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "manifest",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "manipulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "manipulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "manuscript",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "march",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "marginal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "marine",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "marketplace",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mask",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "massacre",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mathematical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mature",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "maximize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "meaningful",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "meantime",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "medieval",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "meditation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "melody",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "memo",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "memoir",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "memorial",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mentor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "merchant",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mercy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mere",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "merely",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "merge",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "merger",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "merit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "methodology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "midst",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "migration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "militant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "militia",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mill",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "minimal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "minimize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "mining",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ministry",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "miracle",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "misery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "misleading",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "missile",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mob",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mobility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mobilize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "moderate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "modification",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "momentum",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "monk",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "monopoly",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "morality",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "motive",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "motorist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "municipal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mutual",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "namely",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "nationwide",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "naval",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "neglect",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "neighbouring",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "nest",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "newsletter",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "niche",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "noble",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "nod",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "nominate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "nomination",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "nominee",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "non-profit",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "nonetheless",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "nonsense",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "noon",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "notable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "notably",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "notify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "notorious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "nursery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "objection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "oblige",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "obsess",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "obsession",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "occasional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "occurrence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "odds",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "offering",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "offspring",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "operational",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "opt",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "optical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "optimism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "oral",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "organizational",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "orientation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "originate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "outbreak",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "outing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "outlet",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "outlook",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "outrage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "outsider",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "overlook",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "overly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "oversee",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "overturn",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "overwhelm",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "overwhelming",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "pad",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "parameter",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "parental",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "parish",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "parliamentary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "partial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "partially",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "passing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "passive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "pastor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "patch",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "patent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pathway",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "patrol",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "patron",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "peak",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "peasant",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "peculiar",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "persist",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "persistent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "personnel",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "petition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "philosopher",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "philosophical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "physician",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pioneer",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pipeline",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pirate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "plea",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "plead",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "pledge",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "plug",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "plunge",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "pole",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "poll",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pond",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "portfolio",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "portray",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "post-war",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "postpone",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "practitioner",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "preach",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "precedent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "precision",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "predator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "predecessor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "predominantly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "pregnancy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prejudice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "preliminary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "premier",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "premise",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "premium",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prescribe",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "prescription",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "presently",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "preservation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "preside",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "presidency",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "presidential",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "prestigious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "presumably",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "presume",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "prevail",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "prevalence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prevention",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prey",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "privatization",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "privilege",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "probe",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "problematic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "proceeding",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "proceeds",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "processing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "processor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "proclaim",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "productive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "productivity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "profitable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "profound",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "projection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prominent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "pronounced",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "propaganda",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "proposition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prosecute",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "prosecution",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prosecutor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prospective",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "prosperity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "protective",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "protocol",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "province",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "provincial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "provision",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "provoke",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "psychiatric",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "pulse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pump",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "punch",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "query",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "quest",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "quota",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "radar",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "radical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "raid",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rally",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ranking",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rape",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ratio",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rational",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ray",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "readily",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "realization",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "realm",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rear",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "reasoning",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reassure",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "rebel",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rebellion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "recipient",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reconstruction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "recount",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "referendum",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reflection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reform",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "refuge",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "refusal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "regain",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "regardless",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "regime",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "regulator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "regulatory",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rehabilitation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reign",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rejection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "relevance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reliability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reluctant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "remainder",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "remains",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "remedy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reminder",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "removal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "render",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "renew",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "renowned",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rental",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "replacement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reportedly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "representation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reproduce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "reproduction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "republic",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "resemble",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "reside",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "residence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "residential",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "residue",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "resignation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "resistance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "respective",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "respectively",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "restoration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "restraint",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "resume",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "retreat",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "retrieve",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "revelation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "revenge",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reverse",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "revival",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "revive",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "revolutionary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rhetoric",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rifle",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "riot",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rip",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ritual",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "robust",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rod",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rotate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "rotation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ruling",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rumour",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sack",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "sacred",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "sacrifice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "saint",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sake",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sanction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "scattered",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "sceptical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "scope",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "screw",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "scrutiny",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "seal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "secular",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "seemingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "segment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "seize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "seldom",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "selective",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "senator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sensation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sensitivity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sentiment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "separation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "serial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "set-up",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "settlement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sexuality",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "shareholder",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "shatter",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "shed",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "sheer",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "shipping",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "shrink",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "shrug",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "sigh",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "simulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "simulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "simultaneously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "sin",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "situated",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "sketch",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "skip",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "slam",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "slap",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "slash",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "slavery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "slot",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "smash",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "snap",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "soak",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "soar",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "socialist",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "sole",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "solely",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "solicitor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "solidarity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "solo",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "sovereignty",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spam",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "span",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spark",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "specialized",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "specification",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "specimen",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spectacle",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spectrum",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sphere",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spin",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spine",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spotlight",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spouse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "squad",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "squeeze",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stab",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stabilize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stake",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "standing",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "stark",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "statistical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "steer",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stem",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stereotype",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stimulus",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stir",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "storage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "straightforward",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "strain",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "strand",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "strategic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "striking",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "strip",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "strive",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "structural",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "stumble",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stun",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "submission",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "subscriber",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "subscription",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "subsidy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "substantial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "substantially",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "substitute",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "substitution",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "subtle",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "suburban",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "succession",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "successive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "successor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "suck",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "sue",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "suicide",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "suite",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "summit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "superb",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "superior",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "supervise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "supervision",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "supervisor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "supplement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "supportive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "supposedly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "suppress",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "supreme",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "surge",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "surgical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "surplus",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "surrender",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "surveillance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "suspension",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "suspicion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "suspicious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "sustain",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "swing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sword",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "symbolic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "syndrome",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "synthesis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "systematic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tactic",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tactical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "taxpayer",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tempt",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "tenant",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tender",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tenure",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "terminate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "terrain",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "terrific",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "testify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "testimony",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "texture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "thankfully",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "theatrical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "theology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "theoretical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "thereafter",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "thereby",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "thought-provoking",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "thoughtful",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "thread",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "threshold",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "thrilled",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "thrive",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "tide",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tighten",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "timber",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "timely",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tobacco",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tolerance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tolerate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "toll",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "torture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "toss",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "toxic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "trademark",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "trail",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "trailer",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "transaction",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "transcript",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "transformation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "transit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "transmission",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "transparency",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "transparent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "trauma",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "treaty",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tremendous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tribal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tribunal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tribute",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "trio",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "triumph",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "trophy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "troubled",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "trustee",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tuition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "turnout",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "turnover",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "twist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "undergraduate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "underlying",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "undermine",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "undoubtedly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "unify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "unprecedented",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unveil",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "upcoming",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "upgrade",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "uphold",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "utility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "utilize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "utterly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "vacuum",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vague",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "validity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vanish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "variable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "varied",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "vein",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "venture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "verbal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "verdict",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "verify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "verse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "versus",
+      "partsOfSpeech": [
+        "preposition"
+      ]
+    },
+    {
+      "term": "vessel",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "veteran",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "viable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "vibrant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "vice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vicious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "villager",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "violate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "violation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "virtue",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vocal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "vow",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "vulnerability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vulnerable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ward",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "warehouse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "warfare",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "warrant",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "warrior",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "weaken",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "weave",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "weed",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "well-being",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "whatsoever",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "whereby",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "whilst",
+      "partsOfSpeech": [
+        "conjunction"
+      ]
+    },
+    {
+      "term": "whip",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "wholly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "widen",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "widow",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "width",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "willingness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "wipe",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "wit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "withdrawal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "workout",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "worship",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "worthwhile",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "worthy",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "yell",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "yield",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "youngster",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    }
+  ]
+}

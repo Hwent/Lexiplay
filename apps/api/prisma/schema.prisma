@@ -1,0 +1,104 @@
+generator client {
+  provider = "prisma-client"
+  output = "../src/generated/prisma"
+  moduleFormat = "cjs"
+}
+datasource db {
+  provider = "postgresql"
+}
+model DictionaryEntry {
+  id String @id @default(uuid()) @db.Uuid
+  lemma String
+  normalizedLemma String @map("normalized_lemma")
+  partOfSpeech String @map("part_of_speech")
+  definitions DictionaryDefinition[]
+  collections CollectionEntry[]
+  personalEntries WordListEntry[]
+  @@unique([normalizedLemma,partOfSpeech])
+  @@map("dictionary_entries")
+}
+model DictionaryDefinition {
+  id String @id @default(uuid()) @db.Uuid
+  dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
+  entry DictionaryEntry @relation(fields:[dictionaryEntryId],references:[id],onDelete:Cascade)
+  language String
+  senseIndex Int @default(0) @map("sense_index")
+  definition String
+  source String
+  reviewStatus String @default("pending") @map("review_status")
+  @@unique([dictionaryEntryId,language,senseIndex])
+  @@map("dictionary_definitions")
+}
+model VocabularyCollection {
+  id String @id @default(uuid()) @db.Uuid
+  slug String @unique
+  name String
+  description String
+  category String
+  level String?
+  author String?
+  source String?
+  license String?
+  version String
+  status String @default("available")
+  entries CollectionEntry[]
+  imports WordListEntry[]
+  savedBy UserVocabularyCollection[]
+  @@map("vocabulary_collections")
+}
+model CollectionEntry {
+  collectionId String @db.Uuid @map("collection_id")
+  dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
+  collection VocabularyCollection @relation(fields:[collectionId],references:[id],onDelete:Cascade)
+  entry DictionaryEntry @relation(fields:[dictionaryEntryId],references:[id],onDelete:Restrict)
+  stage String @default("Core")
+  sortOrder Int @map("sort_order")
+  @@id([collectionId,dictionaryEntryId])
+  @@index([collectionId,sortOrder])
+  @@map("collection_entries")
+}
+model UserWordList {
+  id String @id @default(uuid()) @db.Uuid
+  userId String @unique @db.Uuid @map("owner_id")
+  name String @db.VarChar(60)
+  isDefault Boolean @default(false) @map("is_default")
+  preferredLanguage String @default("en") @map("preferred_language")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
+  entries WordListEntry[]
+  @@index([userId])
+  @@map("user_word_lists")
+}
+model WordListEntry {
+  id String @id @default(uuid()) @db.Uuid
+  wordListId String @db.Uuid @map("word_list_id")
+  dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
+  list UserWordList @relation(fields:[wordListId],references:[id],onDelete:Cascade)
+  entry DictionaryEntry @relation(fields:[dictionaryEntryId],references:[id],onDelete:Restrict)
+  customDefinition String? @map("custom_definition")
+  customLanguage String? @map("custom_language")
+  stage String @default("Core")
+  importedCollectionId String? @db.Uuid @map("imported_collection_id")
+  collection VocabularyCollection? @relation(fields:[importedCollectionId],references:[id],onDelete:SetNull)
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  progress LearningProgress?
+  @@unique([wordListId,dictionaryEntryId])
+  @@map("word_list_entries")
+}
+model LearningProgress {
+  id String @id @default(uuid()) @db.Uuid
+  wordListEntryId String @unique @db.Uuid @map("word_list_entry_id")
+  entry WordListEntry @relation(fields:[wordListEntryId],references:[id],onDelete:Cascade)
+  familiarity Int @default(0)
+  nextReviewAt DateTime? @db.Timestamptz @map("next_review_at")
+  @@map("learning_progress")
+}
+
+model UserVocabularyCollection {
+  userId String @db.Uuid @map("user_id")
+  collectionId String @db.Uuid @map("collection_id")
+  collection VocabularyCollection @relation(fields:[collectionId],references:[id],onDelete:Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  @@id([userId,collectionId])
+  @@map("user_vocabulary_collections")
+}
