@@ -17,7 +17,6 @@ describe('practice puzzle', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response('{}', { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-4', wordLength: 4, attemptLimit: 6, guesses: [] }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'word', feedback: ['ABSENT', 'PRESENT', 'ABSENT', 'CORRECT'], attemptsRemaining: 5, completed: false }), { status: 201 }));
     stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
@@ -32,7 +31,7 @@ describe('practice puzzle', () => {
     await user.type(guessInput, 'word');
 
     expect(await screen.findByRole('row', { name: 'word' })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(4);
+    expect(fetchMock).toHaveBeenCalledTimes(3);
     expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ kind: 'word-puzzle', wordLength: 4, difficulty: 'medium', playWithMyWords: false });
   });
 
@@ -40,12 +39,11 @@ describe('practice puzzle', () => {
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response('{}', { status: 401 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-1', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ code: 'INVALID_GUESS', message: 'Enter a valid five-letter word from the practice dictionary.' }), { status: 400 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'crane', definition: 'A large bird.', feedback: ['ABSENT', 'ABSENT', 'CORRECT', 'CORRECT', 'ABSENT'], attemptsRemaining: 5, completed: false }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ guess: 'plant', definition: 'A living organism.', answerDefinition: 'A living organism.', feedback: ['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT', 'CORRECT'], attemptsRemaining: 4, completed: true, outcome: 'WON', answer: 'plant' }), { status: 201 }))
       .mockResolvedValueOnce(new Response(JSON.stringify({ id: 'game-2', wordLength: 5, attemptLimit: 6, guesses: [] }), { status: 201 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify([]), { status: 200 }));
+      ;
     stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
 
@@ -61,7 +59,7 @@ describe('practice puzzle', () => {
     await user.keyboard('{Backspace}{Backspace}{Backspace}{Backspace}{Backspace}');
     await user.type(guessInput, 'crane');
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(5));
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(4));
     expect(await screen.findByRole('row', { name: 'crane' })).toBeInTheDocument();
     expect(screen.getByText(/5 guesses left/i)).toBeInTheDocument();
 
@@ -73,7 +71,7 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     expect(await screen.findByRole('textbox', { name: /five-letter guess/i })).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledTimes(8);
+    expect(fetchMock).toHaveBeenCalledTimes(6);
   });
 
   it('checks a word on its final on-screen letter and prevents duplicate requests while checking', async () => {
@@ -222,6 +220,7 @@ describe('practice puzzle', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.includes('/word-lists/dictionary?q=')) return Response.json([{ term: 'apple', definition: 'A fruit', partOfSpeech: ['noun'] }]);
       if (path.endsWith('/word-lists')) return Response.json([{ id: 'list-1', name: 'Classroom', words: [
         { id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' },
         { id: 'word-2', term: 'chair', definition: 'A seat', status: 'UNFAMILIAR' },

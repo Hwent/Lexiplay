@@ -1,5 +1,5 @@
 import { vi } from 'vitest';
-// Compatibility helper for existing tests; practice no longer requests ranges.
+// Keep public collection discovery separate from sequential game-response fixtures.
 export function stubFetchWithVocabularyRanges(fetchMock: (input: RequestInfo | URL, init?: RequestInit) => Promise<Response>) {
-  vi.stubGlobal('fetch', fetchMock);
+  vi.stubGlobal('fetch', (input:RequestInfo|URL,init?:RequestInit)=>String(input).endsWith('/word-lists/pools')?Promise.resolve(Response.json([])):fetchMock(input,init));
 }

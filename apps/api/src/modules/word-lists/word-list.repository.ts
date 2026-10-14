@@ -19,6 +19,12 @@ export class WordListRepository implements OnModuleDestroy {
     await this.ensureSchema();
     return [await this.ensureDefaultList(ownerId)];
   }
+  async ensurePersonalList(ownerId: string): Promise<void> {
+    await this.ensureSchema();
+    const existing = await this.pool.query('SELECT id FROM user_word_lists WHERE owner_id=$1 AND is_default LIMIT 1', [ownerId]);
+    if (existing.rowCount) return;
+    await this.pool.query("INSERT INTO user_word_lists(owner_id,name,is_default) VALUES ($1,'My words',true) ON CONFLICT(owner_id) WHERE is_default DO NOTHING", [ownerId]);
+  }
 
   async find(ownerId: string, id: string): Promise<WordList | null> {
     await this.ensureSchema();

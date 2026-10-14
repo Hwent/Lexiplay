@@ -7,7 +7,7 @@ type PoolWord = { term: string; partsOfSpeech: string[]; definition: string; ava
 type PoolDetails = PoolSummary & { words: PoolWord[]; availableCount: number; wordCounts: Record<string, number> };
 const POOLS_KEY = 'lexiplay-added-cefr-pools';
 const POOLS_EVENT = 'lexiplay:cefr-pools-changed';
-const validPool = (pool: PoolSummary) => !!pool && /^oxford-(a1|a2|b1|b2|c1)$/.test(pool.id) && typeof pool.name === 'string' && typeof pool.author === 'string' && Number.isInteger(pool.wordCount);
+const validPool = (pool: PoolSummary) => !!pool && /^(?:oxford-(?:a1|a2|b1|b2|c1)|lexiplay-c2)$/.test(pool.id) && typeof pool.name === 'string' && typeof pool.author === 'string' && Number.isInteger(pool.wordCount);
 function savedPools(): PoolSummary[] {
   try {
     const pools: unknown = JSON.parse(localStorage.getItem(POOLS_KEY) ?? '[]');
@@ -70,8 +70,10 @@ export default function CefrPoolLibrary({ signedIn }: { signedIn: boolean }) {
 
 export function CefrPoolPicker({ signedIn, value, disabled, onChange, onOpenLibrary }: { signedIn: boolean; value: string; disabled: boolean; onChange: (id: string) => void; onOpenLibrary: () => void }) {
   const [added, setAdded] = useState<PoolSummary[]>(savedPools);
+  const [catalog,setCatalog]=useState<PoolSummary[]>([]);
   useEffect(() => {
     let active = true;
+    api<PoolSummary[]>('/word-lists/pools').then(pools=>{if(active&&Array.isArray(pools)&&pools.every(validPool))setCatalog(pools);}).catch(()=>{});
     const update = () => setAdded(savedPools());
     window.addEventListener(POOLS_EVENT, update);
     if (signedIn) api<PoolSummary[]>('/word-lists/pools/added').then(pools => {
@@ -79,5 +81,6 @@ export function CefrPoolPicker({ signedIn, value, disabled, onChange, onOpenLibr
     }).catch(() => { /* Added lists already cached on this device remain available. */ });
     return () => { active = false; window.removeEventListener(POOLS_EVENT, update); };
   }, [signedIn]);
-  return <div className="cefr-pool-picker">{added.length > 0 && <><label htmlFor="cefr-pool">CEFR gaming pool</label><select id="cefr-pool" value={value} disabled={disabled} onChange={event => onChange(event.target.value)}><option value="">No CEFR pool selected</option>{added.map(pool => <option value={pool.id} key={pool.id}>{pool.name}</option>)}</select></>}<button type="button" className="text-action" onClick={onOpenLibrary}>{added.length ? 'Browse CEFR lists' : 'Add a CEFR gaming list'}</button></div>;
+  const available=[...new Map([...added,...catalog].map(pool=>[pool.id,pool])).values()];
+  return <div className="cefr-pool-picker">{available.length > 0 && <><label htmlFor="cefr-pool">CEFR gaming pool</label><select id="cefr-pool" value={value} disabled={disabled} onChange={event => onChange(event.target.value)}><option value="">No CEFR pool selected</option>{available.map(pool => <option value={pool.id} key={pool.id}>{pool.name}</option>)}</select></>}<button type="button" className="text-action" onClick={onOpenLibrary}>Browse CEFR collections</button></div>;
 }

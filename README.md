@@ -27,11 +27,14 @@ node --env-file=.env apps/api/node_modules/tsx/dist/cli.mjs apps/api/src/modules
 
 ## Documentation
 
+The local dictionary can be supplemented with Open English WordNet 2025 Core. Download and extract the [official JSON release](https://en-word.net/static/english-wordnet-2025-json.zip) into `.local-backups/wordnet-2025/json`, retaining the ZIP in `.local-backups/wordnet-2025/`. Run `pnpm dictionary:wordnet` for a transactional dry run; `pnpm dictionary:wordnet --apply` backs up and applies the additive supplement to the local database. Existing useful definitions are preserved. Import tooling and the merge policy are documented in [the WordNet importer guide](apps/api/src/modules/word-lists/WORDNET-IMPORT.md). License notices are shipped under `apps/web/public/licenses/`.
+
 Documentation is kept locally under `docs/` and excluded from Git. The former `outputs/docs/` documents are merged into `docs/design/`. New clones do not include these local files; retain a separate private copy if you need them on another computer. Both `docs/` and future `outputs/` content are ignored.
 
 - `docs/README.md`: documentation index.
 - `docs/DATABASE-MANUAL.md`: connections, operations, updates, backups, recovery, and parallel environments.
 - `docs/DEPLOYMENT.md`: Render settings and deliberate releases.
+- [Database redeployment commands](scripts/DATABASE-REDEPLOY.md): fresh replacement or production-user-preserving merge, backups, verification and cutover.
 - `docs/GAMES_AND_ACCOUNTS.md`: gameplay, Statistics, and account/email behavior.
 - `docs/learn.md`: file responsibilities, data structures, and request flows.
 - `docs/design/`: product requirements and technical/word-list designs.

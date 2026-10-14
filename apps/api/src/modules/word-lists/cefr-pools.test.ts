@@ -13,11 +13,11 @@ function service(rows: { term: string; senses: { partOfSpeech: string; definitio
   resources.push(dictionary, pools);
   return pools;
 }
-describe('Oxford CEFR gaming pools', () => {
-  it('ships the five supplied levels with unique words, author and no definitions', () => {
-    expect(CEFR_POOLS.map(pool => [pool.level, pool.words.length])).toEqual([['A1',898],['A2',793],['B1',691],['B2',1297],['C1',1278]]);
+describe('CEFR gaming pools', () => {
+  it('ships supplied Oxford levels and the curated C2 starter with unique words and no definitions', () => {
+    expect(CEFR_POOLS.map(pool => [pool.level, pool.words.length])).toEqual([['A1',898],['A2',793],['B1',691],['B2',1297],['C1',1278],['C2',942]]);
     for (const pool of CEFR_POOLS) {
-      expect(pool.author).toBe('oxford_3000_5000');
+      expect(pool.author).toBe(pool.level === 'C2' ? 'LexiPlay; Octanove Labs' : 'oxford_3000_5000');
       expect(new Set(pool.words.map(word => word.term)).size).toBe(pool.words.length);
       for (const word of pool.words) { expect(Object.keys(word).sort()).toEqual(['partsOfSpeech','term']); expect(word.partsOfSpeech.length).toBeGreaterThan(0); }
     }

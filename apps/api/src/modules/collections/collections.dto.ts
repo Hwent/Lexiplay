@@ -3,6 +3,7 @@ export class CollectionQuery {
   @IsOptional() @IsIn(['CEFR','IELTS','TOEFL']) category?: string;
 }
 export class CollectionWordsQuery {
+  @IsOptional() @IsIn(['families']) view?: string;
   @IsOptional() @IsIn(['due']) review?: string;
   @IsOptional() @IsString() @MaxLength(100) q?: string;
   @IsOptional() @IsString() @MaxLength(40) partOfSpeech?: string;
@@ -21,9 +22,10 @@ export class ImportCollection {
   @IsOptional() @IsIn(['skip']) duplicatePolicy?: 'skip';
 }
 export class UpdatePersonalEntry {
-  @IsOptional() @IsString() @MaxLength(4000) customDefinition?: string | null;
-  @IsOptional() @Matches(/^[a-z]{2,3}(?:-[a-z0-9]{2,8})*$/i) customLanguage?: string | null;
   @IsOptional() @IsIn(['Foundation','Core','Advanced']) stage?: string;
   @IsOptional() @IsInt() @Min(0) @Max(5) familiarity?: number;
   @IsOptional() @IsDateString() nextReviewAt?: string | null;
+}
+export class AddDictionaryEntries {
+  @IsArray() @ArrayMinSize(1) @ArrayMaxSize(200) @IsString({each:true}) @MinLength(1,{each:true}) @MaxLength(100,{each:true}) terms!: string[];
 }

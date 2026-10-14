@@ -37,7 +37,7 @@ export class CefrPoolsService implements OnModuleDestroy {
   async added(cookie: string | undefined) {
     const user = await this.accounts.current(cookie);
     await this.ensureMembership();
-    const { rows } = await this.pool.query<{ pool_id: string }>(`SELECT pool_id FROM user_game_pools WHERE owner_id=$1 UNION SELECT 'oxford-' || lower(c.level) AS pool_id FROM user_vocabulary_collections u JOIN vocabulary_collections c ON c.id=u.collection_id WHERE u.user_id=$1 AND c.category='CEFR' AND c.status='available'`, [user.id]);
+    const { rows } = await this.pool.query<{ pool_id: string }>(`SELECT pool_id FROM user_game_pools WHERE owner_id=$1 UNION SELECT g.id AS pool_id FROM user_vocabulary_collections u JOIN vocabulary_collections c ON c.id=u.collection_id JOIN game_word_pools g ON g.cefr_level=c.level WHERE u.user_id=$1 AND c.category='CEFR' AND c.status='available'`, [user.id]);
     return rows.map(row => poolSummary(this.source(row.pool_id)));
   }
   async add(cookie: string | undefined, id: string) {

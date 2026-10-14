@@ -36,18 +36,53 @@ describe.skipIf(!testUrl)('Vocabulary Collections with PostgreSQL',()=>{
   it('shows only real counts, keeps exam categories independent, and labels missing datasets',async()=>{
     const catalog=await(await fetch(url+'/collections')).json();
     expect(catalog.find((c:{slug:string})=>c.slug==='cefr-a1')).toMatchObject({wordCount:898,author:'oxford_3000_5000',status:'available'});
+    expect(catalog.find((c:{slug:string})=>c.slug==='cefr-c2')).toMatchObject({wordCount:978,familyCount:731,author:'LexiPlay; Octanove Labs',status:'available',source:'https://github.com/openlanguageprofiles/olp-en-cefrj',license:'CC-BY-SA-4.0'});
     expect(catalog.find((c:{slug:string})=>c.slug==='ielts-core')).toMatchObject({category:'IELTS',level:null,wordCount:0,status:'awaiting_data'});
     expect(await(await fetch(url+'/collections/categories')).json()).toEqual(['CEFR','IELTS','TOEFL']);
     const page=await(await fetch(url+'/collections/cefr-a2/words?partOfSpeech=verb&stage=Core&pageSize=5')).json();expect(page.words).toHaveLength(5);expect(page.words.every((w:{partOfSpeech:string;stage:string})=>w.partOfSpeech==='verb'&&w.stage==='Core')).toBe(true);
   });
-  it('previews selection, imports once, preserves custom language/progress on repeats and never writes private text to Dictionary',async()=>{
+  it('connects a saved C2 collection to its actual gaming pool without an Oxford alias',async()=>{
+    expect((await post('/collections/cefr-c2/save',{})).status).toBe(201);
+    const added=await(await fetch(url+'/word-lists/pools/added',{headers})).json();
+    expect(added).toEqual([expect.objectContaining({id:'lexiplay-c2',level:'C2',wordCount:942,familyCount:731})]);
+    const words=await(await fetch(url+'/collections/cefr-c2/words?pageSize=5')).json();
+    expect(words.total).toBe(978);
+    expect(words.words).toHaveLength(5);
+  });
+  it('downloads a complete public family snapshot without embedding private membership',async()=>{
+    const data=await(await fetch(url+'/collections/cefr-a2/snapshot',{headers})).json();
+    expect(data.families).toHaveLength(data.total);
+    expect(data.words).toHaveLength(793);
+    expect(data.words.every((word:{inMyWordList:boolean})=>word.inMyWordList===false)).toBe(true);
+    expect(new Set(data.families.flatMap((family:{memberIds:string[]})=>family.memberIds)).size).toBe(793);
+    expect(data.collection.version).toBeTruthy();
+  });
+  it('paginates whole families, resolves only page definitions and preserves cross-level member labels',async()=>{
+    const dictionary=vi.spyOn(app.get(WordListRepository),'poolDictionaryEntries');
+    const response=await fetch(url+'/collections/cefr-a1/words?view=families&q=act&pageSize=25');
+    expect(response.status).toBe(200);const data=await response.json();
+    const family=data.families.find((family:{headword:string})=>family.headword==='act');
+    expect(family.kind).toBe('family');
+    expect(data.words.filter((word:{id:string})=>family.memberIds.includes(word.id)).map((word:{lemma:string})=>word.lemma)).toEqual(['action','actor','actress']);
+    expect(family.relatedMembers).toContainEqual({lemma:'act',partsOfSpeech:['verb'],level:'A2'});
+    expect(dictionary).toHaveBeenLastCalledWith([...new Set(data.words.map((word:{lemma:string})=>word.lemma))]);
+    const first=await(await fetch(url+'/collections/cefr-a1/words?view=families&pageSize=1')).json();
+    const second=await(await fetch(url+'/collections/cefr-a1/words?view=families&pageSize=1&page=2')).json();
+    expect(first.pageUnit).toBe('family');expect(first.total).toBe(810);
+    expect(first.families).toHaveLength(1);expect(second.families).toHaveLength(1);
+    expect(first.families[0].id).not.toBe(second.families[0].id);
+    dictionary.mockRestore();
+  });
+  it('previews imports, preserves review progress and rejects custom dictionary edits',async()=>{
     const list=await create('My academic words','zh');const word=await selected('cefr-a2','cover');const body={collectionId:'cefr-a2',selectedWordIds:[word.id],duplicatePolicy:'skip'};
     const preview=await(await post('/word-lists/'+list.id+'/import-collection/preview',body)).json();expect(preview).toMatchObject({added:1,skipped:0});expect(await db.wordListEntry.count({where:{wordListId:list.id}})).toBe(0);
     expect(await(await post('/word-lists/'+list.id+'/import-collection',body)).json()).toMatchObject({added:1,skipped:0,totalRequested:1});
+    const membership=await(await fetch(url+'/collections/cefr-a2/words?q=cover',{headers})).json();expect(membership.words.find((w:{id:string})=>w.id===word.id).inMyWordList).toBe(true);
+    const privateMembership=await(await fetch(url+'/collections/cefr-a2/words?q=cover',{headers:other})).json();expect(privateMembership.words.find((w:{id:string})=>w.id===word.id).inMyWordList).toBe(false);
     let entries=await(await fetch(url+'/word-lists/'+list.id+'/entries',{headers})).json();const entry=entries.words[0];expect(entry.definition).toBe('To place over.');
-    const nextReviewAt='2030-01-01T12:00:00.000Z';const patch=await fetch(url+'/word-lists/'+list.id+'/entries/'+entry.id,{method:'PATCH',headers,body:JSON.stringify({customDefinition:'覆盖自己的理解',customLanguage:'zh',familiarity:4,nextReviewAt})});expect(patch.status).toBe(200);
+    const nextReviewAt='2030-01-01T12:00:00.000Z';const patch=await fetch(url+'/word-lists/'+list.id+'/entries/'+entry.id,{method:'PATCH',headers,body:JSON.stringify({familiarity:4,nextReviewAt})});expect(patch.status).toBe(200);
     const repeated=await(await post('/word-lists/'+list.id+'/import-collection',body)).json();expect(repeated).toMatchObject({added:0,skipped:1});
-    entries=await(await fetch(url+'/word-lists/'+list.id+'/entries',{headers})).json();expect(entries.words[0]).toMatchObject({definition:'覆盖自己的理解',language:'zh',familiarity:4,nextReviewAt});
+    entries=await(await fetch(url+'/word-lists/'+list.id+'/entries',{headers})).json();expect(entries.words[0]).toMatchObject({definition:'To place over.',language:'en',familiarity:4,nextReviewAt});
     expect((await pool.query("SELECT definition FROM dictionary_words WHERE term='cover'")).rows[0].definition).toBe('To place over.');
     expect(await db.dictionaryDefinition.count({where:{definition:'覆盖自己的理解'}})).toBe(0);
     const otherLists=await(await fetch(url+'/word-lists/mine',{headers:other})).json();expect(otherLists.some((l:{id:string})=>l.id===list.id)).toBe(false);
@@ -70,11 +105,52 @@ describe.skipIf(!testUrl)('Vocabulary Collections with PostgreSQL',()=>{
     const saved=await(await fetch(url+'/word-lists/collections',{headers})).json();expect(saved.filter((c:{slug:string})=>c.slug==='cefr-a1')).toHaveLength(1);
     const lists=await(await fetch(url+'/word-lists/mine',{headers})).json();expect(lists).toHaveLength(1);
   });
-  it('preserves legacy custom definitions and skips their terms during collection import',async()=>{
+  it('excludes legacy custom words and imports canonical dictionary content independently',async()=>{
     const lists=await(await fetch(url+'/word-lists/mine',{headers})).json();const list=lists.find((l:{isDefault:boolean})=>l.isDefault);const analyse=await selected('cefr-b1','analyse');
     await pool.query("INSERT INTO user_words(list_id,term,definition,status) VALUES ($1,'analyse','分析一下问题','KNOWN') ON CONFLICT DO NOTHING",[list.id]);
-    expect(await(await post('/word-lists/'+list.id+'/import-collection',{collectionId:'cefr-b1',selectedWordIds:[analyse.id]})).json()).toMatchObject({added:0,skipped:1});
+    expect(await(await post('/word-lists/'+list.id+'/import-collection',{collectionId:'cefr-b1',selectedWordIds:[analyse.id]})).json()).toMatchObject({added:1,skipped:0});
+    const entries=await(await fetch(url+'/word-lists/'+list.id+'/entries',{headers})).json();
+    expect(entries.words).toHaveLength(1);expect(entries.words[0]).toMatchObject({lemma:'analyse',definition:'To examine carefully.',definitionSource:'dictionary'});
     expect((await pool.query("SELECT definition,status FROM user_words WHERE list_id=$1 AND term='analyse'",[list.id])).rows[0]).toEqual({definition:'分析一下问题',status:'KNOWN'});
+  });
+  it('adds dictionary matches to the same list, skips repeats and reports unknown words',async()=>{
+    const list=await create('Dictionary tools');
+    const body={terms:['cover','COVER','inventedwordzzzz']};
+    const first=await post('/word-lists/'+list.id+'/dictionary-entries',body);expect(first.status).toBe(201);
+    expect(await first.json()).toMatchObject({added:1,skipped:0,missing:['inventedwordzzzz']});
+    expect(await(await post('/word-lists/'+list.id+'/dictionary-entries',body)).json()).toMatchObject({added:0,skipped:1});
+    const entries=await(await fetch(url+'/word-lists/'+list.id+'/entries',{headers})).json();
+    expect(entries.total).toBe(1);expect(entries.words[0]).toMatchObject({lemma:'cover',definition:'To place over.',definitionSource:'dictionary'});
+    expect((await post('/word-lists/'+list.id+'/dictionary-entries',body,other)).status).toBe(404);
+    expect((await post('/word-lists/'+list.id+'/dictionary-entries',{terms:[]})).status).toBe(400);
+    expect((await post('/word-lists/'+list.id+'/dictionary-entries',{terms:['cover'],definition:'Private text'})).status).toBe(400);
+    const patched=await fetch(url+'/word-lists/'+list.id+'/entries/'+entries.words[0].id,{method:'PATCH',headers,body:JSON.stringify({customDefinition:'Private text'})});expect(patched.status).toBe(400);
+    await db.wordListEntry.update({where:{id:entries.words[0].id},data:{customDefinition:'Old custom text'}});
+    const canonical=await(await fetch(url+'/word-lists/'+list.id+'/entries',{headers})).json();expect(canonical.words[0].definition).toBe('To place over.');
+    const terms=await(await fetch(url+'/word-lists/saved-terms',{headers})).json();expect(terms.terms).toEqual(['cover']);
+  });
+  it('paginates before dictionary lookup and keeps search, counts, and page boundaries consistent',async()=>{
+    const list=await create('Paged words');
+    const source=await(await fetch(url+'/collections/cefr-a1/words?pageSize=100')).json();
+    await post('/word-lists/'+list.id+'/import-collection',{collectionId:'cefr-a1',selectedWordIds:source.words.map((word:{id:string})=>word.id)});
+    const lookup=vi.spyOn(app.get(WordListRepository),'poolDictionaryEntries');
+    try{
+      const first=await(await fetch(url+'/word-lists/'+list.id+'/entries?page=1&pageSize=5',{headers})).json();
+      const second=await(await fetch(url+'/word-lists/'+list.id+'/entries?page=2&pageSize=5',{headers})).json();
+      expect(first.total).toBe(100);expect(first.words).toHaveLength(5);expect(second.words).toHaveLength(5);
+      expect(first.words.some((word:{id:string})=>second.words.some((other:{id:string})=>word.id===other.id))).toBe(false);
+      expect(lookup.mock.calls.every(([terms])=>terms.length<=5)).toBe(true);
+      const filtered=await(await fetch(url+'/word-lists/'+list.id+'/entries?q=about&partOfSpeech=adverb&pageSize=5',{headers})).json();
+      expect(filtered.words.every((word:{lemma:string;partOfSpeech:string})=>word.lemma.includes('about')&&word.partOfSpeech==='adverb')).toBe(true);
+    }finally{lookup.mockRestore();}
+  });
+  it('matches dictionary numerals to existing number entries without duplicates',async()=>{
+    const list=await create('Numbers');
+    await pool.query(`INSERT INTO dictionary_words(term,definition,part_of_speech,senses) VALUES ('one','The number 1.',ARRAY['numeral'],'[{"partOfSpeech":"numeral","definitions":["The number 1."]}]') ON CONFLICT(term) DO UPDATE SET definition=EXCLUDED.definition,senses=EXCLUDED.senses`);
+    const entry=await db.dictionaryEntry.upsert({where:{normalizedLemma_partOfSpeech:{normalizedLemma:'one',partOfSpeech:'number'}},create:{lemma:'one',normalizedLemma:'one',partOfSpeech:'number'},update:{}});
+    await db.wordListEntry.create({data:{wordListId:list.id,dictionaryEntryId:entry.id}});
+    expect(await(await post('/word-lists/'+list.id+'/dictionary-entries',{terms:['one']})).json()).toMatchObject({added:0,skipped:1,missing:[]});
+    const entries=await(await fetch(url+'/word-lists/'+list.id+'/entries',{headers})).json();expect(entries.total).toBe(1);expect(entries.words[0]).toMatchObject({definition:'The number 1.',partOfSpeech:'number'});
   });
   it('handles simultaneous imports idempotently and keeps different parts of speech distinct',async()=>{
     const cover=await selected('cefr-a2','cover');const list=await create('Concurrent import');const body={collectionId:'cefr-a2',selectedWordIds:[cover.id]};

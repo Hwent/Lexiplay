@@ -3,12 +3,14 @@ import a2 from './pools/oxford-a2.json';
 import b1 from './pools/oxford-b1.json';
 import b2 from './pools/oxford-b2.json';
 import c1 from './pools/oxford-c1.json';
+import c2 from './pools/lexiplay-c2.json';
+import { familyCounts } from './word-families';
 
 export type PoolWord = { term: string; partsOfSpeech: string[] };
-export type CefrPool = { id: string; name: string; level: string; author: string; words: PoolWord[] };
-export const CEFR_POOLS: CefrPool[] = [a1, a2, b1, b2, c1];
+export type CefrPool = { id: string; name: string; level: string; author: string; description?: string; source?: string; license?: string; version?: string; words: PoolWord[] };
+export const CEFR_POOLS: CefrPool[] = [a1, a2, b1, b2, c1, c2];
 export const CEFR_POOL_IDS = CEFR_POOLS.map(pool => pool.id);
-export const poolSummary = (pool: CefrPool) => ({ id: pool.id, name: pool.name, level: pool.level, author: pool.author, wordCount: pool.words.length });
+export const poolSummary = (pool: CefrPool) => ({ id: pool.id, name: pool.name, level: pool.level, author: pool.author, wordCount: pool.words.length, ...familyCounts(pool.words.map(word => word.term)) });
 
 export type DictionaryPoolRow = { term: string; senses: { partOfSpeech: string; definitions: string[] }[] };
 export function resolvePoolWord(word: PoolWord, dictionary?: DictionaryPoolRow) {

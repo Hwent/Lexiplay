@@ -12,6 +12,14 @@ _Avoid_: personal word list, learning progress
 A shared word identified by its normalized spelling and part of speech. The same spelling can have separate entries for different parts of speech.
 _Avoid_: personal word, collection membership
 
+**Word Family**:
+A base word and its explicitly related inflected and derived forms, grouped under a documented family convention. Family members can belong to different CEFR levels and retain their own meanings and word classes.
+_Avoid_: synonym group, stem match, one CEFR level for all derivatives
+
+**Family Count**:
+The number of distinct identified word families represented in a collection. Unclassified entries and phrases are reported separately, and knowing one member does not establish mastery of the entire family.
+_Avoid_: lemma count, dictionary entry count, CEFR certification
+
 **Dictionary Definition**:
 A reviewed meaning of a dictionary entry in a particular language, with a recorded source. It is shared knowledge rather than a learner's personal note.
 _Avoid_: custom definition, automatic user translation
@@ -21,7 +29,7 @@ The single overall learner-owned selection of dictionary entries, independent of
 _Avoid_: Vocabulary Collection
 
 **Personal Entry**:
-A dictionary entry saved in one learner's word list, together with that learner's optional custom definition and learning history.
+A dictionary entry saved in one learner's word list, together with that learner's learning history.
 _Avoid_: global dictionary entry
 
 **Learning Stage**:

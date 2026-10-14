@@ -37,8 +37,9 @@ describe.skipIf(!testUrl)('real PostgreSQL persistence', () => {
     const catalogResponse = await fetch(url + '/word-lists/pools');
     expect(catalogResponse.status).toBe(200);
     const catalog = await catalogResponse.json();
-    expect(catalog.map((pool: { level: string }) => pool.level)).toEqual(['A1','A2','B1','B2','C1']);
-    expect(catalog.every((pool: { author: string }) => pool.author === 'oxford_3000_5000')).toBe(true);
+    expect(catalog.map((pool: { level: string }) => pool.level)).toEqual(['A1','A2','B1','B2','C1','C2']);
+    expect(catalog.filter((pool: { level: string }) => pool.level !== 'C2').every((pool: { author: string }) => pool.author === 'oxford_3000_5000')).toBe(true);
+    expect(catalog.find((pool: { level: string }) => pool.level === 'C2')).toMatchObject({id:'lexiplay-c2',author:'LexiPlay; Octanove Labs',wordCount:942,familyCount:731});
     expect((await fetch(url + '/word-lists/pools/oxford-a1', { method: 'POST' })).status).toBe(401);
     await app!.get(WordListRepository).poolDictionaryEntries(['apple']);
     const pool = new Pool({ connectionString: testUrl! });
@@ -55,7 +56,7 @@ describe.skipIf(!testUrl)('real PostgreSQL persistence', () => {
       }
       expect(Number((await pool.query('SELECT count(*) FROM user_game_pools WHERE owner_id=$1', [user.user.id])).rows[0].count)).toBe(1);
       const stored = (await pool.query('SELECT author,words FROM game_word_pools')).rows;
-      expect(stored).toHaveLength(5);
+      expect(stored).toHaveLength(6);
       for (const row of stored) for (const word of row.words) expect(Object.keys(word).sort()).toEqual(['partsOfSpeech','term']);
       const game = await fetch(url + '/games', { method: 'POST', headers, body: JSON.stringify({ wordLength: 5, poolId: 'oxford-a1' }) });
       expect(game.status).toBe(201);

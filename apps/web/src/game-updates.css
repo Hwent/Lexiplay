@@ -284,3 +284,31 @@
 .personal-word-rows form label { display:block; margin:.8rem 0 .5rem; }
 .personal-word-lists .section-intro { display:flex; justify-content:space-between; align-items:flex-start; gap:1rem; }
 @media(max-width:600px) { .vocabulary-collection-grid { grid-template-columns:1fr; } .collection-filters { flex-direction:column; align-items:stretch; } .collection-filters label { flex:auto; } .personal-word-lists .section-intro { flex-direction:column; } .collection-bulk-actions button { flex:1 1 100%; } }
+
+/* Collection browsing keeps status badges in a fixed heading row. */
+.collection-intro { color:var(--muted); margin:0 0 1rem; }
+.collection-card-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; width:100%; min-height:2rem; }
+.collection-saved-badge { min-width:3rem; color:var(--correct); font-size:.8rem; text-align:right; }
+.vocabulary-collection-card>p { min-height:3em; line-height:1.5; }
+.collection-detail-heading h2 { margin:.6rem 0 .3rem; }
+.collection-detail-heading p { margin:.3rem 0 .8rem; color:var(--muted); }
+.collection-selection-summary { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; color:var(--muted); font-size:.9rem; }
+.collection-added-badge { display:inline-block; border-radius:999px; padding:.2rem .5rem; font-size:.75rem; color:var(--correct); border:1px solid var(--line); }
+.collection-word-rows input:disabled { cursor:default; }
+.personal-word-lists>.collection-word-rows:first-child { margin-top:0; }
+
+.collection-bulk-actions button:not(.account-action), .collection-modal button:not(.account-action) { border:1px solid var(--line); border-radius:.6rem; padding:.65rem .9rem; background:var(--control-bg); color:var(--text); font:inherit; cursor:pointer; }
+.collection-bulk-actions button:disabled, .collection-modal button:disabled { opacity:.55; cursor:default; }
+.collection-card-heading { min-height:2.5rem; }
+.collection-modal h2 { margin:0 0 .75rem; }
+.collection-modal button:focus-visible, .collection-bulk-actions button:focus-visible { outline:2px solid var(--correct); outline-offset:3px; }
+@media(max-width:600px) { .collection-selection-summary { gap:0; } .collection-selection-summary>span { margin-bottom:.8rem; } .collection-bulk-actions button { width:100%; } .collection-modal button { min-height:44px; } }
+
+@media(max-width:600px) {
+  .collection-bulk-actions { display:grid; grid-template-columns:1fr 1fr; }
+  .collection-bulk-actions button { min-width:0; padding:.65rem .5rem; }
+  .collection-bulk-actions button:nth-child(2) { grid-column:1 / -1; grid-row:2; }
+  .explore-vocabulary .word-pagination { display:grid; grid-template-columns:auto minmax(0,1fr) auto; align-items:center; gap:.45rem; }
+  .explore-vocabulary .word-pagination span { text-align:center; font-size:.8rem; }
+  .explore-vocabulary .word-pagination button { padding:.65rem .5rem; }
+}

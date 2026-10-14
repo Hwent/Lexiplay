@@ -6,6 +6,21 @@ import CefrPoolLibrary, { CefrPoolPicker } from './CefrPoolLibrary';
 const summary = { id: 'oxford-a2', name: 'Oxford A2', level: 'A2', author: 'oxford_3000_5000', wordCount: 1 };
 const details = { ...summary, availableCount: 1, wordCounts: { 5: 1 }, words: [{ term: 'cover', partsOfSpeech: ['verb'], definition: 'To place over something.', available: true, senses: [{ partOfSpeech: 'verb', definitions: ['To place over something.'] }] }] };
 afterEach(() => { cleanup(); localStorage.clear(); vi.unstubAllGlobals(); });
+it('offers every available collection without requiring a saved subscription',async()=>{
+  vi.stubGlobal('fetch',vi.fn(async()=>Response.json([summary,{...summary,id:'lexiplay-c2',name:'C2 Advanced',level:'C2'}])));
+  const onChange=vi.fn(),user=userEvent.setup();render(<CefrPoolPicker signedIn={false} disabled={false} value="" onChange={onChange} onOpenLibrary={()=>{}}/>);
+  await screen.findByRole('option',{name:'C2 Advanced'});
+  await user.selectOptions(screen.getByLabelText('CEFR gaming pool'),'lexiplay-c2');
+  expect(onChange).toHaveBeenCalledWith('lexiplay-c2');
+  expect(localStorage.getItem('lexiplay-added-cefr-pools')).toBeNull();
+});
+it('accepts the C2 collection as a saved game pool without an Oxford identifier',async()=>{
+  localStorage.setItem('lexiplay-added-cefr-pools',JSON.stringify([{...summary,id:'lexiplay-c2',name:'C2 Advanced',level:'C2',author:'LexiPlay; Octanove Labs'}]));
+  const onChange=vi.fn();const user=userEvent.setup();
+  render(<CefrPoolPicker signedIn={false} disabled={false} value="" onChange={onChange} onOpenLibrary={()=>{}}/>);
+  await user.selectOptions(screen.getByLabelText('CEFR gaming pool'),'lexiplay-c2');
+  expect(onChange).toHaveBeenCalledWith('lexiplay-c2');
+});
 it('keeps catalog definition-free until a guest adds a list and then resolves matching dictionary senses', async () => {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => Response.json(String(input).endsWith('/pools') ? [summary] : details));
   vi.stubGlobal('fetch',fetchMock);

@@ -1,0 +1,5700 @@
+{
+  "id": "lexiplay-c2",
+  "name": "C2 Advanced",
+  "level": "C2",
+  "author": "LexiPlay; Octanove Labs",
+  "description": "An advanced study selection for precise, nuanced English, organized by word family.",
+  "source": "https://github.com/openlanguageprofiles/olp-en-cefrj",
+  "version": "octanove-1.0-curated-2026-10-14",
+  "words": [
+    {
+      "term": "abate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "aberration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "abeyance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "abhor",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "abhorrent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "abject",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "abjure",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "abolish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "abrogate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "abscond",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "abstruse",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "abundance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "abundant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "abundantly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "accede",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "accessibility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accolade",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accountability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "accrue",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "acerbic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "acquiesce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "acreage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "acrimonious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "acrobatic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "acrobatics",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "acumen",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "adage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "additive",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "adept",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "adhere",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "adhesion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "admonish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "adorn",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "adornment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "adroit",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "adulterate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "advantageous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "adverse",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "adversely",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "aegis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "affectation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "aghast",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "agile",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "agility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "alacrity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "allegorical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "allegory",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "allot",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "allotment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "allude",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "allusion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ally",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ambivalent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ameliorate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "amorphous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "anachronism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "anarchic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "anathema",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "angst",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "angular",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "angularity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "annex",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "anonymity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "antediluvian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "anthology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "anthropological",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "antidote",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "antithesis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "antithetical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "aplomb",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "apostle",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "appease",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "apprehend",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "apprentice",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "aptitude",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "arcane",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "archetypal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "archetype",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "archival",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ardour",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "arduous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "arduously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "armory",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "armoury",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "articulate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "articulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "artifact",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "artifice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "assiduous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "assimilate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "assimilation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "assuage",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "astringent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "athleticism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "attainment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "attributive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "attrition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "audit",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "auspicious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "austere",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "austerely",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "austerity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "authenticity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "automate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "autonomous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "avarice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "averse",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "avian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "axiom",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "axiomatic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "babble",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "banish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "banishment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "barometer",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "baroque",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "bauble",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "behest",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bellicose",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "belligerence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "belligerent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "bellwether",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "beneficiary",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bequeath",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "bereft",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "besiege",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "blandishment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "blight",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "blitz",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "blubber",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "blurb",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "bogus",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "bout",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "brandish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "brevity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "brim",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "brimstone",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "brink",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "brinkmanship",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "brood",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "brouhaha",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "buccaneer",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "buffoonery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "burgeoning",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "buzzard",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cacophony",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cajole",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "calamitous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "calamity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "callous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "callously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "calorific",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "capacious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "capitulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cascade",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "catastrophic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "catastrophically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "caveat",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cay",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "centralised",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "centralized",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "chicanery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "choreography",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "chronological",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "chronologically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "chronology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "chrysalis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cinematographer",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cinematography",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "circumnavigate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "circumnavigation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "circumspect",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "clandestine",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "clinch",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cloister",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "cloistered",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "coalesce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "coax",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cocoon",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cogent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "cognitive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "collide",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "colloquial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "colloquially",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "colloquium",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "combustion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "commensurate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "commission",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "commode",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "commodity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "computerise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "computerize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conciliation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "conciliatory",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "concurrence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "condensation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "condone",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conduit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "confabulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "confabulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "confection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "confrontational",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "conglomerate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "conjecture",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "connotation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "consign",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "consignment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "consternation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "constrained",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "contagion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "contemptuous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "contemptuously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "contextual",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "contextually",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "contractual",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "contractually",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "contraption",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "contrive",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "conundrum",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "converse",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "convivial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "cordon",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cornucopia",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "corpse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "corpus",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "correlate",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "correlation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "corroborate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cosmic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "cosset",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "counsel",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "counterproductive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "crippling",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "crony",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "crystallisation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "crystallise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "crystallization",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "crystallize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "cull",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "curate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "curator",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "curriculum",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "daunt",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "daunting",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "deaden",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "debunk",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "decentralise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "decentralize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "deficient",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "deficit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "deleterious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "deliberate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "delicatessen",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "demystify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "denotation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "denote",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "denounce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "denunciation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "depraved",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "depravity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "deprecate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "depressive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "deprivation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "derelict",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "derision",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "derisive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "derisively",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "deterrent",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "detract",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "deviant",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "dichotomy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "diffident",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "diffuse",
+      "partsOfSpeech": [
+        "adjective",
+        "verb"
+      ]
+    },
+    {
+      "term": "diligence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "diligent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "diligently",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "diminish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "disdainful",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "disparage",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "disparaging",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "disparagingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "dispersal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "disperse",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dissemble",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "disseminate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dissemination",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dissension",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "distill",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "distillation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "divination",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "domesticity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "drabness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dribble",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "drudgery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "dubiously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "dwarf",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "dwarfism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ebb",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ebullient",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "eccentricity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "echo",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "economise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "economize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ecotourism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "edification",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "edifice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "edify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "egalitarian",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "egregious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "elasticity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "elated",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "elation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "electrode",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "elephantine",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "elucidate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "emancipate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "embed",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "embodiment",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "embody",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "eminence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "eminent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "emolument",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "emulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "emulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "emulsification",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "emulsify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "encompass",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "encumber",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "encumbrance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "engender",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "enthuse",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "envisage",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ephemera",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ephemeral",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "epiphany",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "epoxy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "equable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "equanimity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "equilibrium",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "eschew",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "etch",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "etching",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ethos",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "euphemism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "euphemistic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "euphemistically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "euphoria",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "euphoric",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "exacerbate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "exact",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "exalted",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "exhibitionist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "exorcism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "exorcist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "expunge",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "extant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "extracurricular",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "exude",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fabled",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "fabricate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fabrication",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "facsimile",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "fallacy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "familiarise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "familiarize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "farcical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "fastidious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "feign",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ferocity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "fete",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "figurative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "figuratively",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "flagging",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "flighty",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "flit",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "floe",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "fluctuate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fluctuation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "forfeiture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "forlorn",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "forlornly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "formidable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "formidably",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "fractious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "frolic",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "fruition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gale",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gambit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gauche",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "glint",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "glitz",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gout",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "gravitate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "gravitational",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "grievance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "grumble",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "habitation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hamper",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "haphazard",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "haphazardly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "hapless",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "happenstance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "haughtily",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "haughty",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "haven",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hazard",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "helm",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "henceforth",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "herald",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "hermetic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "hermit",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hinder",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "hindrance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "histrionic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "hitch",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "hitherto",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "hoist",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "homestead",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hotelier",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hover",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "hubris",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "huddle",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "hull",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hypnotherapy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hypothesis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hypothesize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "hypothetical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "hysteria",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "hysterical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "hysterically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "iconoclast",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "idiomatic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "idiomatically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "idiosyncrasy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "idiosyncratic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "idle",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ignominious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ignominiously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "impasse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "impeccable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "impeccably",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "imperceptible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "imperceptibly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "imposition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "impresario",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "impressionistic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inchoate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "incipient",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "incise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "incongruity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "incongruous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "incongruously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "incumbent",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "indignant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "indignantly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "indiscrete",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "indiscretion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "individualism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "indolence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "indolent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "induce",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "inducement",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "indulge",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "indulgence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "indulgently",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "ineffable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inert",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inexorable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "inexorably",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "infallibility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "infallible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "infallibly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "infernal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "informant",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ingenuous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ingenuously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "ingrate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ingratiate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ingratiating",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "innuendo",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "inscrutable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "instantaneous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "instantaneously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "insular",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "integration",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "interlocking",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "interlude",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "intermediary",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "intermittently",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "interrogate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "interrogation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "interrogative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "interrogatively",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "intersperse",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "interweave",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "intrinsic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "intrinsically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "ironic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "irrelevancy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "irrevocable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "irrevocably",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "jargon",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "jarring",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "kinetic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "knack",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "lament",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "lamentation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "laryngitis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "lassitude",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "laud",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "laudatory",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "leaven",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "leavening",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "legion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "liaise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "locomotion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "locomotive",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "loiter",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "lurid",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "luridly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "lyrical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "lyrically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "lyricist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "maelstrom",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "maggot",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "magnanimity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "magnanimous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "magnanimously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "magnate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "magpie",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "malice",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "malicious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "maliciously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "malleability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "malleable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "maneuver",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "mangle",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "manoeuvre",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "mariner",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "marvel",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "materialisation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "materialise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "materialism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "materialistic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "materialization",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "materialize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "maverick",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "meager",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "meagre",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mediate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "mediation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mediocrity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "melancholy",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "melodious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "melodiously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "menace",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "menacing",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "menacingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "menial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mercantile",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mercenary",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mere",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "merger",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "merit",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "mesh",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "mesmeric",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "meteorological",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "meteorology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "methodological",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "methodologically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "methodology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "meticulous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "meticulously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "midwifery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mien",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "milieu",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "misdemeanor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "modernism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mold",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "monastic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "moor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "moribund",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mottled",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mould",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "munificence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "mutinous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "myriad",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "mystique",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "nascent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "neophyte",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "nigh",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "nonchalant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "nonchalantly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "nostalgia",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "nostalgic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "nostalgically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "notoriety",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "notorious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "notoriously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "obfuscate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "oblique",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "octogenarian",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "opacity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "opaque",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "opulence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "opulent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "opulently",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "ordain",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "ore",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ornate",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ostensible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ostensibly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "outmoded",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "outpatient",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "overlay",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "painstaking",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "painstakingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "palatable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "palate",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "parable",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "paradoxical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "paradoxically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "paralyse",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "paralysis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "paralyze",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "parameter",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "paramount",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "parasitic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "parochial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "patchily",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "patchy",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "patently",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "patronise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "patronising",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "patronisingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "patronize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "patronizing",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "patronizingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "pedestal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "pedestrian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "perch",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "pervasive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "pervasiveness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "perverse",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "perversity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "phantom",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "phase",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "philanthropic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "philanthropist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "philanthropy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "physiological",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "physiologically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "pluck",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "plum",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "plumage",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "plume",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "plutocrat",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "poise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "polysyllabic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ponderous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ponderously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "portraiture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "posit",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "posterity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "postural",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "posture",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "posturing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "practitioner",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "precocious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "precociously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "preconception",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "predecessor",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "predilection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "preeminent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "preoccupation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "preoccupy",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "prescriptive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "presentational",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "pressurize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "presuppose",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "presupposition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "primeval",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "prise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "prissy",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "procedural",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "profitability",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "proliferate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "proliferation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prolong",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "promenade",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prone",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "proportional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "proportionally",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "proposition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "proprietary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "proscribe",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "proscription",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prostrate",
+      "partsOfSpeech": [
+        "adjective",
+        "verb"
+      ]
+    },
+    {
+      "term": "protrude",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "protrusion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "proverbial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "provincial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "provocation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "proximal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "prurience",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "prurient",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "punctual",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "punctuality",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "punitive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "punitively",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "puritanical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "pyre",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "qualitative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "qualm",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "quirk",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "quiver",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "rapture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rapturous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rapturously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "ravish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "rebound",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "rebuke",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "recitation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "recluse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "reclusive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "reconcile",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "reconciliation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "recourse",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "recumbent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "recuperate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "recuperation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "recuperative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "redundancy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "redundant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "regulatory",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "reissue",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "relegate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "relinquish",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "remit",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "remittance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "remonstrance",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "remonstrate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "remorseful",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "repose",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "reproach",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "reptilian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "repute",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "requisition",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "residual",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "residue",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "resin",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "resound",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "resounding",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "resoundingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "resuscitate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "resuscitation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "retrospect",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "retrospection",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "retrospective",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "revelatory",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "reverberate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "reverberation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "revile",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "revulsion",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rhetoric",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "rhetorical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rhetorically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "rickety",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rife",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "rift",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "romp",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "romper",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "ruminant",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "ruminate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "rumination",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "salivary",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "scavenger",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "scholarly",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "scroll",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "secular",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "secure",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "sedately",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "seismic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "selectivity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "shamble",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "sheaf",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "shimmer",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "shoal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "singe",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "skew",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "skim",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "slab",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "slither",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "smattering",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "snippet",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "snobbery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "solicit",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "soliloquize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "soliloquy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "solipsism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "solitariness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "solitary",
+      "partsOfSpeech": [
+        "adjective",
+        "noun"
+      ]
+    },
+    {
+      "term": "solitude",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spatial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "spatially",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "spire",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "splinter",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "spontaneity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "spurious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "spuriously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "squint",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "squirm",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stabilise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stabilize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "standing",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sterility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stipulate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "stipulation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stoicism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "strait",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stratosphere",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "stringent",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "stringently",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "stultify",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "subsidize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "subsidy",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "subsist",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "subsistence",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "substantiate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "succumb",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "suffuse",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "sulphur",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "sulphuric",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "summarily",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "superfluous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "superfluously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "surge",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "surrealism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "surrealist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "surreptitious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "surreptitiously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "swivel",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "syllabic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "synthesis",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tacit",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tacitly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "taciturn",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "taciturnity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tactic",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tactical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tactically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "tactile",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tantalise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "tantalize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "tantalizingly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "tantamount",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tedium",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "teem",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "telescopic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "temper",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "tenacious",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "tenaciously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "tenacity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "testimonial",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "tetchy",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "thicket",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "timidity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "topographical",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "topographically",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "topography",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "topple",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "torrential",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "totemic",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "totter",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "tranquilise",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "tranquilize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "transmitter",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "treacherous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "treacherously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "treachery",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "trifle",
+      "partsOfSpeech": [
+        "noun",
+        "verb"
+      ]
+    },
+    {
+      "term": "truism",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "turret",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "unadulterated",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "uncanny",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "undemonstrative",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unencumbered",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unequivocal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unequivocally",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "unexceptional",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unfeasible",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unmediated",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unnerve",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "unnerving",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unobtrusive",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unobtrusively",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "unobtrusiveness",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "unpromising",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unravel",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "unsurpassed",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "unsuspected",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "utilisation",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "utilitarian",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "utility",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "utilization",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "utilize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "utter",
+      "partsOfSpeech": [
+        "adjective",
+        "verb"
+      ]
+    },
+    {
+      "term": "vacillate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "vandal",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vandalize",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "venomous",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "venomously",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "venture",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "verbatim",
+      "partsOfSpeech": [
+        "adjective",
+        "adverb"
+      ]
+    },
+    {
+      "term": "verily",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "verisimilitude",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "veritable",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "vermin",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vestigial",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "vicinity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vindicate",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "vindication",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "virginal",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "virtuosity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "virtuoso",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vocalist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vocational",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "voracity",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "vortex",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "wallow",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "wane",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "wax",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "wayward",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "wheeze",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "whir",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "whirlwind",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "wholly",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "wistful",
+      "partsOfSpeech": [
+        "adjective"
+      ]
+    },
+    {
+      "term": "wistfully",
+      "partsOfSpeech": [
+        "adverb"
+      ]
+    },
+    {
+      "term": "wither",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "wrack",
+      "partsOfSpeech": [
+        "verb"
+      ]
+    },
+    {
+      "term": "zoologist",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    },
+    {
+      "term": "zoology",
+      "partsOfSpeech": [
+        "noun"
+      ]
+    }
+  ],
+  "license": "CC-BY-SA-4.0"
+}

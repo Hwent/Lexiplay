@@ -2,21 +2,88 @@ import { useEffect, useState } from 'react';
 import { apiRequest as api } from './services/api-client';
 import { PersonalList, PersonalPage, PersonalWord } from './collection-types';
 import PronunciationButton from './PronunciationButton';
-import WordListsPanel from './WordListsPanel';
-export default function PersonalWordLists({signedIn,searchQuery,initialId,revision}:{signedIn:boolean;searchQuery:string;initialId:string;revision:number}) {
-  const [lists,setLists]=useState<PersonalList[]>([]),[id,setId]=useState(initialId),[data,setData]=useState<PersonalPage|null>(null),[page,setPage]=useState(1),[language,setLanguage]=useState('en');
-  const [error,setError]=useState(''),[message,setMessage]=useState(''),[loading,setLoading]=useState(false),[refresh,setRefresh]=useState(0),[busy,setBusy]=useState(false),[tools,setTools]=useState(false);
-  const [editing,setEditing]=useState<PersonalWord|null>(null),[custom,setCustom]=useState(''),[customLanguage,setCustomLanguage]=useState('');
-  
-  useEffect(()=>{if(!signedIn)return;let active=true;setLoading(true);api<PersonalList[]>('/word-lists/mine').then(rows=>{if(!active)return;if(!Array.isArray(rows))throw new Error('Could not load personal word lists.');setLists(rows);const chosen=rows.find(list=>list.isDefault)||rows[0];if(chosen){setId(chosen.id);if(!lists.length||chosen.id!==id)setLanguage(chosen.preferredLanguage);}}).catch(error=>{if(active)setError(error instanceof Error?error.message:'Could not load word lists.');}).finally(()=>{if(active)setLoading(false);});return()=>{active=false;};},[signedIn,revision,refresh]);
-  useEffect(()=>{if(!signedIn||!id)return;let active=true;setLoading(true);setError('');const params=new URLSearchParams({page:String(page),pageSize:'25',language,});const timer=setTimeout(()=>{api<PersonalPage>(`/word-lists/${id}/entries?${params}`).then(value=>{if(active)setData(value);}).catch(error=>{if(active)setError(error instanceof Error?error.message:'Could not load personal entries.');}).finally(()=>{if(active)setLoading(false);});},150);return()=>{active=false;clearTimeout(timer);};},[signedIn,id,page,language,refresh,revision]);
-  async function update(word:PersonalWord,patch:object){setBusy(true);setError('');try{await api(`/word-lists/${id}/entries/${word.id}`,{method:'PATCH',body:JSON.stringify(patch)});setEditing(null);setRefresh(value=>value+1);setMessage('Your personal entry was saved.');}catch(error){setError(error instanceof Error?error.message:'Could not save this entry.');}finally{setBusy(false);}}
-  if(!signedIn)return <><p className="collection-stage-note">Your personal words stay on this device. Sign in to save official collections.</p><WordListsPanel pageMode searchQuery={searchQuery}/></>;
-  return <section className="personal-word-lists" aria-label="My Word List"><div className="section-intro"><div><p className="eyebrow">YOUR VOCABULARY</p><h2>My Word List</h2><p>Your definitions and review history belong to you.</p></div></div>
-    {loading&&<p role="status">Loading your entries…</p>}{error&&<p role="alert">{error} <button type="button" onClick={()=>setRefresh(value=>value+1)}>Retry</button></p>}{message&&<p role="status">{message}</p>}
-    {data&&<><ul className="collection-word-rows personal-word-rows">{data.words.map(word=><li key={word.id}><div><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech} · {word.stage} · Familiarity {word.familiarity}/5</small><p>{word.definition??'No dictionary definition yet. You can add your own.'}</p><small>{word.definitionSource==='custom'?'Your definition':word.language?'Dictionary · '+word.language:'Definition unavailable'}</small><p className="collection-stage-note">Next review: {word.nextReviewAt?new Date(word.nextReviewAt).toLocaleString():'Not scheduled'}</p>
-      {editing?.id===word.id?<form onSubmit={event=>{event.preventDefault();void update(word,{customDefinition:custom,customLanguage:customLanguage.trim()||null});}}><label htmlFor={'custom-definition-'+word.id}>Your definition</label><textarea id={'custom-definition-'+word.id} value={custom} maxLength={4000} rows={3} onChange={event=>setCustom(event.target.value)}/><label htmlFor={'custom-language-'+word.id}>Your definition language</label><input id={'custom-language-'+word.id} value={customLanguage} placeholder="en or zh" onChange={event=>setCustomLanguage(event.target.value)}/><p>Leave the definition blank to use the dictionary fallback.</p><button type="submit" disabled={busy||loading}>Save definition</button><button type="button" disabled={busy||loading} onClick={()=>setEditing(null)}>Cancel</button></form>:<div className="personal-entry-actions"><button type="button" disabled={busy||loading} onClick={()=>{setEditing(word);setCustom(word.customDefinition??'');setCustomLanguage(word.customLanguage??data.list.preferredLanguage);}}>Edit definition</button><button type="button" disabled={busy||loading} onClick={()=>void update(word,{familiarity:Math.min(5,word.familiarity+1),nextReviewAt:new Date(Date.now()+(word.familiarity>=3?7:1)*86400000).toISOString()})}>Reviewed</button><button type="button" disabled={busy||loading} onClick={()=>void update(word,{familiarity:0,nextReviewAt:new Date().toISOString()})}>Review again</button></div>}
-    </div></li>)}</ul>{!data.words.length&&!loading&&<p>This view has no words. Explore a collection to add vocabulary.</p>}<nav className="word-pagination" aria-label="Personal list pages"><button type="button" disabled={page<=1||loading} onClick={()=>setPage(value=>value-1)}>Previous</button><span>Page {page} of {Math.max(1,Math.ceil(data.total/data.pageSize))} · {data.total} words</span><button type="button" disabled={page*data.pageSize>=data.total||loading} onClick={()=>setPage(value=>value+1)}>Next</button></nav></>}
-    <button type="button" className="text-action" onClick={()=>setTools(value=>!value)}>{tools?'Close dictionary tools':'Dictionary search and file import for My words'}</button>{tools&&<WordListsPanel pageMode searchQuery={searchQuery}/>} 
+import DictionaryTools from './DictionaryTools';
+import Icon from './Icon';
+import usePendingWords from './usePendingWords';
+
+export default function PersonalWordLists({ signedIn, searchQuery, initialId, revision }: { signedIn: boolean; searchQuery: string; initialId: string; revision: number }) {
+  const { store } = usePendingWords(initialId);
+  const [list, setList] = useState<PersonalList | null>(null);
+  const [data, setData] = useState<PersonalPage | null>(null);
+  const [page, setPage] = useState(1);
+  const [refresh, setRefresh] = useState(0);
+  const [loading, setLoading] = useState(true);
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState('');
+  const [message, setMessage] = useState('');
+  const [tools, setTools] = useState(!!searchQuery);
+  const [loadedKey, setLoadedKey] = useState('');
+  const [listRetry, setListRetry] = useState(0);
+  const query = searchQuery.trim();
+  const requestKey = `${list?.id}|${page}|${query}|${refresh}|${revision}`;
+  const showEntries = !!data && loadedKey === requestKey && !loading && !busy;
+
+  useEffect(() => {
+    if (!signedIn) return;
+    let active = true;
+    setLoading(true);
+    setError('');
+    store.requests.get<PersonalList[]>('/word-lists/mine').then(rows => {
+      if (!active) return;
+      if (!Array.isArray(rows)) throw new Error('Could not load your word list.');
+      const chosen = rows.find(row => row.id === initialId) ?? rows.find(row => row.isDefault) ?? rows[0];
+      if (!chosen) throw new Error('Could not find your word list.');
+      setList(chosen);
+    }).catch(error => { if (active) { setError(error instanceof Error ? error.message : 'Could not load your word list.'); setLoading(false); } });
+    return () => { active = false; };
+  }, [signedIn, initialId, revision, listRetry, store]);
+
+  useEffect(() => { setPage(1); setMessage(''); if (query) setTools(true); }, [query]);
+  useEffect(() => {
+    if (!signedIn || !list) return;
+    let active = true;
+    setLoading(true);
+    setError('');
+    const params = new URLSearchParams({ page: String(page), pageSize: '25', language: list.preferredLanguage, ...(query ? { q: query } : {}) });
+    const path = `/word-lists/${list.id}/entries?${params}`;
+    const cached = store.requests.peek<PersonalPage>(path);
+    if (cached) { setData(cached); setLoadedKey(requestKey); setLoading(false); return; }
+    const timer = setTimeout(() => {
+      store.requests.get<PersonalPage>(path).then(value => {
+        if (active) { setData(value); setLoadedKey(requestKey); }
+      }).catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not load your entries.'); })
+        .finally(() => { if (active) setLoading(false); });
+    }, 150);
+    return () => { active = false; clearTimeout(timer); };
+  }, [signedIn, list, requestKey, store]);
+
+  async function review(word: PersonalWord, again = false) {
+    if (!list) return;
+    setBusy(true); setError(''); setMessage('');
+    try {
+      await api(`/word-lists/${list.id}/entries/${word.id}`, { method: 'PATCH', body: JSON.stringify({ familiarity: again ? 0 : Math.min(5, word.familiarity + 1), nextReviewAt: new Date(again ? Date.now() : Date.now() + (word.familiarity >= 3 ? 7 : 1) * 86400000).toISOString() }) });
+      store.requests.invalidate(`/word-lists/${list.id}/entries`);
+      setLoading(true); setRefresh(value => value + 1); setMessage('Your review was saved.');
+    } catch (error) { setError(error instanceof Error ? error.message : 'Could not save your review.'); }
+    finally { setBusy(false); }
+  }
+  function pagination(position: string) {
+    return data && <nav className="word-pagination" aria-label={`Personal list pages ${position}`}><button type="button" disabled={page <= 1 || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value - 1); }}>Previous</button><span>Page {page} of {Math.max(1, Math.ceil(data.total / data.pageSize))} · {data.total.toLocaleString()} {data.total === 1 ? 'word' : 'words'}</span><button type="button" disabled={page * data.pageSize >= data.total || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value + 1); }}>Next</button></nav>;
+  }
+  if (!signedIn) return <><div className="library-empty"><h2>Your own dictionary collection</h2><p>Sign in to save dictionary words and review your vocabulary.</p><a href="/account">Sign in</a></div><DictionaryTools listId="" searchQuery={searchQuery}/></>;
+  return <section className="personal-word-lists" aria-label="My Word List" aria-busy={loading || busy}>
+    <div className="library-section-heading"><div><h2>Words worth keeping</h2><p className="collection-intro">Dictionary words, a little practice, your own pace.</p></div>{data && <span className="library-count">{data.total.toLocaleString()} {query ? 'matching' : 'saved'} {data.total === 1 ? 'word' : 'words'}</span>}</div>
+    <div className="library-tools"><span><strong>Grow your vocabulary</strong><small>Find dictionary words or import a text list.</small></span><button type="button" className="text-action" aria-expanded={tools} aria-controls="library-dictionary-tools" onClick={() => setTools(value => !value)}><Icon name="search"/>{tools ? 'Close dictionary tools' : 'Open dictionary tools'}</button></div>
+    {tools && list && <div id="library-dictionary-tools"><DictionaryTools listId={list.id} searchQuery={searchQuery}/></div>}
+    {error && <p role="alert">{error} <button type="button" onClick={() => { setLoading(true); if (list) { store.requests.invalidate(`/word-lists/${list.id}/entries`); setRefresh(value => value + 1); } else { store.requests.invalidate('/word-lists/mine'); setListRetry(value => value + 1); } }}>Retry</button></p>}
+    {message && <p role="status">{message}</p>}
+    {pagination('top')}
+    {(loading || busy) && <p className="library-loading" role="status">{busy ? 'Saving your review…' : 'Loading your entries…'}</p>}
+    {showEntries && <><ul className="collection-word-rows personal-word-rows">{data.words.map(word => <li key={word.id}><div>
+      <div className="personal-word-heading"><div><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech}</small></div><div className="word-familiarity"><small>Familiarity {word.familiarity}/5</small><span className="familiarity-dots" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <i key={index} data-filled={index < word.familiarity}/>)}</span></div></div>
+      <p className="personal-definition">{word.definition ?? 'Dictionary definition not available yet.'}</p>
+      <div className="personal-entry-actions"><button type="button" onClick={() => void review(word)}>Reviewed</button><button type="button" onClick={() => void review(word, true)}>Review again</button></div>
+    </div></li>)}</ul>{!data.words.length && <p className="library-empty">{query ? 'No saved words match your search. Try the dictionary tools above.' : 'Your word list is ready for a fresh start. Explore a collection or open dictionary tools to add words.'}</p>}</>}
+    {showEntries && pagination('bottom')}
   </section>;
 }

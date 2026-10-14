@@ -2,7 +2,7 @@ import { apiRequest } from './services/api-client';
 
 export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[]; senses?: { partOfSpeech: string; definitions: string[] }[] };
 type Cached<T> = { value: T; expiresAt: number };
-const STORAGE_KEY = 'lexiplay-dictionary-cache-v4';
+const STORAGE_KEY = 'lexiplay-dictionary-cache-v5-wordnet-2025';
 const CACHE_LIFETIME = 24 * 60 * 60 * 1000;
 const searches = new Map<string, Cached<DictionaryEntry[]>>();
 const definitions = new Map<string, Cached<string>>();
