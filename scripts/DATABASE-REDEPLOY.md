@@ -60,12 +60,3 @@ pnpm db:redeploy:prisma --source-database lexiplay_dev_20261014011803907 --targe
 Prisma executes the schema upgrade and public-data writes in one transaction. `--strict-dictionary` fully replaces public dictionary words, definitions, POS and senses from the development snapshot, then verifies exact content equality. Existing user columns are checked before commit; saved legacy words are additionally imported into the new personal-list models. Development accounts are excluded. Multiple legacy lists per user or unmatched saved words stop the update for review. Omitting the strict flag preserves target-only public words.
 
 Backups: `.local-backups/lexiplay_prisma_TIMESTAMP/target-before.dump`, `users-before.dump`; verification: `preview.json`, `applied.json`. Resume the application with matching code after successful verification. For rollback, restore the full backup into a separate empty database, then switch the service connection.
-
-## Local verification
-
-```powershell
-docker compose up -d --wait database
-$env:TEST_REDEPLOY_URL='postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay'
-node --test scripts/database-redeploy.test.mjs
-Remove-Item Env:TEST_REDEPLOY_URL
-```

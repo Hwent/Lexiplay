@@ -48,6 +48,7 @@ Documentation is kept locally under `docs/` and excluded from Git. New clones do
 | `apps/web` | React browser experience |
 | `apps/api` | NestJS API, business rules, PostgreSQL repositories |
 | `packages/shared` | Shared contracts and historical vocabulary/source notices |
+| `scripts` | [Script usage](scripts/README.md), data generation and database operations |
 | `docs` (local, ignored) | Operational/development guides, designs, references, historical records |
 
 ## Checks and releases
