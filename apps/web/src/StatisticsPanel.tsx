@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError, apiRequest } from './services/api-client';
 
-type RecentGame = { id: string; wordLength: number; difficulty: string; completedAt: string; guesses: { outcome?: string; answer?: string }[] };
+type RecentGame = { id: string; wordLength: number; difficulty: string; completedAt: string; answer: string; status: string; attemptCount: number; coinChange: number };
 type Statistics = { total: number; wins: number; losses: number; winRate: number; streak: number; timezone: string; distribution: { attempts: number; wins: number }[]; recent: RecentGame[] };
 export default function StatisticsPanel() {
   const [data, setData] = useState<Statistics | null>(null);
@@ -27,7 +27,7 @@ export default function StatisticsPanel() {
       <div className="stat-cards">{[['Games played', data.total], ['Win rate', `${data.winRate}%`], ['Current streak', `${data.streak} ${data.streak === 1 ? 'day' : 'days'}`], ['Words solved', data.wins]].map(([label, value]) => <article key={label}><span>{label}</span><strong>{value}</strong></article>)}</div>
       {!data.total ? <div className="statistics-empty"><h3>Your first word starts the story.</h3><p>Complete a puzzle while signed in to see your progress here.</p></div> : <div className="statistics-columns">
         <article className="statistics-card"><h3>Winning guesses</h3><p>How many guesses it took to solve a word.</p><div className="guess-distribution" role="list" aria-label="Winning attempt distribution">{data.distribution.map(row => <div role="listitem" key={row.attempts}><span>{row.attempts}</span><meter min={0} max={distributionMax} value={row.wins} aria-label={`${row.attempts} guesses: ${row.wins} wins`} /><strong>{row.wins}</strong></div>)}</div><p>{data.losses} {data.losses === 1 ? 'puzzle' : 'puzzles'} ended without a solution.</p></article>
-        <article className="statistics-card"><h3>Recent practice</h3><ul className="recent-games">{data.recent.map(game => { const result = game.guesses.at(-1); return <li key={game.id}><div><strong>{result?.answer}</strong><span>{game.wordLength} letters · {game.difficulty} · {game.guesses.length} guesses</span><time dateTime={game.completedAt}>{new Date(game.completedAt).toLocaleDateString()}</time></div><span className={`result-badge ${result?.outcome === 'WON' ? 'won' : ''}`}>{result?.outcome === 'WON' ? 'Solved' : 'Practised'}</span></li>; })}</ul></article>
+        <article className="statistics-card"><h3>Recent practice</h3><ul className="recent-games">{data.recent.map(game => { return <li key={game.id}><div><strong>{game.answer}</strong><span>{game.wordLength} letters · {game.difficulty} · {game.attemptCount} guesses</span><time dateTime={game.completedAt}>{new Date(game.completedAt).toLocaleDateString()}</time></div><span className={`result-badge ${game.status === 'won' ? 'won' : ''}`}>{game.status === 'won' ? 'Solved' : 'Practised'}</span></li>; })}</ul></article>
       </div>}
       <p className="statistics-footnote">Streaks count days with a completed puzzle in {data.timezone}. Today’s streak stays active if you practised yesterday.</p>
     </>}

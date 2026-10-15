@@ -27,11 +27,11 @@ export function statistics(games: Game[], timezone: string, now = new Date()) {
   if (!days.has(calendarDay())) cursor.setUTCDate(cursor.getUTCDate() - 1);
   let streak = 0;
   while (days.has(calendarDay())) { streak++; cursor.setUTCDate(cursor.getUTCDate() - 1); }
-  const won = games.filter(game => game.guesses.at(-1)?.outcome === 'WON');
+  const won = games.filter(game => game.status === 'won');
   return {
     timezone, total: games.length, wins: won.length, losses: games.length - won.length,
     winRate: games.length ? Math.round(won.length / games.length * 100) : 0, streak,
-    distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: won.filter(game => game.guesses.length === i + 1).length })),
+    distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: won.filter(game => game.attemptCount === i + 1).length })),
     recent: games.slice(0, 20).map(publicGame),
   };
 }

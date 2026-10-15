@@ -47,7 +47,7 @@ async function main() {
     console.log(await run(process.execPath, [prisma, 'migrate', 'deploy', '--config', resolve(root, 'apps/api/prisma.config.ts')], { ...process.env, DATABASE_URL: target.href }));
     pool = new Pool({ connectionString: target.href });
     console.log('Normalizing and verifying the selected dictionary...');
-    const imported = await publishDictionary(pool, words, source.pathname.slice(1));
+    const imported = await publishDictionary(pool, words);
     const verified = await verifyDictionary(pool, words);
     if (verified.accounts || verified.personalWords || verified.games) throw new Error('Test data remains in the replacement.');
     const report = { targetDatabase: name, sourceDatabase: source.pathname.slice(1), ...imported, ...verified };

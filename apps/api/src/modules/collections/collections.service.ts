@@ -4,7 +4,7 @@ import { CollectionsStorage } from './collections.storage';
 import { AddDictionaryEntries, CollectionWordsQuery, ImportCollection, NewPersonalList, UpdatePersonalEntry } from './collections.dto';
 import { Prisma } from '../../generated/prisma/client';
 
-const entryInclude = { word: { include: { family: true } }, definitions: { orderBy: { senseOrder: 'asc' as const } } };
+const entryInclude = { family: true, definitions: { where: { languageCode: 'en' }, orderBy: { senseOrder: 'asc' as const } } };
 const collectionInclude = { entries: { orderBy: [{ sortOrder: 'asc' as const }, { dictionaryEntryId: 'asc' as const }], include: { entry: { include: entryInclude } } } };
 type Collection = Prisma.VocabularyCollectionGetPayload<{ include: typeof collectionInclude }> & { libraryVersion: string };
 type Entry = Collection['entries'][number]['entry'];
@@ -15,18 +15,18 @@ export class CollectionsService {
     @Inject(AccountService) private readonly accounts: AccountService) {}
 
   private summary(collection: Collection) {
-    const families = new Map(collection.entries.map(row => [row.entry.word.familyId ?? 'item:' + row.entry.wordId, !!row.entry.word.familyId]));
+    const families = new Map(collection.entries.map(row => [row.entry.familyId ?? 'item:' + row.entry.term, !!row.entry.familyId]));
     const familyCount = [...families.values()].filter(Boolean).length;
     return { id: collection.id, slug: collection.slug, name: collection.name, description: collection.description,
       category: collection.category, level: collection.category === 'CEFR' ? collection.slug.slice(5).toUpperCase() : null,
       author: collection.author, source: collection.sourceUrl, license: collection.license,
-      version: collection.revisionId + ':' + collection.libraryVersion,
+      version: collection.libraryVersion,
       status: collection.status, wordCount: collection.entries.length, memberCount: collection.entries.length,
       ...(collection.status === 'available' ? { familyCount, otherUnitCount: families.size - familyCount } : {}) };
   }
 
   private definition(entry: Entry) {
-    const definition = entry.word.retiredAt || entry.retiredAt ? null : entry.definitions.map(row => row.definition).join('; ') || null;
+    const definition = entry.definitions.map(row => row.definition).join('; ') || null;
     return { definition, language: definition ? 'en' : null, definitionSource: definition ? 'dictionary' : null };
   }
 
@@ -36,8 +36,8 @@ export class CollectionsService {
   }
 
   async revision() {
-    const rows = await this.db.libraryRevision.findMany({ where: { isCurrent: true }, select: { id: true, scope: true }, orderBy: { scope: 'asc' } });
-    return { version: rows.map(row => row.scope + ':' + row.id).join('|') };
+    const state = await this.db.libraryState.findUniqueOrThrow({ where: { id: 1 } });
+    return { version: state.version };
   }
 
   async catalog(category?: string) {
@@ -63,10 +63,10 @@ export class CollectionsService {
     const search = query.q?.trim().toLowerCase();
     const filtered = collection.entries.filter(row => (!query.stage || row.stage === query.stage)
       && (!query.partOfSpeech || row.entry.partOfSpeech === query.partOfSpeech)
-      && (!search || row.entry.word.term.toLowerCase().includes(search) || row.entry.word.family?.headword.toLowerCase().includes(search)));
+      && (!search || row.entry.term.toLowerCase().includes(search) || row.entry.family?.headword.toLowerCase().includes(search)));
     const groups = new Map<string, { id: string; headword: string; kind: 'family' | 'phrase' | 'unclassified'; rows: typeof filtered }>();
     for (const row of filtered) {
-      const word = row.entry.word, id = word.familyId ?? 'item:' + word.id;
+      const word = row.entry, id = word.familyId ?? 'item:' + word.term;
       const group = groups.get(id) ?? { id, headword: word.family?.headword ?? word.term,
         kind: word.familyId ? 'family' : /\s/.test(word.term) ? 'phrase' : 'unclassified', rows: [] };
       group.rows.push(row); groups.set(id, group);
@@ -76,12 +76,12 @@ export class CollectionsService {
     const rows = familyView ? selected.flatMap(group => group.rows) : filtered.slice((page - 1) * pageSize, page * pageSize);
     const saved = cookie ? await this.savedTerms(cookie) : { entryIds: [] };
     const savedIds = new Set(saved.entryIds);
-    const words = rows.map(row => ({ id: row.entry.id, lemma: row.entry.word.term, partOfSpeech: row.entry.partOfSpeech,
+    const words = rows.map(row => ({ id: row.entry.id, lemma: row.entry.term, partOfSpeech: row.entry.partOfSpeech,
       stage: row.stage, inMyWordList: savedIds.has(row.entry.id), ...this.definition(row.entry) }));
     const familyIds = selected.filter(group => group.kind === 'family').map(group => group.id);
     const related = familyView && familyIds.length ? await this.db.collectionEntry.findMany({
-      where: { collectionId: { not: collection.id }, entry: { word: { familyId: { in: familyIds } } } },
-      include: { collection: true, entry: { include: { word: true } } },
+      where: { collectionId: { not: collection.id }, entry: { familyId: { in: familyIds } } },
+      include: { collection: true, entry: true },
     }) : [];
     return { collection: this.summary(collection), page, pageSize, total: familyView ? groups.size : filtered.length,
       partsOfSpeech: [...new Set(collection.entries.map(row => row.entry.partOfSpeech))].sort(),
@@ -89,10 +89,10 @@ export class CollectionsService {
       ...(familyView ? { memberTotal: filtered.length, pageUnit: 'family', families: selected.map(group => {
         const members = new Map<string, { lemma: string; partsOfSpeech: string[]; level: string }>();
         for (const row of related) {
-          if (row.entry.word.familyId !== group.id) continue;
+          if (row.entry.familyId !== group.id) continue;
           const level = row.collection.category === 'CEFR' ? row.collection.slug.slice(5).toUpperCase() : row.collection.name;
-          const key = row.entry.wordId + ':' + row.collectionId;
-          const member = members.get(key) ?? { lemma: row.entry.word.term, partsOfSpeech: [], level };
+          const key = row.entry.term + ':' + row.collectionId;
+          const member = members.get(key) ?? { lemma: row.entry.term, partsOfSpeech: [], level };
           member.partsOfSpeech.push(row.entry.partOfSpeech); members.set(key, member);
         }
         return { id: group.id, headword: group.headword, kind: group.kind, memberIds: group.rows.map(row => row.entry.id), relatedMembers: [...members.values()] };
@@ -115,8 +115,8 @@ export class CollectionsService {
 
   async savedTerms(cookie: string | undefined) {
     const user = await this.accounts.current(cookie);
-    const rows = await this.db.userWord.findMany({ where: { userId: user.id, status: 'active' }, include: { entry: { include: { word: true } } } });
-    return { terms: [...new Set(rows.map(row => row.entry.word.term))], entryIds: rows.map(row => row.dictionaryEntryId) };
+    const rows = await this.db.userWord.findMany({ where: { userId: user.id, status: 'active' }, include: { entry: true } });
+    return { terms: [...new Set(rows.map(row => row.entry.term))], entryIds: rows.map(row => row.dictionaryEntryId) };
   }
 
   async savedCollections(cookie: string | undefined) {
@@ -169,15 +169,14 @@ export class CollectionsService {
     const user = await this.owned(cookie, id);
     const terms = [...new Set(input.terms.map(term => term.trim()))];
     if (terms.some(term => !term)) throw new BadRequestException('Enter a word for every row.');
-    const words = await this.db.dictionaryWord.findMany({ where: { term: { in: terms, mode: 'insensitive' }, retiredAt: null },
-      include: { entries: { where: { retiredAt: null, definitions: { some: {} } }, select: { id: true } } } });
+    const entries = await this.db.dictionaryEntry.findMany({ where: { term: { in: terms, mode: 'insensitive' },
+      definitions: { some: { languageCode: 'en' } } } });
     const ids = new Set<string>(), missing: string[] = [];
     for (const term of terms) {
-      const exact = words.find(word => word.term === term);
-      const alternatives = words.filter(word => word.term.toLowerCase() === term.toLowerCase());
-      const word = exact ?? (alternatives.length === 1 ? alternatives[0] : undefined);
-      if (!word?.entries.length) missing.push(term);
-      else for (const entry of word.entries) ids.add(entry.id);
+      const alternatives = [...new Set(entries.filter(entry => entry.term.toLowerCase() === term.toLowerCase()).map(entry => entry.term))];
+      const spelling = alternatives.includes(term) ? term : alternatives.length === 1 ? alternatives[0] : undefined;
+      if (!spelling) missing.push(term);
+      else for (const entry of entries.filter(entry => entry.term === spelling)) ids.add(entry.id);
     }
     const result = await this.db.$transaction(async tx => {
       await tx.$queryRaw`SELECT id FROM account_users WHERE id=${user.id}::uuid FOR UPDATE`;
@@ -192,12 +191,12 @@ export class CollectionsService {
     const where: Prisma.UserWordWhereInput = { userId: user.id, status: 'active',
       ...(query.stage ? { stage: query.stage } : {}),
       ...(query.q || query.partOfSpeech ? { entry: { ...(query.partOfSpeech ? { partOfSpeech: query.partOfSpeech } : {}),
-        ...(query.q ? { word: { term: { contains: query.q.trim(), mode: 'insensitive' } } } : {}) } } : {}),
+        ...(query.q ? { term: { contains: query.q.trim(), mode: 'insensitive' } } : {}) } } : {}),
       ...(query.review ? { OR: [{ nextReviewAt: null }, { nextReviewAt: { lte: new Date() } }] } : {}) };
     const [total, rows] = await Promise.all([this.db.userWord.count({ where }), this.db.userWord.findMany({
       where, skip: (page - 1) * pageSize, take: pageSize, include: { entry: { include: entryInclude } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     })]);
-    const words = rows.map(row => ({ id: row.id, dictionaryEntryId: row.dictionaryEntryId, lemma: row.entry.word.term,
+    const words = rows.map(row => ({ id: row.id, dictionaryEntryId: row.dictionaryEntryId, lemma: row.entry.term,
       partOfSpeech: row.entry.partOfSpeech, stage: row.stage, familiarity: row.familiarity, nextReviewAt: row.nextReviewAt,
       ...this.definition(row.entry) }));
     return { list: { id: user.id, name: 'My Word List', preferredLanguage: 'en', isDefault: true }, page, pageSize, total, words };
@@ -223,8 +222,8 @@ export class CollectionsService {
   async gameWords(cookie: string | undefined, id: string, length: number) {
     const user = await this.owned(cookie, id);
     const rows = await this.db.userWord.findMany({ where: { userId: user.id, status: 'active',
-      entry: { retiredAt: null, word: { retiredAt: null }, definitions: { some: {} } } }, include: { entry: { include: { word: true } } } });
-    const words = [...new Set(rows.map(row => row.entry.word.term.toLowerCase()).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
+      entry: { definitions: { some: { languageCode: 'en' } } } }, include: { entry: true } });
+    const words = [...new Set(rows.map(row => row.entry.term.toLowerCase()).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
     if (!words.length) throw new BadRequestException('This word list has no playable words at this length.');
     return words;
   }
@@ -232,7 +231,7 @@ export class CollectionsService {
   async collectionGameWords(slug: string, length: number) {
     const collection = await this.collection(slug);
     const words = [...new Set(collection.entries.filter(row => this.definition(row.entry).definition)
-      .map(row => row.entry.word.term.toLowerCase()).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
+      .map(row => row.entry.term.toLowerCase()).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
     if (!words.length) throw new BadRequestException('This collection has no playable words at this length.');
     return { words, collection: this.summary(collection) };
   }

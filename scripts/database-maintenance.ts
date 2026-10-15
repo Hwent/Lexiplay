@@ -39,7 +39,7 @@ export async function backupDatabase(database: URL, folder: string, snapshot?: s
   await postgresTool(database, folder, ['pg_dump', '--format=custom', '--no-owner', '--no-acl',
     ...(snapshot ? ['--snapshot=' + snapshot] : []), '--file=/backup/source.dump']);
   const contents = await postgresTool(database, folder, ['pg_restore', '--list', '/backup/source.dump']);
-  if (!contents.includes('dictionary_words') || !contents.includes('account_users')) throw new Error('Recovery backup is missing required tables.');
+  if ((!contents.includes('dictionary_words') && !contents.includes('dictionary_entries')) || !contents.includes('account_users')) throw new Error('Recovery backup is missing required tables.');
   const hash = createHash('sha256');
   for await (const chunk of createReadStream(resolve(folder, 'source.dump'))) hash.update(chunk);
   const manifest = { sourceDatabase: database.pathname.slice(1), snapshot, backupSha256: hash.digest('hex'), createdAt: new Date().toISOString() };
@@ -48,17 +48,16 @@ export async function backupDatabase(database: URL, folder: string, snapshot?: s
 }
 
 export async function verifyDictionary(pool: Pool, words: LibraryWord[]) {
-  const count = Number((await pool.query('SELECT count(*) FROM dictionary_words WHERE retired_at IS NULL')).rows[0].count);
+  const count = Number((await pool.query('SELECT count(DISTINCT term) FROM dictionary_entries')).rows[0].count);
   if (count !== words.length) throw new Error('Dictionary word count differs from the selected source.');
   let definitions = 0;
   for (let offset = 0; offset < words.length; offset += 500) {
     const batch = words.slice(offset, offset + 500);
-    const rows = (await pool.query(`SELECT w.term,w.source_metadata,
-      COALESCE((SELECT jsonb_object_agg(e.part_of_speech,jsonb_build_object('metadata',e.source_metadata,
+    const rows = (await pool.query(`SELECT e.term,(jsonb_agg(e.source_metadata->'word')->0) source_metadata,
+      jsonb_object_agg(e.part_of_speech,jsonb_build_object('metadata',e.source_metadata-'word',
         'meanings',(SELECT jsonb_agg(jsonb_build_object('definition',d.definition,'source',d.source_label) ORDER BY d.sense_order)
-          FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id)))
-        FROM dictionary_entries e WHERE e.word_id=w.id AND e.retired_at IS NULL),'{}') entries
-      FROM dictionary_words w WHERE w.term=ANY($1::text[]) AND w.retired_at IS NULL`, [batch.map(word => word.term)])).rows;
+          FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en'))) entries
+      FROM dictionary_entries e WHERE e.term=ANY($1::text[]) GROUP BY e.term`, [batch.map(word => word.term)])).rows;
     const actual = new Map(rows.map(row => [row.term, row]));
     for (const word of batch) {
       const { term, definition, part_of_speech, senses, ...metadata } = word;
@@ -77,12 +76,12 @@ export async function verifyDictionary(pool: Pool, words: LibraryWord[]) {
     }
   }
   const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations' ORDER BY tablename")).rows.map(row => row.tablename);
-  if (tables.length !== 16) throw new Error('Expected 16 application tables.');
+  if (tables.length !== 14) throw new Error('Expected 14 application tables.');
   if ((await pool.query("SELECT 1 FROM pg_constraint WHERE connamespace='public'::regnamespace AND NOT convalidated LIMIT 1")).rowCount) {
     throw new Error('An unvalidated database constraint remains.');
   }
   const counts = (await pool.query(`SELECT
-    (SELECT count(*)::int FROM dictionary_words WHERE retired_at IS NULL AND term<>lower(term COLLATE "default")) case_preserved,
+    (SELECT count(DISTINCT term)::int FROM dictionary_entries WHERE term<>lower(term COLLATE "default")) case_preserved,
     (SELECT count(*)::int FROM account_users) accounts,
     (SELECT count(*)::int FROM user_words) personal_words,
     (SELECT count(*)::int FROM practice_games) games`)).rows[0];

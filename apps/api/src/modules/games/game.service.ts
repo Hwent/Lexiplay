@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, ServiceUnavailableException } 
 import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { GameRepository } from './game.repository';
-import { DIFFICULTIES, Difficulty, Feedback, Game, Guess, publicGame, WORDLE_COST } from './game.types';
+import { DIFFICULTIES, Difficulty, Game, Guess, publicGame, WORDLE_COST, score } from './game.types';
 
 @Injectable()
 export class GameService {
@@ -80,22 +80,16 @@ export class GameService {
     });
   }
 
+  async abandon(id: string, owner: string) {
+    return this.games.change(id,owner,game => {
+      if (!game.completed) { game.completed=true; game.status='cancelled'; game.completedAt=new Date().toISOString(); }
+      return { success:true };
+    });
+  }
+
   private requireActive(game: Game) {
     if (game.completed) throw new BadRequestException({ code: 'GAME_FINISHED', message: 'This game is already complete.' });
   }
 }
 
-export function score(answer: string, guess: string): Feedback[] {
-  const feedback: Feedback[] = Array.from({ length: answer.length }, () => 'ABSENT');
-  const remaining = new Map<string, number>();
-  for (let i = 0; i < answer.length; i++) {
-    if (guess[i] === answer[i]) feedback[i] = 'CORRECT';
-    else remaining.set(answer[i]!, (remaining.get(answer[i]!) ?? 0) + 1);
-  }
-  for (let i = 0; i < guess.length; i++) {
-    if (feedback[i] === 'CORRECT') continue;
-    const count = remaining.get(guess[i]!) ?? 0;
-    if (count > 0) { feedback[i] = 'PRESENT'; remaining.set(guess[i]!, count - 1); }
-  }
-  return feedback;
-}
+export { score } from './game.types';

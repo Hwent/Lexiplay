@@ -121,7 +121,7 @@ describe('game HTTP endpoints and rules', () => {
       { completedAt: '2026-03-09T03:30:00Z', guesses: [{ outcome: 'WON' }, {}] },
       { completedAt: '2026-03-08T04:30:00Z', guesses: [{ outcome: 'WON' }] },
       { completedAt: '2026-03-07T04:30:00Z', guesses: [{ outcome: 'LOST' }] },
-    ].map((game, i) => ({ id: String(i), ...game, guesses: game.guesses.map((guess, position) => ({ ...guess, ...(position === game.guesses.length - 1 ? { outcome: i < 2 ? 'WON' : 'LOST' } : {}) })) })) as Game[];
+    ].map((game, i) => ({ id: String(i), ...game, status: i < 2 ? 'won' : 'lost', attemptCount: game.guesses.length })) as Game[];
     expect(statistics(games, 'America/Toronto', new Date('2026-03-09T12:00:00Z'))).toMatchObject({ total: 3, wins: 2, losses: 1, winRate: 67, streak: 3 });
     expect(statistics([], 'UTC')).toMatchObject({ total: 0, winRate: 0, streak: 0 });
   });

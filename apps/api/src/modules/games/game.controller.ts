@@ -43,6 +43,11 @@ export class GameController {
   @Post(':gameId/hints')
   async hint(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string, @Body() body: HintDto) { return this.games.hint(id, body.type, await this.owner(cookie)); }
 
+  @Post(':gameId/abandon')
+  async abandon(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string) {
+    return this.games.abandon(id,await this.owner(cookie));
+  }
+
   private async owner(cookie: string | undefined, response?: Response) {
     if (/(?:^|;\s*)lexiplay_session=/.test(cookie ?? '')) {
       try { return `user:${(await this.accounts.current(readSessionCookie(cookie))).id}`; }

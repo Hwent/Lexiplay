@@ -39,7 +39,7 @@ type GuessResult = {
   answerDefinition?: string;
   rewardCoins?: number;
 };
-type Game = { pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
+type Game = { answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
 const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, hints: 3, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, hints: 2, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, hints: 1, reward: 6 }] as const;
 
@@ -131,14 +131,25 @@ export default function App() {
     void wordStore.flush().then(commit).catch(() => {}).finally(() => { navigating.current = false; });
   }
 
-  function exitGame() {
-    if (!wordSelection.pending.size && !wordSelection.saving) { resetGame(); return; }
-    void wordStore.flush().then(resetGame).catch(() => {});
+  async function exitGame() {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await wordStore.flush();
+      if (game && !finished) await api(`/games/${game.id}/abandon`, { method: 'POST' });
+      resetGame();
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not leave your puzzle. Try again.'); }
+    finally { setBusy(false); }
   }
-  function useCollection(poolId:string) {
-    const choose=()=>{resetGame();setSelectedPoolId(poolId);setPlayWithMyWords(false);navigateTo('play');};
-    if(wordSelection.pending.size||wordSelection.saving)void wordStore.flush().then(choose).catch(()=>{});
-    else choose();
+  async function useCollection(poolId:string) {
+    if (busy) return;
+    setBusy(true);
+    try {
+      await wordStore.flush();
+      if (game && !finished) await api(`/games/${game.id}/abandon`, { method: 'POST' });
+      resetGame(); setSelectedPoolId(poolId); setPlayWithMyWords(false); navigateTo('play');
+    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not change your puzzle. Try again.'); }
+    finally { setBusy(false); }
   }
 
   function resetGame() {
@@ -182,8 +193,8 @@ export default function App() {
     return () => { active = false; revision++; window.removeEventListener('lexiplay:account-change', changed); };
   }, []);
 
-  const finished = game?.status === 'cancelled' || (game?.guesses.at(-1)?.completed ?? false);
-  const attemptsRemaining = game?.guesses.at(-1)?.attemptsRemaining ?? game?.attemptLimit ?? 0;
+  const finished = game?.completed || game?.status === 'cancelled' || (game?.guesses.at(-1)?.completed ?? false);
+  const attemptsRemaining = game ? Math.max(0,game.attemptLimit - (game.attemptCount ?? game.guesses.length)) : 0;
 
   useEffect(() => {
     if (accountLoading) return;
@@ -303,7 +314,8 @@ export default function App() {
       if (session !== guessSession.current) return;
       if (result.definition) rememberDictionaryDefinition(result.guess, result.definition);
       if (result.answer && result.answerDefinition) rememberDictionaryDefinition(result.answer, result.answerDefinition);
-      setGame({ ...game, guesses: [...game.guesses, result] });
+      setGame({ ...game, guesses: [...game.guesses, result], attemptCount: game.guesses.length + 1, completed: result.completed,
+        ...(result.completed ? { status: result.outcome === 'WON' ? 'won' : 'lost', answer: result.answer, answerDefinition: result.answerDefinition } : {}) });
       setGuess('');
       setRejectedAttempt(0);
       if (result.completed) {
@@ -460,14 +472,14 @@ export default function App() {
               <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
             </div>
             {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>Choose a new puzzle</button></div>}
-            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? game.cancellationReason + ' Your entry cost was returned to the original wallet.' : message || (busy ? 'Checking…' : finished ? 'Puzzle complete.' : `Type ${game.wordLength} letters to check your word automatically.`)}</p>
+            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? game.cancellationReason + ' Your entry cost was returned to the original wallet.' : message || (busy ? 'Checking…' : finished ? `${game.status === 'won' ? 'Solved' : 'Puzzle complete'} in ${game.attemptCount ?? game.guesses.length} guesses.` : `Type ${game.wordLength} letters to check your word automatically.`)}</p>
             {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label="Revealed letters">
               {game.revealedPresent.length > 0 && <span>In the word: <strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong> · position unknown</span>}
               {game.revealedAbsent.length > 0 && <span>Ruled out: <strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
             </div>}
             <div className="puzzle-columns">
             <div className="puzzle-play-column">
-            <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
+            {(!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
                 const result = game.guesses[row];
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
@@ -480,7 +492,7 @@ export default function App() {
                   })}
                 </div>;
               })}
-            </div>
+            </div>}
             {!finished && <div className="game-consumables" aria-label="Hints">
               <button className="friendly-hint" type="button" onClick={() => void useHint('unused')} disabled={busy || progressSaving || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span><span><strong>Remove letters</strong><small>Hide up to 3 incorrect letters</small></span><span className="hint-count">{game.hints.unused} left</span></button>
               <button className="friendly-hint" type="button" onClick={() => void useHint('present')} disabled={busy || progressSaving || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span><span><strong>Reveal a letter</strong><small>Position stays hidden</small></span><span className="hint-count">{game.hints.present} left</span></button>
@@ -503,14 +515,14 @@ export default function App() {
                 </div>)}
               </div>
             </div>}
-            {game.guesses.length > 0 && <aside className="puzzle-definitions" aria-label="Word definitions">
+            {(game.guesses.length > 0 || (finished && game.status !== 'cancelled')) && <aside className="puzzle-definitions" aria-label="Word definitions">
             {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
               <div><div className="word-with-pronunciation"><strong>{result.guess}</strong><PronunciationButton term={result.guess} /></div><DefinitionText text={result.definition || 'Definition unavailable.'} /></div>
               {wordBookmark(result.guess, result.definition ?? '')}
             </div>)}
-            {finished && game.guesses.at(-1)?.answer && <div className="answer-definition">
-              <div><p className="eyebrow">THE ANSWER</p><div className="word-with-pronunciation"><strong>{game.guesses.at(-1)!.answer}</strong><PronunciationButton term={game.guesses.at(-1)!.answer!} /></div><DefinitionText text={game.guesses.at(-1)!.answerDefinition || 'Definition unavailable.'} /></div>
-              {wordBookmark(game.guesses.at(-1)!.answer!, game.guesses.at(-1)!.answerDefinition ?? game.guesses.at(-1)!.definition ?? '')}
+            {finished && game.answer && <div className="answer-definition">
+              <div><p className="eyebrow">THE ANSWER</p><div className="word-with-pronunciation"><strong>{game.answer}</strong><PronunciationButton term={game.answer!} /></div><DefinitionText text={game.answerDefinition || 'Definition unavailable.'} /></div>
+              {wordBookmark(game.answer!, game.answerDefinition ?? '')}
             </div>}
             </aside>}
 

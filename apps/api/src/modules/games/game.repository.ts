@@ -1,21 +1,16 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
-import { Difficulty, Game, GameStatus, Guess } from './game.types';
+import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, score } from './game.types';
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
+type ActiveState = { guesses: string[]; hints: Game['hints']; revealedAbsent: string[]; revealedPresent: string[];
+  coinCost: number; winRewardCoins: number; startedAt: string };
 type GameRow = {
-  id: string; start_request_id: string; user_id: string | null; guest_session_id: string | null; token_hash: string | null;
-  answer: string; answer_definition: string; word_length: number; difficulty: Difficulty; attempt_limit: number;
-  unused_hints_remaining: number; present_hints_remaining: number; revealed_absent: string[]; revealed_present: string[];
-  status: GameStatus; started_at: Date; finished_at: Date | null; cancellation_reason: string | null;
+  id: string; start_request_id: string; answer: string; difficulty: Difficulty; attempt_count: number; coin_change: number;
+  active_state: ActiveState | null; status: GameStatus; finished_at: Date | null;
   collection_id: string | null; collection_name: string; collection_author: string | null;
-  coin_cost: number; win_reward_coins: number; coin_user_id: string | null; coin_guest_session_id: string | null;
-  reward_credited_at: Date | null; guesses: { guess: string; feedback: Guess['feedback']; definition: string; position: number }[];
+  coin_user_id: string | null; coin_guest_session_id: string | null;
 };
-const definitionSql = (alias: string) => `CASE WHEN ${alias}.retired_at IS NOT NULL THEN '' ELSE COALESCE(
-  (SELECT string_agg(d.definition,'; ' ORDER BY e.part_of_speech,d.sense_order)
-   FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id
-   WHERE e.word_id=${alias}.id AND e.retired_at IS NULL),'') END`;
 
 @Injectable()
 export class GameRepository implements OnModuleDestroy {
@@ -50,7 +45,7 @@ export class GameRepository implements OnModuleDestroy {
       const previous = (await client.query('SELECT id FROM practice_games WHERE start_request_id=$1', [game.startRequestId])).rows[0];
       if (previous) {
         const existing = await this.load(client, previous.id, game.owner);
-        if (existing.wordLength !== game.wordLength || existing.difficulty !== game.difficulty || existing.pool?.id !== game.pool?.id) {
+        if (existing.wordLength !== game.wordLength || existing.difficulty !== game.difficulty || (!existing.completed && existing.pool?.id !== game.pool?.id)) {
           throw new ConflictException('This start request was already used for a different game.');
         }
         await client.query('COMMIT'); return existing;
@@ -58,16 +53,29 @@ export class GameRepository implements OnModuleDestroy {
       const wallet = await this.walletRow(client, game.owner, true);
       const answer = await this.resolveWord(client, game.answer);
       if (!answer) throw new BadRequestException('The dictionary changed. Choose a new game.');
-      const revision = (await client.query("SELECT id FROM library_revisions WHERE scope='dictionary' AND is_current")).rows[0];
-      if (!revision) throw new BadRequestException('The dictionary has not been published.');
-      if (wallet.coin_balance < game.coinCost) throw new BadRequestException({ code: 'INSUFFICIENT_COINS', message: 'You need 1 coin to start this game.' });
+      // Replacing a puzzle refunds its original payer in this same transaction.
+      const unfinished = (await client.query(`SELECT g.id,g.coin_user_id,g.coin_guest_session_id,g.coin_change FROM practice_games g
+        LEFT JOIN guest_sessions s ON s.id=g.guest_session_id WHERE g.status='active'
+        AND (g.user_id::text=$1 OR s.token_hash=$2) ORDER BY g.id`,
+        [wallet.kind === 'account' ? wallet.id : null, wallet.kind === 'guest' ? game.owner.slice(6) : null])).rows;
+      for (const previous of unfinished) {
+        const payerTable = previous.coin_user_id ? 'account_users' : 'guest_sessions';
+        const payerId = previous.coin_user_id ?? previous.coin_guest_session_id;
+        await client.query(`SELECT id FROM ${payerTable} WHERE id=$1 FOR UPDATE`, [payerId]);
+        const refunded = await client.query(`UPDATE practice_games SET status='cancelled',finished_at=now(),
+          active_state=NULL,collection_id=NULL,coin_change=0 WHERE id=$1 AND status='active' RETURNING id`, [previous.id]);
+        if (refunded.rowCount) await client.query(`UPDATE ${payerTable} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId, -previous.coin_change]);
+      }
+      const available = (await client.query(`SELECT coin_balance FROM ${wallet.kind === 'account' ? 'account_users' : 'guest_sessions'} WHERE id=$1`, [wallet.id])).rows[0].coin_balance;
+      if (available < game.coinCost) throw new BadRequestException({ code: 'INSUFFICIENT_COINS', message: 'You need 1 coin to start this game.' });
       const table = wallet.kind === 'account' ? 'account_users' : 'guest_sessions';
       await client.query(`UPDATE ${table} SET coin_balance=coin_balance-$2 WHERE id=$1`, [wallet.id, game.coinCost]);
+      const state: ActiveState = { guesses: [], hints: game.hints, revealedAbsent: [], revealedPresent: [],
+        coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
       await client.query(`INSERT INTO practice_games(id,start_request_id,user_id,guest_session_id,coin_user_id,coin_guest_session_id,
-        answer_word_id,collection_id,started_revision_id,word_length,difficulty,attempt_limit,unused_hints_remaining,present_hints_remaining,
-        coin_cost,win_reward_coins) VALUES($1,$2,$3,$4,$3,$4,$5,$6,$7,$8,$9,$10,$11,$11,$12,$13)`,
-        [game.id, game.startRequestId, wallet.kind === 'account' ? wallet.id : null, wallet.kind === 'guest' ? wallet.id : null,
-          answer.id, game.pool?.id ?? null, revision.id, game.wordLength, game.difficulty, game.attemptLimit, game.hints.unused, game.coinCost, game.winRewardCoins]);
+        answer,collection_id,difficulty,coin_change,active_state) VALUES($1,$2,$3,$4,$3,$4,$5,$6,$7,$8,$9)`,
+        [game.id,game.startRequestId,wallet.kind === 'account' ? wallet.id : null,wallet.kind === 'guest' ? wallet.id : null,
+          game.answer,game.pool?.id ?? null,game.difficulty,-game.coinCost,JSON.stringify(state)]);
       const created = await this.load(client, game.id, game.owner);
       await client.query('COMMIT'); return created;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
@@ -75,10 +83,10 @@ export class GameRepository implements OnModuleDestroy {
   }
 
   private async resolveWord(client: PoolClient, term: string) {
-    return (await client.query<{ id: string }>(`SELECT w.id FROM dictionary_words w
-      WHERE w.retired_at IS NULL AND lower(w.term COLLATE "default")=lower($1)
-      AND EXISTS(SELECT 1 FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id WHERE e.word_id=w.id AND e.retired_at IS NULL)
-      ORDER BY (w.term=$1) DESC,w.term LIMIT 1`, [term])).rows[0];
+    return (await client.query<{ id: string }>(`SELECT e.id FROM dictionary_entries e
+      WHERE lower(e.term COLLATE "default")=lower($1)
+      AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
+      ORDER BY (e.term=$1) DESC,e.term,e.part_of_speech LIMIT 1`, [term])).rows[0];
   }
 
   async read(id: string, owner: string): Promise<Game> {
@@ -103,17 +111,18 @@ export class GameRepository implements OnModuleDestroy {
       // Wallets precede game locks, matching starts, account deletion, and guest claims.
       await client.query(`SELECT id FROM ${table} WHERE id=$1 FOR UPDATE`, [payerId]);
       const game = await this.load(client, id, owner, true);
-      const previousCount = game.guesses.length, wasCompleted = game.completed;
+      const wasCompleted = game.completed;
       const result = await operation(game);
-      const newlyWon = !wasCompleted && game.status === 'won';
-      if (newlyWon) await client.query(`UPDATE ${table} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId, game.winRewardCoins]);
-      await client.query(`UPDATE practice_games SET status=$2,finished_at=$3,unused_hints_remaining=$4,present_hints_remaining=$5,
-        revealed_absent=$6,revealed_present=$7,reward_credited_at=CASE WHEN $8 THEN now() ELSE reward_credited_at END WHERE id=$1`,
-        [id, game.status, game.completedAt, game.hints.unused, game.hints.present, game.revealedAbsent, game.revealedPresent, newlyWon]);
-      for (let position = previousCount; position < game.guesses.length; position++) {
-        const guess = game.guesses[position]!, word = await this.resolveWord(client, guess.guess);
-        if (!word) throw new BadRequestException('This guess is no longer in the dictionary.');
-        await client.query('INSERT INTO practice_guesses(game_id,position,word_id,feedback) VALUES($1,$2,$3,$4)', [id, position + 1, word.id, guess.feedback]);
+      if (!wasCompleted) {
+        const credit = game.status === 'won' ? game.winRewardCoins : game.status === 'cancelled' ? game.coinCost : 0;
+        if (credit) await client.query(`UPDATE ${table} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId,credit]);
+        const state: ActiveState | null = game.completed ? null : {
+          guesses: game.guesses.map(guess => guess.guess), hints: game.hints,
+          revealedAbsent: game.revealedAbsent, revealedPresent: game.revealedPresent,
+          coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
+        await client.query(`UPDATE practice_games SET status=$2,finished_at=$3,active_state=$4,
+          attempt_count=$5,coin_change=coin_change+$6,collection_id=CASE WHEN $7 THEN NULL ELSE collection_id END WHERE id=$1`,
+          [id,game.status,game.completedAt,state ? JSON.stringify(state) : null,game.guesses.length,credit,game.completed]);
       }
       await client.query('COMMIT'); return result;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
@@ -145,32 +154,33 @@ export class GameRepository implements OnModuleDestroy {
 
   private async rows(client: PoolClient, ids: string[], owner: string, lock = false): Promise<Game[]> {
     if (!ids.length) return [];
-    const { rows } = await client.query<GameRow>(`SELECT g.*,w.term AS answer,${definitionSql('w')} AS answer_definition,
-      s.token_hash,c.name AS collection_name,c.author AS collection_author,
-      COALESCE((SELECT jsonb_agg(jsonb_build_object('guess',lower(gw.term),'feedback',q.feedback,'position',q.position,
-        'definition',${definitionSql('gw')}) ORDER BY q.position)
-        FROM practice_guesses q JOIN dictionary_words gw ON gw.id=q.word_id WHERE q.game_id=g.id),'[]'::jsonb) AS guesses
-      FROM practice_games g JOIN dictionary_words w ON w.id=g.answer_word_id
-      LEFT JOIN guest_sessions s ON s.id=g.guest_session_id LEFT JOIN vocabulary_collections c ON c.id=g.collection_id
+    const { rows } = await client.query<GameRow>(`SELECT g.*,c.name AS collection_name,c.author AS collection_author
+      FROM practice_games g LEFT JOIN guest_sessions s ON s.id=g.guest_session_id
+      LEFT JOIN vocabulary_collections c ON c.id=g.collection_id
       WHERE g.id=ANY($1::uuid[]) AND (($2 LIKE 'user:%' AND g.user_id::text=substring($2 from 6))
         OR ($2 LIKE 'guest:%' AND s.token_hash=substring($2 from 7) AND s.claimed_at IS NULL AND s.expires_at>now()))
-      ORDER BY g.finished_at DESC NULLS FIRST,g.id${lock ? ' FOR UPDATE OF g' : ''}`, [ids, owner]);
+      ORDER BY g.finished_at DESC NULLS FIRST,g.id${lock ? ' FOR UPDATE OF g' : ''}`, [ids,owner]);
+    const terms = [...new Set(rows.flatMap(row => [row.answer,...(row.active_state?.guesses ?? [])]))];
+    const definitions = terms.length ? (await client.query<{term:string; definition:string}>(`SELECT chosen.term,
+      string_agg(d.definition,'; ' ORDER BY e.part_of_speech,d.sense_order) definition FROM unnest($1::text[]) chosen(term)
+      JOIN LATERAL (SELECT term FROM dictionary_entries WHERE lower(term COLLATE "default")=chosen.term
+        ORDER BY (term=chosen.term) DESC,term LIMIT 1) spelling ON true
+      JOIN dictionary_entries e ON e.term=spelling.term
+      JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en' GROUP BY chosen.term`, [terms])).rows : [];
+    const meanings = new Map(definitions.map(row => [row.term,row.definition]));
     return rows.map(row => {
-      const completed = row.status !== 'active', answer = row.answer.toLowerCase();
-      const guesses: Guess[] = row.guesses.map((guess, index) => {
-        const last = index === row.guesses.length - 1 && (row.status === 'won' || row.status === 'lost');
-        return { guess: guess.guess, feedback: guess.feedback, definition: guess.definition,
-          attemptsRemaining: row.attempt_limit - guess.position, completed: last,
-          ...(last ? { outcome: row.status === 'won' ? 'WON' as const : 'LOST' as const, answer, answerDefinition: row.answer_definition,
-            ...(row.status === 'won' ? { rewardCoins: row.win_reward_coins } : {}) } : {}) };
-      });
-      return { id: row.id, startRequestId: row.start_request_id, kind: 'word-puzzle', owner, answer,
-        wordLength: row.word_length, difficulty: row.difficulty, attemptLimit: row.attempt_limit, guesses, completed, status: row.status,
-        startedAt: row.started_at.toISOString(), completedAt: row.finished_at?.toISOString() ?? null,
-        hints: { unused: row.unused_hints_remaining, present: row.present_hints_remaining }, revealedAbsent: row.revealed_absent, revealedPresent: row.revealed_present,
-        coinCost: row.coin_cost, winRewardCoins: row.win_reward_coins, coinPayer: row.coin_user_id ? 'account' : 'guest',
-        ...(row.cancellation_reason ? { cancellationReason: row.cancellation_reason } : {}),
-        ...(row.collection_id ? { pool: { id: row.collection_id, name: row.collection_name, author: row.collection_author ?? '' } } : {}) };
+      const state = row.active_state, rules = DIFFICULTIES[row.difficulty], completed = row.status !== 'active';
+      const guesses: Guess[] = (state?.guesses ?? []).map((guess,index) => ({ guess,feedback:score(row.answer,guess),
+        definition:meanings.get(guess) ?? '',attemptsRemaining:rules.attemptLimit-index-1,completed:false }));
+      return { id:row.id,startRequestId:row.start_request_id,kind:'word-puzzle',owner,answer:row.answer,
+        answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
+        wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit:rules.attemptLimit,guesses,completed,status:row.status,
+        startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
+        hints:state?.hints ?? {unused:0,present:0},revealedAbsent:state?.revealedAbsent ?? [],revealedPresent:state?.revealedPresent ?? [],
+        coinCost:state?.coinCost ?? (row.status === 'lost' ? -row.coin_change : 0),
+        winRewardCoins:state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',
+        ...(row.status === 'cancelled' ? {cancellationReason:'This unfinished game was refunded.'} : {}),
+        ...(row.collection_id ? {pool:{id:row.collection_id,name:row.collection_name,author:row.collection_author ?? ''}} : {}) };
     });
   }
 

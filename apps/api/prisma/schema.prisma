@@ -79,18 +79,10 @@ model ProgressTransfer {
   @@map("progress_transfers")
 }
 
-model LibraryRevision {
-  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  scope String
-  fingerprint String @db.Char(64)
-  isCurrent Boolean @default(false) @map("is_current")
-  publishedAt DateTime @default(now()) @db.Timestamptz @map("published_at")
-  metadata Json @default("{}")
-  words DictionaryWord[]
-  collections VocabularyCollection[]
-  games PracticeGame[]
-  @@unique([scope,fingerprint])
-  @@map("library_revisions")
+model LibraryState {
+  id Int @id @default(1) @db.SmallInt
+  version String @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  @@map("library_state")
 }
 
 model WordFamily {
@@ -98,49 +90,33 @@ model WordFamily {
   headword String
   band Int? @db.SmallInt
   sourceMetadata Json @default("{}") @map("source_metadata")
-  words DictionaryWord[]
-  @@map("word_families")
-}
-
-model DictionaryWord {
-  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  term String @unique
-  familyId String? @map("family_id")
-  family WordFamily? @relation(fields:[familyId], references:[id], onDelete:SetNull)
-  revisionId String @db.Uuid @map("revision_id")
-  revision LibraryRevision @relation(fields:[revisionId], references:[id], onDelete:Restrict)
-  retiredAt DateTime? @db.Timestamptz @map("retired_at")
-  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
-  sourceMetadata Json @default("{}") @map("source_metadata")
   entries DictionaryEntry[]
-  answers PracticeGame[]
-  guesses PracticeGuess[]
-  @@index([familyId])
-  @@map("dictionary_words")
+  @@map("word_families")
 }
 
 model DictionaryEntry {
   id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  wordId String @db.Uuid @map("word_id")
-  word DictionaryWord @relation(fields:[wordId], references:[id], onDelete:Restrict)
+  term String
   partOfSpeech String @map("part_of_speech")
+  familyId String? @map("family_id")
+  family WordFamily? @relation(fields:[familyId], references:[id], onDelete:SetNull)
   sourceMetadata Json @default("{}") @map("source_metadata")
-  retiredAt DateTime? @db.Timestamptz @map("retired_at")
   definitions DictionaryDefinition[]
   collections CollectionEntry[]
   personalEntries UserWord[]
-  @@unique([wordId,partOfSpeech])
+  @@unique([term,partOfSpeech])
+  @@index([familyId])
   @@map("dictionary_entries")
 }
 
 model DictionaryDefinition {
-  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  languageCode String @default("en") @map("language_code")
   dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
   entry DictionaryEntry @relation(fields:[dictionaryEntryId], references:[id], onDelete:Cascade)
   senseOrder Int @map("sense_order")
   definition String
   sourceLabel String? @map("source_label")
-  @@unique([dictionaryEntryId,senseOrder])
+  @@id([dictionaryEntryId,languageCode,senseOrder])
   @@map("dictionary_definitions")
 }
 
@@ -155,8 +131,6 @@ model VocabularyCollection {
   sourceVersion String? @map("source_version")
   sourceUrl String? @map("source_url")
   license String?
-  revisionId String @db.Uuid @map("revision_id")
-  revision LibraryRevision @relation(fields:[revisionId], references:[id], onDelete:Restrict)
   status String @default("available")
   entries CollectionEntry[]
   savedBy UserVocabularyCollection[]
@@ -217,46 +191,19 @@ model PracticeGame {
   coinUser AccountUser? @relation("GamePayer", fields:[coinUserId], references:[id], onDelete:NoAction)
   coinGuestSessionId String? @db.Uuid @map("coin_guest_session_id")
   coinGuest GuestSession? @relation("GuestGamePayer", fields:[coinGuestSessionId], references:[id], onDelete:Restrict)
-  answerWordId String @db.Uuid @map("answer_word_id")
-  answer DictionaryWord @relation(fields:[answerWordId], references:[id], onDelete:Restrict)
+  answer String
   collectionId String? @db.Uuid @map("collection_id")
   collection VocabularyCollection? @relation(fields:[collectionId], references:[id], onDelete:Restrict)
-  startedRevisionId String @db.Uuid @map("started_revision_id")
-  revision LibraryRevision @relation(fields:[startedRevisionId], references:[id], onDelete:Restrict)
-  wordLength Int @db.SmallInt @map("word_length")
   difficulty String
-  attemptLimit Int @db.SmallInt @map("attempt_limit")
-  unusedHintsRemaining Int @db.SmallInt @map("unused_hints_remaining")
-  presentHintsRemaining Int @db.SmallInt @map("present_hints_remaining")
-  revealedAbsent String[] @default([]) @map("revealed_absent")
-  revealedPresent String[] @default([]) @map("revealed_present")
-  coinCost Int @map("coin_cost")
-  winRewardCoins Int @map("win_reward_coins")
-  rewardCreditedAt DateTime? @db.Timestamptz @map("reward_credited_at")
-  costRefundedAt DateTime? @db.Timestamptz @map("cost_refunded_at")
+  attemptCount Int @default(0) @db.SmallInt @map("attempt_count")
+  coinChange Int @map("coin_change")
+  activeState Json? @map("active_state")
   status String @default("active")
-  cancellationReason String? @map("cancellation_reason")
-  startedAt DateTime @default(now()) @db.Timestamptz @map("started_at")
   finishedAt DateTime? @db.Timestamptz @map("finished_at")
-  guesses PracticeGuess[]
   @@index([userId,finishedAt])
   @@index([guestSessionId])
   @@index([coinUserId])
   @@index([coinGuestSessionId])
-  @@index([answerWordId])
   @@index([collectionId])
   @@map("practice_games")
-}
-
-model PracticeGuess {
-  gameId String @db.Uuid @map("game_id")
-  game PracticeGame @relation(fields:[gameId], references:[id], onDelete:Cascade)
-  position Int @db.SmallInt
-  wordId String @db.Uuid @map("word_id")
-  word DictionaryWord @relation(fields:[wordId], references:[id], onDelete:Restrict)
-  feedback String[]
-  submittedAt DateTime @default(now()) @db.Timestamptz @map("submitted_at")
-  @@id([gameId,position])
-  @@index([wordId])
-  @@map("practice_guesses")
 }
