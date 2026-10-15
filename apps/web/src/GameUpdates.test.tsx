@@ -46,11 +46,13 @@ describe('saved practice and account updates', () => {
   });
   it('renders Statistics and an accessible winning distribution from persisted results', async () => {
     window.history.replaceState({}, '', '/progress');
-    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 2, wins: 1, losses: 1, winRate: 50, streak: 2, timezone: 'America/Toronto', distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 1 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', guesses: [{ outcome: 'WON', answer: 'apple' }] }] })));
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 8, wins: 4, losses: 4, winRate: 50, streak: 2, timezone: 'America/Toronto', distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 4 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', guesses: [{ outcome: 'WON', answer: 'apple' }] }] })));
     render(<App />);
     expect(await screen.findByText('50%')).toBeInTheDocument();
     expect(screen.getByText('2 days')).toBeInTheDocument();
-    expect(screen.getByRole('meter', { name: '3 guesses: 1 wins' })).toHaveAttribute('value', '1');
+    expect(screen.getByRole('meter', { name: '3 guesses: 4 wins' })).toHaveAttribute('value', '4');
+    expect(screen.getByRole('meter', { name: '3 guesses: 4 wins' })).toHaveAttribute('max', '4');
+    expect(screen.getByRole('meter', { name: '1 guesses: 0 wins' })).toHaveAttribute('max', '4');
     expect(screen.getByText('apple')).toBeInTheDocument();
     expect(screen.getByText('Solved')).toBeInTheDocument();
   });
