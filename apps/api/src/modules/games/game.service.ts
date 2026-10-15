@@ -14,9 +14,11 @@ export class GameService {
     const rules = DIFFICULTIES[difficulty];
     const allowedWords = await this.dictionary.dictionaryGameWords(wordLength);
     if (!allowedWords.length) throw new ServiceUnavailableException({ code: 'DICTIONARY_NOT_READY', message: `The dictionary has no ${wordLength}-letter game words. Load the dictionary before playing.` });
-    const pool = new Set(allowedWords);
-    const candidates = wordList === undefined ? allowedWords : [...new Set(wordList)].filter(word => pool.has(word));
-    const answers = candidates;
+    let answers = allowedWords;
+    if (wordList !== undefined) {
+      const pool = new Set(allowedWords);
+      answers = [...new Set(wordList)].filter(word => pool.has(word));
+    }
     if (!answers.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words in the game dictionary yet.` });
     const game: Game = {
       id: randomUUID(), kind: 'word-puzzle', owner, ...(selectedPool ? { pool: selectedPool } : {}), answer: answers[randomInt(answers.length)]!, allowedWords,
@@ -67,7 +69,7 @@ export class GameService {
       if (completed) {
         result.outcome = won ? 'WON' : 'LOST';
         result.answer = game.answer;
-        result.answerDefinition = await this.dictionary.dictionaryDefinition(game.answer) ?? '';
+        result.answerDefinition = won ? result.definition : await this.dictionary.dictionaryDefinition(game.answer) ?? '';
         game.completed = true;
         game.completedAt = new Date().toISOString();
       }
