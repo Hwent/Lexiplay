@@ -117,7 +117,11 @@ export class PendingWords {
       const missing: string[] = [];
       let count = 0;
       while (this.words.size) {
-        const terms = [...this.words.keys()].slice(0, 200);
+        const terms: string[] = [];
+        for (const term of this.words.keys()) {
+          terms.push(term);
+          if (terms.length === 200) break;
+        }
         const result = await apiRequest<{ added: number; skipped: number; missing: string[] }>(`/word-lists/${listId}/dictionary-entries`, { method: 'POST', body: JSON.stringify({ terms }), keepalive });
         if (!Array.isArray(result.missing)) throw new Error('Could not confirm that your words were saved.');
         const rejected = new Set(result.missing);
