@@ -246,6 +246,11 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     await publishDictionary(pool, updated, 'updated-definitions');
     const after = await (await request('/collections/cefr-a1')).json();
     expect(after.version).not.toBe(before.version);
+    await pool.query("UPDATE library_revisions SET is_current=false WHERE scope='families' AND is_current");
+    await pool.query(`INSERT INTO library_revisions(scope,fingerprint,is_current) VALUES('families',$1,true)
+      ON CONFLICT(scope,fingerprint) DO UPDATE SET is_current=true`, ['f'.repeat(64)]);
+    const regrouped = await (await request('/collections/cefr-a1')).json();
+    expect(regrouped.version).not.toBe(after.version);
     const history = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
     expect(history.guesses[0]).toMatchObject({ definition: 'Updated meaning.', answerDefinition: 'Updated meaning.' });
     expect(await balance(user.cookie)).toBe(103);

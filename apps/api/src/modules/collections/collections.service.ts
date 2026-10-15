@@ -6,7 +6,7 @@ import { Prisma } from '../../generated/prisma/client';
 
 const entryInclude = { word: { include: { family: true } }, definitions: { orderBy: { senseOrder: 'asc' as const } } };
 const collectionInclude = { entries: { orderBy: [{ sortOrder: 'asc' as const }, { dictionaryEntryId: 'asc' as const }], include: { entry: { include: entryInclude } } } };
-type Collection = Prisma.VocabularyCollectionGetPayload<{ include: typeof collectionInclude }>;
+type Collection = Prisma.VocabularyCollectionGetPayload<{ include: typeof collectionInclude }> & { libraryVersion: string };
 type Entry = Collection['entries'][number]['entry'];
 
 @Injectable()
@@ -20,7 +20,7 @@ export class CollectionsService {
     return { id: collection.id, slug: collection.slug, name: collection.name, description: collection.description,
       category: collection.category, level: collection.category === 'CEFR' ? collection.slug.slice(5).toUpperCase() : null,
       author: collection.author, source: collection.sourceUrl, license: collection.license,
-      version: collection.revisionId + ':' + (collection.entries[0]?.entry.word.revisionId ?? ''),
+      version: collection.revisionId + ':' + collection.libraryVersion,
       status: collection.status, wordCount: collection.entries.length, memberCount: collection.entries.length,
       ...(collection.status === 'available' ? { familyCount, otherUnitCount: families.size - familyCount } : {}) };
   }
@@ -43,14 +43,15 @@ export class CollectionsService {
   async catalog(category?: string) {
     const rows = await this.db.vocabularyCollection.findMany({ where: { ...(category ? { category } : {}), status: { not: 'retired' } },
       include: collectionInclude, orderBy: [{ category: 'asc' }, { slug: 'asc' }] });
-    return rows.map(row => this.summary(row));
+    const library = await this.revision();
+    return rows.map(row => this.summary({ ...row, libraryVersion: library.version }));
   }
 
   private async collection(slug: string) {
     const where = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(slug) ? { OR: [{ id: slug }, { slug }] } : { slug };
     const collection = await this.db.vocabularyCollection.findFirst({ where, include: collectionInclude });
     if (!collection) throw new NotFoundException('Vocabulary collection not found.');
-    return collection;
+    return { ...collection, libraryVersion: (await this.revision()).version };
   }
 
   async detail(slug: string) { return this.summary(await this.collection(slug)); }
@@ -121,7 +122,8 @@ export class CollectionsService {
   async savedCollections(cookie: string | undefined) {
     const user = await this.accounts.current(cookie);
     const rows = await this.db.userVocabularyCollection.findMany({ where: { userId: user.id }, include: { collection: { include: collectionInclude } }, orderBy: { savedAt: 'asc' } });
-    return rows.map(row => this.summary(row.collection));
+    const library = await this.revision();
+    return rows.map(row => this.summary({ ...row.collection, libraryVersion: library.version }));
   }
 
   async saveCollection(cookie: string | undefined, slug: string) {
