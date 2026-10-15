@@ -12,7 +12,7 @@ function mockApi() {
 }
 it('adds and cancels dictionary and game selections without any writes, then saves one batch on exit', async () => {
   const fetchMock = mockApi(), store = new PendingWords('user-one'); await store.loadSaved();
-  store.toggle('cover', '', 'my-list'); store.toggle(' COVER '); store.toggle('paper', 'Writing material.'); store.toggle('cover', '', 'my-list');
+  store.toggle('cover', '', 'my-list'); store.toggle(' cover '); store.toggle('paper', 'Writing material.'); store.toggle('cover', '', 'my-list');
   expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
   expect(store.getSnapshot().saved.has('cover')).toBe(false);
   const first = store.flush(), second = store.flush(); expect(first).toBe(second); await first;

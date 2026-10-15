@@ -21,7 +21,7 @@ function wordsFrom(source: string | null): GuestWord[] {
     if (!list || !Array.isArray(list.words)) throw new Error('Your local word list could not be read. It has been kept on this device.');
     for (const word of list.words) {
       if (!word || typeof word.term !== 'string' || typeof word.definition !== 'string' || !['KNOWN', 'UNFAMILIAR'].includes(word.status)) throw new Error('A local word could not be read. Your progress has been kept on this device.');
-      const term = word.term.trim().toLowerCase();
+      const term = word.term.trim();
       if (!words.has(term)) words.set(term, { term, definition: word.definition, partOfSpeech: word.partOfSpeech ?? null, status: word.status });
     }
   }
@@ -61,7 +61,7 @@ function clearTransferredWords(pending: PendingTransfer) {
   // Another tab may have added/edited words during the transfer. Keep those changes.
   const migrated = new Set(wordsFrom(pending.source).map(word => JSON.stringify(word)));
   const lists = JSON.parse(current) as { words: GuestWord[] }[];
-  for (const list of lists) list.words = list.words.filter(word => !migrated.has(JSON.stringify({ term: word.term.trim().toLowerCase(), definition: word.definition, partOfSpeech: word.partOfSpeech ?? null, status: word.status })));
+  for (const list of lists) list.words = list.words.filter(word => !migrated.has(JSON.stringify({ term: word.term.trim(), definition: word.definition, partOfSpeech: word.partOfSpeech ?? null, status: word.status })));
   window.localStorage.setItem(LOCAL_WORDS_KEY, JSON.stringify(lists));
 }
 async function transfer(accountId: string) {

@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from 'react';
 import { ApiError, apiRequest } from './services/api-client';
 import { hasPendingProgress, transferGuestProgress } from './services/guest-progress';
 
-export type Account = { id: string; email: string | null; username?: string; emailVerified?: boolean };
+export type Account = { id: string; email: string | null; username?: string; emailVerified?: boolean; coinBalance?: number };
 export default function useAccount() {
   const [account, setAccount] = useState<Account | null>(null);
   const [loading, setLoading] = useState(true);

@@ -4,7 +4,7 @@ import { LibraryRequests } from './library-requests';
 type PendingWord = { term: string; definition: string; listId?: string };
 export type WordSelection = { saved: ReadonlySet<string>; pending: ReadonlySet<string>; saving: boolean; ready: boolean; error: string; notice: string };
 const LOCAL_WORDS = 'lexiplay-local-word-lists';
-const normalize = (term: string) => term.trim().toLowerCase();
+const normalize = (term: string) => term.trim();
 
 export class PendingWords {
   readonly requests = new LibraryRequests();

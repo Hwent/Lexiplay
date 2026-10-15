@@ -84,6 +84,20 @@ describe('shared browser dictionary cache', () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
+  it('keeps case-distinct definitions separate and discards responses from an older dictionary revision', async () => {
+    rememberDictionaryDefinition('Polish', 'From Poland.');
+    rememberDictionaryDefinition('polish', 'To make shiny.');
+    expect(cachedDictionaryDefinition('Polish')).toBe('From Poland.');
+    expect(cachedDictionaryDefinition('polish')).toBe('To make shiny.');
+    let respond!: (response: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { respond = resolve; })));
+    const old = dictionaryDefinition('apple');
+    clearDictionaryCache();
+    respond(Response.json({ definition: 'Old meaning.' }));
+    await old;
+    expect(cachedDictionaryDefinition('apple')).toBeUndefined();
+  });
+
   it('continues to cache in memory when browser storage is disabled', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Storage disabled'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Storage disabled'); });

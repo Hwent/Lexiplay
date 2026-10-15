@@ -435,3 +435,4 @@ body { background: var(--page); }
 .roadmap-list h4 { margin: .65rem 0 .35rem; font-size: .9rem; }
 .roadmap-list p { margin: 0; }
 @media (max-width: 700px) { .roadmap-list { grid-template-columns: 1fr; } }
+.game-price { text-align: center; font-weight: 600; margin: 1rem 0; }
