@@ -161,3 +161,8 @@
   .dictionary-tool-results li > div { flex-basis: 100%; }
   .dictionary-tool-results li > button, .dictionary-import-actions > button { width: 100%; min-height: 44px; }
 }
+.saved-collections { margin-bottom: 2rem; }
+.saved-collection-grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(min(100%,18rem),1fr)); gap: 1rem; }
+.saved-collection-grid article { border: 1px solid var(--border-color, #7774); border-radius: 1rem; padding: 1.25rem; display: grid; gap: 1rem; }
+.saved-collection-grid article > div { display: flex; flex-wrap: wrap; align-items: center; gap: .75rem; }
+.saved-collection-grid article span { opacity: .75; }

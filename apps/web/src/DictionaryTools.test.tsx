@@ -12,9 +12,9 @@ function renderTools(store: PendingWords, query = '') {
   return render(<PendingWordsContext.Provider value={store}><DictionaryTools listId="my-list" searchQuery={query}/></PendingWordsContext.Provider>);
 }
 it('parses word files, deduplicates terms and leaves supplied definitions out', () => {
-  expect(importTerms('word,definition\nCover,Personal note\ncover,Other note\n"analyse",My text', 'csv')).toEqual(['cover', 'analyse']);
+  expect(importTerms('word,definition\nCover,Personal note\ncover,Other note\n"analyse",My text', 'csv')).toEqual(['Cover', 'cover', 'analyse']);
   expect(importTerms('term\tdefinition\ncover\tPrivate text', 'tsv')).toEqual(['cover']);
-  expect(importTerms('all right\n COVER \ncover')).toEqual(['all right', 'cover']);
+  expect(importTerms('all right\n COVER \ncover')).toEqual(['all right', 'COVER', 'cover']);
   expect(importTerms('word\nterm')).toEqual(['word', 'term']);
 });
 it('reads a CSV file into a word-only preview without saving automatically', async () => {

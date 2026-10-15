@@ -18,9 +18,8 @@ export class ProgressTransferController {
     if (user.id !== body.accountId) throw new ForbiddenException('Your signed-in account changed. Sign in again to save this progress.');
     const normalized = new Map<string, Omit<WordEntry, 'id'>>();
     for (const word of body.words) {
-      const term = word.term.trim().toLowerCase();
-      const definition = (word.definition?.trim() ?? '').split(';').slice(0, 2).join(';') + ((word.definition?.trim() ?? '').split(';').length > 2 ? ';' : '');
-      if (!normalized.has(term)) normalized.set(term, { term, definition, partOfSpeech: word.partOfSpeech?.trim() || null, status: word.status });
+      const term = word.term.trim();
+      if (!normalized.has(term)) normalized.set(term, { term, definition: '', partOfSpeech: word.partOfSpeech?.trim() || null, status: word.status });
     }
     const { guestClaimed, ...result } = await this.transfers.transfer(user.id, body.transferId, [...normalized.values()], guestOwner(cookie), body.lastGameId);
     if (guestClaimed) response.setHeader('Set-Cookie', expiredGuestCookie());

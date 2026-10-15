@@ -1,6 +1,6 @@
 const completed = [
-  ['Word puzzles', '3–8 letter puzzles, difficulty options, vocabulary ranges, definitions, pronunciation, and saving words.'],
-  ['Personal word lists', 'Create lists, search the dictionary, edit words, mark familiarity, and import pasted words or TXT, CSV, DOCX, XLSX, and PDF files with a preview.'],
+  ['Word puzzles', '3–9 letter puzzles, difficulty options, official collections, dictionary definitions, and coin rewards for wins.'],
+  ['Personal vocabulary', 'One personal word list, saved official collections, dictionary search, word imports, and learning progress.'],
   ['Accounts and progress', 'Guest practice, saving guest progress after sign-in, learning statistics, and accounts with optional email verification and password recovery.'],
 ];
 const planned = [

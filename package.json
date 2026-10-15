@@ -11,14 +11,13 @@
     "start": "node apps/api/dist/main.js",
     "build": "pnpm --recursive --if-present build",
     "typecheck": "pnpm --recursive --if-present typecheck",
-    "test": "node --test scripts/dev-environment.test.mjs scripts/copy-production-config.test.mjs scripts/audit-cefr-families.test.mjs scripts/csv-records.test.mjs scripts/database-redeploy.test.mjs scripts/sql-statements.test.mjs && pnpm --recursive --if-present test",
+    "test": "node --test scripts/dev-environment.test.mjs scripts/copy-production-config.test.mjs scripts/audit-cefr-families.test.mjs scripts/csv-records.test.mjs && pnpm --recursive --if-present test",
     "cefr:build": "node scripts/build-cefr-pools.mjs",
     "cefr:audit-families": "node scripts/audit-cefr-families.mjs",
     "cefr:build-families": "node scripts/build-cefr-families.mjs",
     "cefr:expand-c2": "node scripts/expand-c2.mjs",
     "db:migrate:local": "node scripts/migrate-local-collections.mjs",
-    "dictionary:wordnet": "node apps/api/node_modules/tsx/dist/cli.mjs apps/api/src/modules/word-lists/seed-english-wordnet.ts",
-    "db:redeploy": "node scripts/database-redeploy.mjs",
-    "db:redeploy:prisma": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/prisma-redeploy.ts"
+    "db:restructure": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/restructure-database.ts",
+    "library:publish": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/publish-library.ts"
   }
 }

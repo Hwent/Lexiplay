@@ -36,14 +36,21 @@ describe('shared browser dictionary cache', () => {
   });
 
   it('restores cached data after a page reload without calling the API', async () => {
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ term: 'apple', partOfSpeech: ['noun'] }])));
+    const writes = vi.spyOn(Storage.prototype, 'setItem');
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([
+      { term: 'apple', partOfSpeech: ['noun'], definition: 'A fruit.' },
+      { term: 'pineapple', partOfSpeech: ['noun'], definition: 'A tropical fruit.' },
+      { term: 'crabapple', partOfSpeech: ['noun'], definition: '   ' },
+    ])));
     vi.stubGlobal('fetch', fetchMock);
     await searchDictionary('apple');
-    rememberDictionaryDefinition('apple', 'A fruit.');
+    expect(writes).toHaveBeenCalledTimes(1);
+    expect(cachedDictionaryDefinition('crabapple')).toBeUndefined();
     vi.resetModules();
     const reloaded = await import('./dictionary-cache');
-    expect(await reloaded.searchDictionary('apple')).toHaveLength(1);
+    expect(await reloaded.searchDictionary('apple')).toHaveLength(3);
     expect(await reloaded.dictionaryDefinition('apple')).toBe('A fruit.');
+    expect(await reloaded.dictionaryDefinition('pineapple')).toBe('A tropical fruit.');
     expect(fetchMock).toHaveBeenCalledTimes(1);
     reloaded.clearDictionaryCache();
   });
@@ -77,11 +84,26 @@ describe('shared browser dictionary cache', () => {
     expect(fetchMock).toHaveBeenCalledTimes(4);
   });
 
+  it('keeps case-distinct definitions separate and discards responses from an older dictionary revision', async () => {
+    rememberDictionaryDefinition('Polish', 'From Poland.');
+    rememberDictionaryDefinition('polish', 'To make shiny.');
+    expect(cachedDictionaryDefinition('Polish')).toBe('From Poland.');
+    expect(cachedDictionaryDefinition('polish')).toBe('To make shiny.');
+    let respond!: (response: Response) => void;
+    vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { respond = resolve; })));
+    const old = dictionaryDefinition('apple');
+    clearDictionaryCache();
+    respond(Response.json({ definition: 'Old meaning.' }));
+    await old;
+    expect(cachedDictionaryDefinition('apple')).toBeUndefined();
+  });
+
   it('continues to cache in memory when browser storage is disabled', async () => {
     vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => { throw new Error('Storage disabled'); });
     vi.spyOn(Storage.prototype, 'setItem').mockImplementation(() => { throw new Error('Storage disabled'); });
-    const fetchMock = vi.fn(async () => new Response(JSON.stringify({ definition: 'A fruit.' })));
+    const fetchMock = vi.fn(async () => new Response(JSON.stringify([{ term: 'apple', partOfSpeech: ['noun'], definition: 'A fruit.' }])));
     vi.stubGlobal('fetch', fetchMock);
+    expect(await searchDictionary('apple')).toHaveLength(1);
     expect(await dictionaryDefinition('apple')).toBe('A fruit.');
     expect(await dictionaryDefinition('apple')).toBe('A fruit.');
     expect(fetchMock).toHaveBeenCalledTimes(1);
