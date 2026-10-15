@@ -1,12 +1,11 @@
 import { CollectionsService } from '../collections/collections.service';
-import { CefrPoolsService } from '../word-lists/cefr-pools.service';
-import { BadRequestException, Body, Controller, Get, Headers, Inject, Param, ParseUUIDPipe, Post, Res, UseGuards } from '@nestjs/common';
+import { BadRequestException, Body, Controller, Get, Headers, Inject, Param, ParseUUIDPipe, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { randomBytes } from 'node:crypto';
 import { GameService } from './game.service';
+import { GameRepository } from './game.repository';
 import { SubmitGuessDto } from './submit-guess.dto';
 import { StartGameDto, HintDto } from './game.dto';
-import { WordListsService } from '../word-lists/word-lists.service';
 import { AccountService } from '../accounts/account.service';
 import { readSessionCookie } from '../accounts/session-cookie';
 import { guestOwner } from './guest-cookie';
@@ -16,15 +15,27 @@ type Response = { setHeader(name: string, value: string): void };
 @UseGuards(ThrottlerGuard)
 @Throttle({ default: { ttl: 60_000, limit: 60 } })
 export class GameController {
-  constructor(@Inject(CollectionsService) private readonly collections: CollectionsService, @Inject(CefrPoolsService) private readonly pools: CefrPoolsService, @Inject(GameService) private readonly games: GameService, @Inject(WordListsService) private readonly words: WordListsService, @Inject(AccountService) private readonly accounts: AccountService) {}
+  constructor(@Inject(CollectionsService) private readonly collections: CollectionsService,
+    @Inject(GameService) private readonly games: GameService, @Inject(GameRepository) private readonly repository: GameRepository,
+    @Inject(AccountService) private readonly accounts: AccountService) {}
+
+  @Get('wallet')
+  async wallet(@Headers('cookie') cookie: string | undefined, @Res({ passthrough: true }) response: Response) {
+    return this.repository.wallet(await this.owner(cookie, response));
+  }
 
   @Post()
   async start(@Headers('cookie') cookie: string | undefined, @Body() body: StartGameDto, @Res({ passthrough: true }) response: Response) {
-    if (body.poolId && (body.playWithMyWords || body.wordListId)) throw new BadRequestException('Choose either a CEFR list or your saved words.');
+    if (body.collectionId && (body.playWithMyWords || body.wordListId)) throw new BadRequestException('Choose either a collection or your saved words.');
     const owner = await this.owner(cookie, response);
-    const words = body.wordListId ? await this.collections.gameWords(readSessionCookie(cookie), body.wordListId, body.wordLength ?? 5) : body.poolId ? await this.pools.gameWords(body.poolId, body.wordLength ?? 5) : body.playWithMyWords ? await this.words.playableWords(readSessionCookie(cookie), body.wordLength ?? 5) : undefined;
-    return this.games.start(body.wordLength ?? 5, words, body.difficulty ?? 'medium', owner, body.poolId ? this.pools.summary(body.poolId) : undefined);
+    const length = body.wordLength ?? 5, token = owner.startsWith('user:') ? readSessionCookie(cookie) : undefined;
+    const selected = body.collectionId ? await this.collections.collectionGameWords(body.collectionId, length) : undefined;
+    const personal = body.wordListId ?? (body.playWithMyWords ? (await this.accounts.current(token)).id : undefined);
+    const words = personal ? await this.collections.gameWords(token, personal, length) : selected?.words;
+    const collection = selected ? { id: selected.collection.id, name: selected.collection.name, author: selected.collection.author ?? '' } : undefined;
+    return this.games.start(length, words, body.difficulty ?? 'medium', owner, collection, body.startRequestId);
   }
+
   @Get(':gameId')
   async read(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string) { return this.games.read(id, await this.owner(cookie)); }
   @Post(':gameId/guesses')
@@ -33,8 +44,12 @@ export class GameController {
   async hint(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string, @Body() body: HintDto) { return this.games.hint(id, body.type, await this.owner(cookie)); }
 
   private async owner(cookie: string | undefined, response?: Response) {
-    const session = /(?:^|;\s*)lexiplay_session=/.test(cookie ?? '') ? readSessionCookie(cookie) : undefined;
-    if (session) return `user:${(await this.accounts.current(session)).id}`;
+    if (/(?:^|;\s*)lexiplay_session=/.test(cookie ?? '')) {
+      try { return `user:${(await this.accounts.current(readSessionCookie(cookie))).id}`; }
+      catch (error) {
+        if (!(error instanceof UnauthorizedException)) throw error;
+      }
+    }
     let owner = guestOwner(cookie);
     if (!owner && response) {
       const guest = randomBytes(32).toString('base64url');

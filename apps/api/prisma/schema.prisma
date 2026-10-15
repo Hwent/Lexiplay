@@ -3,102 +3,260 @@ generator client {
   output = "../src/generated/prisma"
   moduleFormat = "cjs"
 }
+
 datasource db {
   provider = "postgresql"
 }
+
+model AccountUser {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  username String
+  passwordHash String @map("password_hash")
+  email String? @db.VarChar(254)
+  emailVerified Boolean @default(false) @map("email_verified")
+  coinBalance Int @default(100) @map("coin_balance")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
+  sessions AccountSession[]
+  actions AccountAction[]
+  claimedGuests GuestSession[]
+  transfers ProgressTransfer[]
+  words UserWord[]
+  collections UserVocabularyCollection[]
+  games PracticeGame[] @relation("GameOwner")
+  paidGames PracticeGame[] @relation("GamePayer")
+  @@map("account_users")
+}
+
+model AccountSession {
+  tokenHash String @id @db.Char(64) @map("token_hash")
+  userId String @db.Uuid @map("user_id")
+  user AccountUser @relation(fields:[userId], references:[id], onDelete:Cascade)
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  expiresAt DateTime @db.Timestamptz @map("expires_at")
+  @@index([userId])
+  @@map("account_sessions")
+}
+
+model AccountAction {
+  tokenHash String @id @db.Char(64) @map("token_hash")
+  userId String @db.Uuid @map("user_id")
+  user AccountUser @relation(fields:[userId], references:[id], onDelete:Cascade)
+  purpose String
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  expiresAt DateTime @db.Timestamptz @map("expires_at")
+  @@unique([userId,purpose])
+  @@map("account_actions")
+}
+
+model GuestSession {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tokenHash String @unique @db.Char(64) @map("token_hash")
+  coinBalance Int @default(10) @map("coin_balance")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  expiresAt DateTime @db.Timestamptz @map("expires_at")
+  claimedAt DateTime? @db.Timestamptz @map("claimed_at")
+  claimedByUserId String? @db.Uuid @map("claimed_by_user_id")
+  claimedBy AccountUser? @relation(fields:[claimedByUserId], references:[id], onDelete:SetNull)
+  transfers ProgressTransfer[]
+  games PracticeGame[] @relation("GuestGameOwner")
+  paidGames PracticeGame[] @relation("GuestGamePayer")
+  @@index([claimedByUserId])
+  @@map("guest_sessions")
+}
+
+model ProgressTransfer {
+  id String @id @db.Uuid
+  userId String @db.Uuid @map("user_id")
+  user AccountUser @relation(fields:[userId], references:[id], onDelete:Cascade)
+  guestSessionId String? @db.Uuid @map("guest_session_id")
+  guest GuestSession? @relation(fields:[guestSessionId], references:[id], onDelete:Restrict)
+  payloadHash String @db.Char(64) @map("payload_hash")
+  result Json
+  completedAt DateTime @default(now()) @db.Timestamptz @map("completed_at")
+  @@index([userId])
+  @@index([guestSessionId])
+  @@map("progress_transfers")
+}
+
+model LibraryRevision {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  scope String
+  fingerprint String @db.Char(64)
+  isCurrent Boolean @default(false) @map("is_current")
+  publishedAt DateTime @default(now()) @db.Timestamptz @map("published_at")
+  metadata Json @default("{}")
+  words DictionaryWord[]
+  collections VocabularyCollection[]
+  games PracticeGame[]
+  @@unique([scope,fingerprint])
+  @@map("library_revisions")
+}
+
+model WordFamily {
+  id String @id
+  headword String
+  band Int? @db.SmallInt
+  sourceMetadata Json @default("{}") @map("source_metadata")
+  words DictionaryWord[]
+  @@map("word_families")
+}
+
+model DictionaryWord {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  term String @unique
+  familyId String? @map("family_id")
+  family WordFamily? @relation(fields:[familyId], references:[id], onDelete:SetNull)
+  revisionId String @db.Uuid @map("revision_id")
+  revision LibraryRevision @relation(fields:[revisionId], references:[id], onDelete:Restrict)
+  retiredAt DateTime? @db.Timestamptz @map("retired_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
+  sourceMetadata Json @default("{}") @map("source_metadata")
+  entries DictionaryEntry[]
+  answers PracticeGame[]
+  guesses PracticeGuess[]
+  @@index([familyId])
+  @@map("dictionary_words")
+}
+
 model DictionaryEntry {
-  id String @id @default(uuid()) @db.Uuid
-  lemma String
-  normalizedLemma String @map("normalized_lemma")
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  wordId String @db.Uuid @map("word_id")
+  word DictionaryWord @relation(fields:[wordId], references:[id], onDelete:Restrict)
   partOfSpeech String @map("part_of_speech")
+  sourceMetadata Json @default("{}") @map("source_metadata")
+  retiredAt DateTime? @db.Timestamptz @map("retired_at")
   definitions DictionaryDefinition[]
   collections CollectionEntry[]
-  personalEntries WordListEntry[]
-  @@unique([normalizedLemma,partOfSpeech])
+  personalEntries UserWord[]
+  @@unique([wordId,partOfSpeech])
   @@map("dictionary_entries")
 }
+
 model DictionaryDefinition {
-  id String @id @default(uuid()) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
-  entry DictionaryEntry @relation(fields:[dictionaryEntryId],references:[id],onDelete:Cascade)
-  language String
-  senseIndex Int @default(0) @map("sense_index")
+  entry DictionaryEntry @relation(fields:[dictionaryEntryId], references:[id], onDelete:Cascade)
+  senseOrder Int @map("sense_order")
   definition String
-  source String
-  reviewStatus String @default("pending") @map("review_status")
-  @@unique([dictionaryEntryId,language,senseIndex])
+  sourceLabel String? @map("source_label")
+  @@unique([dictionaryEntryId,senseOrder])
   @@map("dictionary_definitions")
 }
+
 model VocabularyCollection {
-  id String @id @default(uuid()) @db.Uuid
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   slug String @unique
   name String
-  description String
+  description String @default("")
   category String
-  level String?
   author String?
-  source String?
+  sourceName String? @map("source_name")
+  sourceVersion String? @map("source_version")
+  sourceUrl String? @map("source_url")
   license String?
-  version String
+  revisionId String @db.Uuid @map("revision_id")
+  revision LibraryRevision @relation(fields:[revisionId], references:[id], onDelete:Restrict)
   status String @default("available")
   entries CollectionEntry[]
-  imports WordListEntry[]
   savedBy UserVocabularyCollection[]
+  games PracticeGame[]
   @@map("vocabulary_collections")
 }
+
 model CollectionEntry {
   collectionId String @db.Uuid @map("collection_id")
   dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
-  collection VocabularyCollection @relation(fields:[collectionId],references:[id],onDelete:Cascade)
-  entry DictionaryEntry @relation(fields:[dictionaryEntryId],references:[id],onDelete:Restrict)
+  collection VocabularyCollection @relation(fields:[collectionId], references:[id], onDelete:Cascade)
+  entry DictionaryEntry @relation(fields:[dictionaryEntryId], references:[id], onDelete:Restrict)
   stage String @default("Core")
   sortOrder Int @map("sort_order")
   @@id([collectionId,dictionaryEntryId])
-  @@index([collectionId,sortOrder])
+  @@index([collectionId,sortOrder,dictionaryEntryId])
+  @@index([dictionaryEntryId])
   @@map("collection_entries")
-}
-model UserWordList {
-  id String @id @default(uuid()) @db.Uuid
-  userId String @unique @db.Uuid @map("owner_id")
-  name String @db.VarChar(60)
-  isDefault Boolean @default(false) @map("is_default")
-  preferredLanguage String @default("en") @map("preferred_language")
-  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
-  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
-  entries WordListEntry[]
-  @@index([userId])
-  @@map("user_word_lists")
-}
-model WordListEntry {
-  id String @id @default(uuid()) @db.Uuid
-  wordListId String @db.Uuid @map("word_list_id")
-  dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
-  list UserWordList @relation(fields:[wordListId],references:[id],onDelete:Cascade)
-  entry DictionaryEntry @relation(fields:[dictionaryEntryId],references:[id],onDelete:Restrict)
-  customDefinition String? @map("custom_definition")
-  customLanguage String? @map("custom_language")
-  stage String @default("Core")
-  importedCollectionId String? @db.Uuid @map("imported_collection_id")
-  collection VocabularyCollection? @relation(fields:[importedCollectionId],references:[id],onDelete:SetNull)
-  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
-  progress LearningProgress?
-  @@unique([wordListId,dictionaryEntryId])
-  @@map("word_list_entries")
-}
-model LearningProgress {
-  id String @id @default(uuid()) @db.Uuid
-  wordListEntryId String @unique @db.Uuid @map("word_list_entry_id")
-  entry WordListEntry @relation(fields:[wordListEntryId],references:[id],onDelete:Cascade)
-  familiarity Int @default(0)
-  nextReviewAt DateTime? @db.Timestamptz @map("next_review_at")
-  @@map("learning_progress")
 }
 
 model UserVocabularyCollection {
   userId String @db.Uuid @map("user_id")
+  user AccountUser @relation(fields:[userId], references:[id], onDelete:Cascade)
   collectionId String @db.Uuid @map("collection_id")
-  collection VocabularyCollection @relation(fields:[collectionId],references:[id],onDelete:Cascade)
-  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  collection VocabularyCollection @relation(fields:[collectionId], references:[id], onDelete:Restrict)
+  savedAt DateTime @default(now()) @db.Timestamptz @map("saved_at")
   @@id([userId,collectionId])
+  @@index([collectionId])
   @@map("user_vocabulary_collections")
+}
+
+model UserWord {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String @db.Uuid @map("user_id")
+  user AccountUser @relation(fields:[userId], references:[id], onDelete:Cascade)
+  dictionaryEntryId String @db.Uuid @map("dictionary_entry_id")
+  entry DictionaryEntry @relation(fields:[dictionaryEntryId], references:[id], onDelete:Restrict)
+  status String @default("active")
+  familiarity Int @default(0) @db.SmallInt
+  stage String @default("Core")
+  nextReviewAt DateTime? @db.Timestamptz @map("next_review_at")
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  updatedAt DateTime @default(now()) @db.Timestamptz @map("updated_at")
+  @@unique([userId,dictionaryEntryId])
+  @@index([userId,status,createdAt,id])
+  @@index([dictionaryEntryId])
+  @@map("user_words")
+}
+
+model PracticeGame {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  startRequestId String @unique @db.Uuid @map("start_request_id")
+  userId String? @db.Uuid @map("user_id")
+  user AccountUser? @relation("GameOwner", fields:[userId], references:[id], onDelete:Cascade)
+  guestSessionId String? @db.Uuid @map("guest_session_id")
+  guest GuestSession? @relation("GuestGameOwner", fields:[guestSessionId], references:[id], onDelete:Cascade)
+  coinUserId String? @db.Uuid @map("coin_user_id")
+  coinUser AccountUser? @relation("GamePayer", fields:[coinUserId], references:[id], onDelete:NoAction)
+  coinGuestSessionId String? @db.Uuid @map("coin_guest_session_id")
+  coinGuest GuestSession? @relation("GuestGamePayer", fields:[coinGuestSessionId], references:[id], onDelete:Restrict)
+  answerWordId String @db.Uuid @map("answer_word_id")
+  answer DictionaryWord @relation(fields:[answerWordId], references:[id], onDelete:Restrict)
+  collectionId String? @db.Uuid @map("collection_id")
+  collection VocabularyCollection? @relation(fields:[collectionId], references:[id], onDelete:Restrict)
+  startedRevisionId String @db.Uuid @map("started_revision_id")
+  revision LibraryRevision @relation(fields:[startedRevisionId], references:[id], onDelete:Restrict)
+  wordLength Int @db.SmallInt @map("word_length")
+  difficulty String
+  attemptLimit Int @db.SmallInt @map("attempt_limit")
+  unusedHintsRemaining Int @db.SmallInt @map("unused_hints_remaining")
+  presentHintsRemaining Int @db.SmallInt @map("present_hints_remaining")
+  revealedAbsent String[] @default([]) @map("revealed_absent")
+  revealedPresent String[] @default([]) @map("revealed_present")
+  coinCost Int @map("coin_cost")
+  winRewardCoins Int @map("win_reward_coins")
+  rewardCreditedAt DateTime? @db.Timestamptz @map("reward_credited_at")
+  costRefundedAt DateTime? @db.Timestamptz @map("cost_refunded_at")
+  status String @default("active")
+  cancellationReason String? @map("cancellation_reason")
+  startedAt DateTime @default(now()) @db.Timestamptz @map("started_at")
+  finishedAt DateTime? @db.Timestamptz @map("finished_at")
+  guesses PracticeGuess[]
+  @@index([userId,finishedAt])
+  @@index([guestSessionId])
+  @@index([coinUserId])
+  @@index([coinGuestSessionId])
+  @@index([answerWordId])
+  @@index([collectionId])
+  @@map("practice_games")
+}
+
+model PracticeGuess {
+  gameId String @db.Uuid @map("game_id")
+  game PracticeGame @relation(fields:[gameId], references:[id], onDelete:Cascade)
+  position Int @db.SmallInt
+  wordId String @db.Uuid @map("word_id")
+  word DictionaryWord @relation(fields:[wordId], references:[id], onDelete:Restrict)
+  feedback String[]
+  submittedAt DateTime @default(now()) @db.Timestamptz @map("submitted_at")
+  @@id([gameId,position])
+  @@index([wordId])
+  @@map("practice_guesses")
 }

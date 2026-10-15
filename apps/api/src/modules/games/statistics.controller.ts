@@ -19,6 +19,7 @@ export class StatisticsController {
 }
 
 export function statistics(games: Game[], timezone: string, now = new Date()) {
+  games = games.filter(game => game.status !== 'cancelled');
   const day = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
   const days = new Set(games.map(game => day(new Date(game.completedAt!))));
   const cursor = new Date(`${day(now)}T12:00:00Z`);

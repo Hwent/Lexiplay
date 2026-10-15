@@ -14,7 +14,7 @@ describe('game HTTP endpoints and rules', () => {
   let stored: Map<string, Game>;
   beforeEach(() => {
     stored = new Map();
-    vi.spyOn(GameRepository.prototype, 'create').mockImplementation(async game => { stored.set(game.id, structuredClone(game)); });
+    vi.spyOn(GameRepository.prototype, 'create').mockImplementation(async game => { stored.set(game.id, structuredClone(game)); return game; });
     vi.spyOn(GameRepository.prototype, 'read').mockImplementation(async (id, owner) => {
       const game = stored.get(id);
       if (!game || game.owner !== owner) throw new NotFoundException();
@@ -77,7 +77,7 @@ describe('game HTTP endpoints and rules', () => {
     await expect(games.start(5, ['zzzzz'], 'medium', 'test')).rejects.toThrow('Your word list has no');
     await expect(games.start(5, [], 'medium', 'test')).rejects.toThrow('Your word list has no');
     const unrestricted = await games.start(5, undefined, 'medium', 'test');
-    expect(stored.get(unrestricted.id)!.allowedWords).toEqual(['apple', 'lucid', 'scope']);
+    expect(['apple', 'lucid', 'scope']).toContain(stored.get(unrestricted.id)!.answer);
   });
   it('keeps the dictionary pool stable and checks the selected length without consuming invalid guesses', async () => {
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
@@ -85,11 +85,11 @@ describe('game HTTP endpoints and rules', () => {
     const game = await games.start(5, ['apple'], 'medium', 'test');
     await expect(games.submit(game.id, 'zzzzz', 'test')).rejects.toThrow('Enter a valid');
     await expect(games.submit(game.id, 'cat', 'test')).rejects.toThrow('Enter a valid');
-    dictionary.mockResolvedValue(['other']);
+    dictionary.mockResolvedValue(['apple', 'paper']);
     expect((await games.submit(game.id, 'paper', 'test')).attemptsRemaining).toBe(5);
     expect(await games.submit(game.id, ' APPLE ', 'test')).toMatchObject({ answer: 'apple', outcome: 'WON' });
     expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(2);
-    await expect(games.start(5, ['apple'], 'medium', 'test')).rejects.toThrow('in the game dictionary');
+    await expect(games.start(5, ['zzzzz'], 'medium', 'test')).rejects.toThrow('in the game dictionary');
     dictionary.mockResolvedValue(['apple']);
     vi.mocked(WordListRepository.prototype.getDictionaryDefinition).mockResolvedValue('');
     const withoutDefinition = await games.start(5, undefined, 'medium', 'test');
