@@ -112,8 +112,15 @@ export class CollectionsService {
       const saved=await this.db.wordListEntry.findMany({where:{list:{userId:user.id},dictionaryEntryId:{in:rows.map(row=>row.dictionaryEntryId)}},select:{dictionaryEntryId:true}});
       saved.forEach(row=>added.add(row.dictionaryEntryId));
     }
+    const definitionsByEntry = new Map<string, typeof definitions>();
+    for (const definition of definitions) {
+      const entryDefinitions = definitionsByEntry.get(definition.dictionaryEntryId) ?? [];
+      entryDefinitions.push(definition);
+      definitionsByEntry.set(definition.dictionaryEntryId, entryDefinitions);
+    }
+    const language = (query.language ?? 'en').toLowerCase();
     const words=rows.map(row=>({id:row.entry.id,lemma:row.entry.lemma,partOfSpeech:row.entry.partOfSpeech,stage:row.stage,inMyWordList:added.has(row.entry.id),
-      ...displayedDefinition(null,null,(query.language??'en').toLowerCase(),definitions.filter(definition=>definition.dictionaryEntryId===row.entry.id),english.get(row.entry.id)??null)}));
+      ...displayedDefinition(null,null,language,definitionsByEntry.get(row.entry.id)??[],english.get(row.entry.id)??null)}));
     return {collection,page,pageSize,total:groups.length,memberTotal:filtered.length,pageUnit:'family',
       partsOfSpeech:[...new Set(all.map(row=>row.entry.partOfSpeech))].sort(),stages:['Foundation','Core','Advanced'],words,
       families:selected.map(family=>({id:family.id,headword:family.headword,kind:family.kind,memberIds:family.members.map(row=>row.entry.id),
@@ -162,9 +169,8 @@ export class CollectionsService {
     const user=await this.user(cookie);await this.owned(user.id,id);const {collection,rows}=await this.requested(input);
     return this.db.$transaction(async tx=>{
       await tx.$queryRaw`SELECT id FROM user_word_lists WHERE id=${id}::uuid AND owner_id=${user.id}::uuid FOR UPDATE`;
-      const candidates=rows;
-      const existing=await tx.wordListEntry.findMany({where:{wordListId:id,dictionaryEntryId:{in:candidates.map(row=>row.dictionaryEntryId)}},select:{dictionaryEntryId:true}});
-      const identities=new Set(existing.map(row=>row.dictionaryEntryId));const fresh=candidates.filter(row=>!identities.has(row.dictionaryEntryId));
+      const existing=await tx.wordListEntry.findMany({where:{wordListId:id,dictionaryEntryId:{in:rows.map(row=>row.dictionaryEntryId)}},select:{dictionaryEntryId:true}});
+      const identities=new Set(existing.map(row=>row.dictionaryEntryId));const fresh=rows.filter(row=>!identities.has(row.dictionaryEntryId));
       if(preview)return {success:true,totalRequested:rows.length,added:fresh.length,skipped:rows.length-fresh.length,failed:0,preview:true};
       await tx.$executeRaw`INSERT INTO user_vocabulary_collections(user_id,collection_id) VALUES (${user.id}::uuid,${collection.id}::uuid) ON CONFLICT DO NOTHING`;
       const result=await tx.wordListEntry.createMany({data:fresh.map(row=>({wordListId:id,dictionaryEntryId:row.dictionaryEntryId,stage:row.stage,importedCollectionId:collection.id})),skipDuplicates:true});
@@ -206,7 +212,17 @@ export class CollectionsService {
   async entries(cookie:string|undefined,id:string,query:CollectionWordsQuery) {
     const user=await this.user(cookie);const list=await this.owned(user.id,id);const language=(query.language??list.preferredLanguage).toLowerCase();
     const page=Math.max(1,Number(query.page??1)),pageSize=Number(query.pageSize??25);
-    const where:Prisma.WordListEntryWhereInput={wordListId:id,...(query.q?{entry:{normalizedLemma:{contains:query.q.trim().toLowerCase()}}}:{}),...(query.partOfSpeech?{entry:{...(query.q?{normalizedLemma:{contains:query.q.trim().toLowerCase()}}:{}),partOfSpeech:query.partOfSpeech}}:{}),...(query.stage?{stage:query.stage}:{}),...(query.review?{OR:[{progress:null},{progress:{nextReviewAt:null}},{progress:{nextReviewAt:{lte:new Date()}}}]}:{})};
+    const where: Prisma.WordListEntryWhereInput = {
+      wordListId: id,
+      ...(query.q || query.partOfSpeech ? {
+        entry: {
+          ...(query.q ? { normalizedLemma: { contains: query.q.trim().toLowerCase() } } : {}),
+          ...(query.partOfSpeech ? { partOfSpeech: query.partOfSpeech } : {}),
+        },
+      } : {}),
+      ...(query.stage ? { stage: query.stage } : {}),
+      ...(query.review ? { OR: [{ progress: null }, { progress: { nextReviewAt: null } }, { progress: { nextReviewAt: { lte: new Date() } } }] } : {}),
+    };
     const [total,rows]=await Promise.all([this.db.wordListEntry.count({where}),this.db.wordListEntry.findMany({where,skip:(page-1)*pageSize,take:pageSize,include:{entry:{include:{definitions:true}},progress:true},orderBy:[{createdAt:'asc'},{id:'asc'}]})]);
     const english=await this.english(rows.map(row=>row.entry));
     const words=rows.map(row=>({id:row.id,dictionaryEntryId:row.entry.id,lemma:row.entry.lemma,partOfSpeech:row.entry.partOfSpeech,stage:row.stage,familiarity:row.progress?.familiarity??0,nextReviewAt:row.progress?.nextReviewAt??null,...displayedDefinition(null,null,language,row.entry.definitions,english.get(row.entry.id)??null)}));

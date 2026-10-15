@@ -36,6 +36,9 @@ describe('CEFR gaming pools', () => {
   });
   it('restricts game answers to dictionary-backed words of the selected length and never broadens an empty pool', async () => {
     const pools = service([{ term: 'apple', senses: [{ partOfSpeech: 'noun', definitions: ['A fruit.'] }] }, { term: 'ice cream', senses: [{ partOfSpeech: 'noun', definitions: ['A dessert.'] }] }]);
+    const details = await pools.details('oxford-a1');
+    expect(details.availableCount).toBe(2);
+    expect(details.wordCounts).toEqual({ 3: 0, 4: 0, 5: 1, 6: 0, 7: 0, 8: 0, 9: 0 });
     expect(await pools.gameWords('oxford-a1',5)).toEqual(['apple']);
     await expect(pools.gameWords('oxford-a1',9)).rejects.toThrow('no dictionary-backed words');
     await expect(pools.details('invented-c2')).rejects.toThrow('not found');

@@ -52,9 +52,14 @@ export class CefrPoolsService implements OnModuleDestroy {
     const rows = await this.dictionary.poolDictionaryEntries(source.words.map(word => word.term));
     const dictionary = new Map(rows.map(row => [row.term, row]));
     const words = source.words.map(word => resolvePoolWord(word, dictionary.get(word.term)));
-    const playable = words.filter(word => word.available && /^[a-z]{3,9}$/.test(word.term));
-    return { ...poolSummary(source), words, availableCount: words.filter(word => word.available).length,
-      wordCounts: Object.fromEntries([3,4,5,6,7,8,9].map(length => [length, playable.filter(word => word.term.length === length).length])) };
+    let availableCount = 0;
+    const wordCounts: Record<number, number> = { 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0 };
+    for (const word of words) {
+      if (!word.available) continue;
+      availableCount++;
+      if (/^[a-z]{3,9}$/.test(word.term)) wordCounts[word.term.length]!++;
+    }
+    return { ...poolSummary(source), words, availableCount, wordCounts };
   }
   async gameWords(id: string, length: number) {
     const details = await this.details(id);
