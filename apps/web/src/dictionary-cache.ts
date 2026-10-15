@@ -77,8 +77,11 @@ export function searchDictionary(query: string): Promise<DictionaryEntry[]> {
     const words = await request<DictionaryEntry[]>(`dictionary?q=${encodeURIComponent(normalized)}`);
     // A term can appear only once even if a provider returns duplicate matches.
     const results = [...new Map(words.map(word => [word.term, word])).values()];
-    searches.set(normalized, { value: results, expiresAt: Date.now() + CACHE_LIFETIME });
-    for (const word of results) if (word.definition) rememberDictionaryDefinition(word.term, word.definition);
+    const expiresAt = Date.now() + CACHE_LIFETIME;
+    searches.set(normalized, { value: results, expiresAt });
+    for (const word of results) {
+      if (word.definition?.trim()) definitions.set(word.term.trim(), { value: word.definition, expiresAt });
+    }
     persist();
     return results;
   });
