@@ -10,8 +10,6 @@ coverage/
 .turbo/
 .next/
 test_materials/
-/dictionary_materials/
-/dictionary-materials/
 /dump/
 /dumps/
 *.dump

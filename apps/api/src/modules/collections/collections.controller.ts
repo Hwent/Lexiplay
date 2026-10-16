@@ -1,8 +1,13 @@
-import { Body, Controller, Get, Headers, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, Inject, Param, ParseUUIDPipe, Patch, Post, Query, UseGuards } from '@nestjs/common';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { readSessionCookie } from '../accounts/session-cookie';
 import { CollectionsService } from './collections.service';
 import { AddDictionaryEntries, CollectionQuery, CollectionWordsQuery, ImportCollection, NewPersonalList, UpdatePersonalEntry } from './collections.dto';
+@Controller('library')
+export class LibraryController {
+  constructor(@Inject(CollectionsService) private readonly collections: CollectionsService) {}
+  @Get('revision') revision() { return this.collections.revision(); }
+}
 @Controller('collections')
 @UseGuards(ThrottlerGuard)
 export class CollectionsController {
@@ -10,6 +15,7 @@ export class CollectionsController {
   @Get() catalog(@Query() query:CollectionQuery) { return this.collections.catalog(query.category); }
   @Get('categories') categories() { return this.collections.categories(); }
   @Post(':slug/save') save(@Headers('cookie') cookie:string|undefined,@Param('slug') slug:string) { return this.collections.saveCollection(readSessionCookie(cookie),slug); }
+  @Delete(':slug/save') unsave(@Headers('cookie') cookie:string|undefined,@Param('slug') slug:string) { return this.collections.unsaveCollection(readSessionCookie(cookie),slug); }
   @Get(':slug/words') words(@Param('slug') slug:string,@Query() query:CollectionWordsQuery,@Headers('cookie') cookie?:string) { return this.collections.words(slug,query,cookie?.split(';').some(value=>value.trim().startsWith('lexiplay_session='))?readSessionCookie(cookie):undefined); }
   @Get(':slug/snapshot') snapshot(@Param('slug') slug:string) { return this.collections.snapshot(slug); }
   @Get(':slug') detail(@Param('slug') slug:string) { return this.collections.detail(slug); }
@@ -25,6 +31,7 @@ export class PersonalCollectionsController {
   @Get(':id/entries') entries(@Headers('cookie') cookie:string|undefined,@Param('id',ParseUUIDPipe) id:string,@Query() query:CollectionWordsQuery) { return this.collections.entries(readSessionCookie(cookie),id,query); }
   @Post(':id/dictionary-entries') addDictionary(@Headers('cookie') cookie:string|undefined,@Param('id',ParseUUIDPipe) id:string,@Body() input:AddDictionaryEntries) { return this.collections.addDictionaryEntries(readSessionCookie(cookie),id,input); }
   @Patch(':id/entries/:entryId') update(@Headers('cookie') cookie:string|undefined,@Param('id',ParseUUIDPipe) id:string,@Param('entryId',ParseUUIDPipe) entryId:string,@Body() input:UpdatePersonalEntry) { return this.collections.updateEntry(readSessionCookie(cookie),id,entryId,input); }
+  @Delete(':id/entries/:entryId') remove(@Headers('cookie') cookie:string|undefined,@Param('id',ParseUUIDPipe) id:string,@Param('entryId',ParseUUIDPipe) entryId:string) { return this.collections.removeEntry(readSessionCookie(cookie),id,entryId); }
   @Post(':id/import-collection/preview') preview(@Headers('cookie') cookie:string|undefined,@Param('id',ParseUUIDPipe) id:string,@Body() input:ImportCollection) { return this.collections.importCollection(readSessionCookie(cookie),id,input,true); }
   @Post(':id/import-collection') import(@Headers('cookie') cookie:string|undefined,@Param('id',ParseUUIDPipe) id:string,@Body() input:ImportCollection) { return this.collections.importCollection(readSessionCookie(cookie),id,input); }
 }

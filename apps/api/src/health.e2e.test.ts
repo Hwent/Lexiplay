@@ -14,7 +14,7 @@ describe('game HTTP endpoints and rules', () => {
   let stored: Map<string, Game>;
   beforeEach(() => {
     stored = new Map();
-    vi.spyOn(GameRepository.prototype, 'create').mockImplementation(async game => { stored.set(game.id, structuredClone(game)); });
+    vi.spyOn(GameRepository.prototype, 'create').mockImplementation(async game => { stored.set(game.id, structuredClone(game)); return game; });
     vi.spyOn(GameRepository.prototype, 'read').mockImplementation(async (id, owner) => {
       const game = stored.get(id);
       if (!game || game.owner !== owner) throw new NotFoundException();
@@ -61,6 +61,7 @@ describe('game HTTP endpoints and rules', () => {
       expect(restored.guesses).toHaveLength(1);
       expect(restored.guesses[0].definition).toBe(`Definition of ${word}.`);
     }
+    expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(words.length);
     for (const body of [{ wordLength: 10 }, { difficulty: 'impossible' }, { vocabularyRange: 'cefr-z9' }, { wordLength: '5' }, { playWithMyWords: 'true' }, { answer: 'apple' }]) {
       expect((await fetch(`${url}/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) })).status).toBe(400);
     }
@@ -70,12 +71,13 @@ describe('game HTTP endpoints and rules', () => {
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'lucid', 'scope']);
     await startApp();
     const games = app!.get(GameService);
-    const game = await games.start(5, ['lucid'], 'medium', 'test');
+    const game = await games.start(5, ['lucid', 'lucid', 'zzzzz'], 'medium', 'test');
     expect(stored.get(game.id)!.answer).toBe('lucid');
     expect(game).not.toHaveProperty('vocabularyRange');
     await expect(games.start(5, ['zzzzz'], 'medium', 'test')).rejects.toThrow('Your word list has no');
+    await expect(games.start(5, [], 'medium', 'test')).rejects.toThrow('Your word list has no');
     const unrestricted = await games.start(5, undefined, 'medium', 'test');
-    expect(stored.get(unrestricted.id)!.allowedWords).toEqual(['apple', 'lucid', 'scope']);
+    expect(['apple', 'lucid', 'scope']).toContain(stored.get(unrestricted.id)!.answer);
   });
   it('keeps the dictionary pool stable and checks the selected length without consuming invalid guesses', async () => {
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
@@ -83,10 +85,16 @@ describe('game HTTP endpoints and rules', () => {
     const game = await games.start(5, ['apple'], 'medium', 'test');
     await expect(games.submit(game.id, 'zzzzz', 'test')).rejects.toThrow('Enter a valid');
     await expect(games.submit(game.id, 'cat', 'test')).rejects.toThrow('Enter a valid');
-    dictionary.mockResolvedValue(['other']);
+    dictionary.mockResolvedValue(['apple', 'paper']);
     expect((await games.submit(game.id, 'paper', 'test')).attemptsRemaining).toBe(5);
     expect(await games.submit(game.id, ' APPLE ', 'test')).toMatchObject({ answer: 'apple', outcome: 'WON' });
-    await expect(games.start(5, ['apple'], 'medium', 'test')).rejects.toThrow('in the game dictionary');
+    expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(2);
+    await expect(games.start(5, ['zzzzz'], 'medium', 'test')).rejects.toThrow('in the game dictionary');
+    dictionary.mockResolvedValue(['apple']);
+    vi.mocked(WordListRepository.prototype.getDictionaryDefinition).mockResolvedValue('');
+    const withoutDefinition = await games.start(5, undefined, 'medium', 'test');
+    expect(await games.submit(withoutDefinition.id, 'apple', 'test')).toMatchObject({ outcome: 'WON', definition: '', answerDefinition: '' });
+    expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(3);
     dictionary.mockResolvedValue([]);
     await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('Load the dictionary');
   });
@@ -100,7 +108,8 @@ describe('game HTTP endpoints and rules', () => {
     const present = await games.hint(game.id, 'present', 'test'); expect('apple').toContain(present.letter);
     for (let i = 1; i < hints; i++) await games.hint(game.id, 'unused', 'test');
     await expect(games.hint(game.id, 'unused', 'test')).rejects.toThrow('used all');
-    for (let i = 1; i <= attempts; i++) expect(await games.submit(game.id, 'paper', 'test')).toMatchObject({ attemptsRemaining: attempts - i, completed: i === attempts });
+    for (let i = 1; i <= attempts; i++) expect(await games.submit(game.id, 'paper', 'test')).toMatchObject({ attemptsRemaining: attempts - i, completed: i === attempts, definition: 'Definition of paper.', ...(i === attempts ? { outcome: 'LOST', answer: 'apple', answerDefinition: 'Definition of apple.' } : {}) });
+    expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(attempts + 1);
     await expect(games.hint(game.id, 'present', 'test')).rejects.toThrow('already complete');
     await expect(games.submit(game.id, 'apple', 'test')).rejects.toThrow('already complete');
   });
@@ -112,7 +121,7 @@ describe('game HTTP endpoints and rules', () => {
       { completedAt: '2026-03-09T03:30:00Z', guesses: [{ outcome: 'WON' }, {}] },
       { completedAt: '2026-03-08T04:30:00Z', guesses: [{ outcome: 'WON' }] },
       { completedAt: '2026-03-07T04:30:00Z', guesses: [{ outcome: 'LOST' }] },
-    ].map((game, i) => ({ id: String(i), ...game, guesses: game.guesses.map((guess, position) => ({ ...guess, ...(position === game.guesses.length - 1 ? { outcome: i < 2 ? 'WON' : 'LOST' } : {}) })) })) as Game[];
+    ].map((game, i) => ({ id: String(i), ...game, status: i < 2 ? 'won' : 'lost', attemptCount: game.guesses.length })) as Game[];
     expect(statistics(games, 'America/Toronto', new Date('2026-03-09T12:00:00Z'))).toMatchObject({ total: 3, wins: 2, losses: 1, winRate: 67, streak: 3 });
     expect(statistics([], 'UTC')).toMatchObject({ total: 0, winRate: 0, streak: 0 });
   });

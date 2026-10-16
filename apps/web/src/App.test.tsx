@@ -32,7 +32,7 @@ describe('practice puzzle', () => {
 
     expect(await screen.findByRole('row', { name: 'word' })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(3);
-    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ kind: 'word-puzzle', wordLength: 4, difficulty: 'medium', playWithMyWords: false });
+    expect(JSON.parse(fetchMock.mock.calls[1]![1]!.body as string)).toEqual({ kind: 'word-puzzle', wordLength: 4, difficulty: 'medium', playWithMyWords: false, startRequestId: expect.any(String) });
   });
 
   it('starts a game and submits a guess with server feedback', async () => {
