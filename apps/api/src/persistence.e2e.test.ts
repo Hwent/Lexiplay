@@ -311,6 +311,30 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const columns = (await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='practice_guesses'")).rows.map(row => row.column_name);
     expect(columns).toEqual([]);
   });
+
+  it('paginates recent practice without changing overall statistics or exposing other accounts', async () => {
+    const user = await account(), other = await account();
+    for (let index = 0; index < 3; index++) {
+      const game = await start(user.cookie);
+      await request(`/games/${game.id}/guesses`, 'POST', { guess: 'apple' }, user.cookie);
+    }
+    const foreign = await start(other.cookie);
+    await request(`/games/${foreign.id}/guesses`, 'POST', { guess: 'apple' }, other.cookie);
+    const first = await (await request('/progress/summary?page=1&pageSize=2', 'GET', undefined, user.cookie)).json();
+    const second = await (await request('/progress/summary?page=2&pageSize=2', 'GET', undefined, user.cookie)).json();
+    expect(first).toMatchObject({ total: 3, wins: 3, page: 1, pageSize: 2, totalPages: 2 });
+    expect(second).toMatchObject({ total: 3, wins: 3, page: 2, totalPages: 2 });
+    expect(first.recent).toHaveLength(2);
+    expect(second.recent).toHaveLength(1);
+    expect(new Set([...first.recent, ...second.recent].map(game => game.id)).size).toBe(3);
+    expect([...first.recent, ...second.recent].some(game => game.id === foreign.id)).toBe(false);
+    expect(first.recent[0]).toMatchObject({ answer: 'apple', answerDefinition: 'Definition of apple.' });
+    const clamped = await (await request('/progress/summary?page=99&pageSize=2', 'GET', undefined, user.cookie)).json();
+    expect(clamped.page).toBe(2);
+    for (const query of ['page=0', 'page=abc', 'pageSize=51', 'pageSize=0']) {
+      expect((await request('/progress/summary?' + query, 'GET', undefined, user.cookie)).status).toBe(400);
+    }
+  });
   it('persists only active inputs, resumes scoring, and clears state after completion', async () => {
     const user=await account(),game=await start(user.cookie);
     await request('/games/'+game.id+'/guesses','POST',{guess:'paper'},user.cookie);

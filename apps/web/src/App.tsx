@@ -362,6 +362,7 @@ export default function App() {
       setGuess('');
       setRejectedAttempt(0);
       if (result.completed) {
+        wordStore.requests.invalidate('/progress/');
         if (result.outcome === 'WON') setCelebrationId(game.id);
         setMessage(result.outcome === 'WON'
           ? result.rewardCoins ? `You found it! ${result.rewardCoins} coins earned${game.coinPayer === 'guest' && account ? ' in your guest wallet' : ''}.` : 'You found it! A new word is ready whenever you are.'

@@ -136,13 +136,17 @@ export class GameRepository implements OnModuleDestroy {
     finally { client.release(); }
   }
 
-  async history(owner: string): Promise<Game[]> {
+  async history(owner: string, page = 1, pageSize = 10) {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-      const ids = (await client.query<{ id: string }>("SELECT id FROM practice_games WHERE user_id=$1 AND status IN ('won','lost') ORDER BY finished_at DESC,id", [owner.slice(5)])).rows.map(row => row.id);
-      const rows = await this.rows(client, ids, owner);
-      await client.query('COMMIT'); return rows;
+      const rows = (await client.query<{ id: string; status: GameStatus; finished_at: Date; attempt_count: number }>(
+        "SELECT id,status,finished_at,attempt_count FROM practice_games WHERE user_id=$1 AND status IN ('won','lost') ORDER BY finished_at DESC,id", [owner.slice(5)])).rows;
+      const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+      page = Math.min(page, totalPages);
+      const recent = await this.rows(client, rows.slice((page - 1) * pageSize, page * pageSize).map(row => row.id), owner);
+      const summaries = rows.map(row => ({ status: row.status, completedAt: row.finished_at.toISOString(), attemptCount: row.attempt_count }));
+      await client.query('COMMIT'); return { summaries, recent, page, pageSize, totalPages };
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }

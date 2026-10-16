@@ -15,3 +15,10 @@ illustrate positional feedback and repeated letters at four letters. LexiPlay
 applies the same duplicate-aware scoring at every length, with six guesses in
 normal mode. Its easy/hard modes intentionally offer seven/five guesses; invalid
 words cost no guess, and complete words submit automatically.
+
+`GET /progress/summary?timezone=America/Toronto&page=2&pageSize=10` returns lifetime
+metrics with a page of recent practice and `page`, `pageSize`, `totalPages` metadata.
+Pages are clamped to available history; page sizes are 1–50. Dictionary definitions
+are resolved only for the displayed page. The frontend caches history briefly and
+invalidates it when a puzzle finishes. Recent-word additions use the shared pending
+word selection flow, including duplicate protection and saving when leaving the page.

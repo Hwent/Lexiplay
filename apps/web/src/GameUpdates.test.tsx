@@ -204,7 +204,7 @@ describe('saved practice and account updates', () => {
   });
   it('renders Statistics and recent practice without the winning guesses panel', async () => {
     window.history.replaceState({}, '', '/progress');
-    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 8, wins: 4, losses: 4, winRate: 50, streak: 2, timezone: 'America/Toronto', distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 4 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', answer:'apple',status:'won',attemptCount:1,coinChange:4 }] })));
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 8, wins: 4, losses: 4, winRate: 50, streak: 2, timezone: 'America/Toronto', page: 1, pageSize: 10, totalPages: 1, distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 4 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', answer:'apple',status:'won',attemptCount:1,coinChange:4 }] })));
     render(<App />);
     expect(await screen.findByText('50%')).toBeInTheDocument();
     expect(screen.getByText('2 days')).toBeInTheDocument();
