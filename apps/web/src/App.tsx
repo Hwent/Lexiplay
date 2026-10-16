@@ -15,6 +15,7 @@ import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './service
 
 const VocabularyLibrary = lazy(() => import('./VocabularyLibrary'));
 const DictionaryPage = lazy(() => import('./DictionaryPage'));
+const FeedbackPage = lazy(() => import('./FeedbackPage'));
 const AccountPage = lazy(() => import('./AccountPage'));
 const SettingsPage = lazy(() => import('./SettingsPage'));
 const CommunityPage = lazy(() => import('./CommunityPage'));
@@ -22,10 +23,10 @@ const StatisticsPanel = lazy(() => import('./StatisticsPanel'));
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
-type Section = 'home' | 'play' | 'library' | 'dictionary' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
+type Section = 'home' | 'play' | 'library' | 'dictionary' | 'feedback' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
 const sectionPaths: Record<Section, string> = {
   home: '/', play: '/games', library: '/library', dictionary: '/dictionary', progress: '/progress', community: '/community', settings: '/settings',
-  licenses: '/licenses', account: '/account',
+  licenses: '/licenses', account: '/account', feedback: '/feedback',
 };
 const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
 pathSections['/play'] = 'play';
@@ -452,12 +453,12 @@ export default function App() {
 
   const sectionTitle: Record<Section, string> = {
     home: 'Home', play: 'Games', library: 'Word List', dictionary: 'Dictionary',
-    progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses', account: 'Account',
+    progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses', account: 'Account', feedback: 'Feedback',
   };
   const navigation: { key: Section; icon: IconName }[] = [
     { key: 'home', icon: 'home' }, { key: 'play', icon: 'play' }, { key: 'library', icon: 'library' },
     { key: 'dictionary', icon: 'dictionary' },
-    { key: 'progress', icon: 'progress' }, { key: 'community', icon: 'community' }, { key: 'settings', icon: 'settings' },
+    { key: 'progress', icon: 'progress' }, { key: 'community', icon: 'community' }, { key: 'feedback', icon: 'feedback' }, { key: 'settings', icon: 'settings' },
   ];
 
   return (
@@ -610,6 +611,7 @@ export default function App() {
         <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery={quickSearch} onSignIn={() => navigateTo('account')} />
       </section>}
       {activeSection === 'dictionary' && <DictionaryPage key={accountRevision} signedIn={!!account} accountLoading={accountLoading} />}
+      {activeSection === 'feedback' && <FeedbackPage />}
       {activeSection === 'home' && <HomePage onNavigate={navigateTo} />}
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}

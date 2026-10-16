@@ -155,9 +155,10 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await guess.json()).toMatchObject({ completed: true, outcome: 'WON' });
   });
 
-  it('uses 14 tables and enforces balances, ownership, and case-preserved identities', async () => {
+  it('uses 15 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
-    expect(tables).toHaveLength(14);
+    expect(tables).toHaveLength(15);
+    expect(tables).toContainEqual({ tablename: 'message' });
     const user = await account();
     expect(user.coinBalance).toBe(100);
     await pool.query('UPDATE account_users SET coin_balance=500 WHERE id=$1', [user.id]);
