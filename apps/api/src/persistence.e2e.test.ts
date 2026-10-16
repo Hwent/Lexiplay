@@ -10,6 +10,7 @@ import { AccountMailService } from './modules/accounts/account-mail.service';
 import { GameService } from './modules/games/game.service';
 import { guestOwner } from './modules/games/guest-cookie';
 import { CEFR_POOLS } from './modules/word-lists/cefr-pools';
+import { WORDLE_POOL } from './modules/word-lists/wordle-pool';
 import { WordListsService } from './modules/word-lists/word-lists.service';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
 
@@ -91,6 +92,37 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const started = await start(user.cookie);
     const saved = (await pool.query('SELECT answer FROM practice_games WHERE id=$1', [started.id])).rows[0];
     expect(['apple','cover','china']).toContain(saved.answer);
+  });
+
+  it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
+    expect(new Set(WORDLE_POOL.words).size).toBe(2315);
+    expect(WORDLE_POOL.words.every(term => /^[a-z]{5}$/.test(term))).toBe(true);
+    const hidden = (await pool.query("SELECT id FROM vocabulary_collections WHERE slug='wordle-original' AND hidden")).rows[0];
+    expect(hidden).toBeDefined();
+    const catalog = await (await request('/collections')).json();
+    expect(catalog.some((row: { id: string }) => row.id === hidden.id)).toBe(false);
+    expect(await (await request('/collections/categories')).json()).not.toContain('Games');
+    const options = await (await request('/collections/game-options?wordLength=5')).json();
+    expect(options.collections.some((row: { id: string }) => row.id === hidden.id)).toBe(false);
+    for (const suffix of ['', '/words', '/snapshot']) {
+      expect((await request('/collections/wordle-original' + suffix)).status).toBe(404);
+    }
+    const user = await account();
+    expect((await request('/collections/wordle-original/save', 'POST', {}, user.cookie)).status).toBe(404);
+    for (const body of [{ wordLength: 6 }, { collectionId: appleCollection }, { playWithMyWords: true }]) {
+      expect((await request('/games', 'POST', { kind: 'wordle', ...body }, user.cookie)).status).toBe(400);
+    }
+    expect(await balance(user.cookie)).toBe(100);
+    const response = await request('/games', 'POST', { kind: 'wordle', startRequestId: randomUUID() }, user.cookie);
+    expect(response.status).toBe(201);
+    const game = await response.json();
+    expect(game).toMatchObject({ wordLength: 5, pool: { id: hidden.id, name: 'Original Wordle' } });
+    expect(game).not.toHaveProperty('answer');
+    const stored = (await pool.query('SELECT answer,collection_id FROM practice_games WHERE id=$1', [game.id])).rows[0];
+    expect(WORDLE_POOL.words).toContain(stored.answer);
+    expect(stored.collection_id).toBe(hidden.id);
+    const guess = await request(`/games/${game.id}/guesses`, 'POST', { guess: stored.answer }, user.cookie);
+    expect(await guess.json()).toMatchObject({ completed: true, outcome: 'WON' });
   });
 
   it('uses 14 tables and enforces balances, ownership, and case-preserved identities', async () => {

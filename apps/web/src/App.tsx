@@ -88,6 +88,8 @@ export default function App() {
   const [playWithMyWords, setPlayWithMyWords] = useState(preferences.playWithMyWords);
   const [selectedPoolId, setSelectedPoolId] = useState(preferences.collectionId);
   const [selectedWordListId, setSelectedWordListId] = useState('');
+  const isWordle = selectedGameId === 'wordle';
+  const practiceLength = isWordle ? 5 : selectedWordLength;
   const wordStore = useMemo(() => new PendingWords(account?.id ?? 'guest'), [account?.id]);
   const wordSelection = useWordSelection(wordStore);
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
@@ -156,7 +158,7 @@ export default function App() {
     try {
       await wordStore.flush();
       if (game && !finished) await api(`/games/${game.id}/abandon`, { method: 'POST' });
-      resetGame(); setSelectedPoolId(poolId); setPlayWithMyWords(false); navigateTo('play');
+      resetGame(); setSelectedGameId('word-puzzle'); setSelectedPoolId(poolId); setPlayWithMyWords(false); navigateTo('play');
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not change your puzzle. Try again.'); }
     finally { setBusy(false); }
   }
@@ -254,8 +256,9 @@ export default function App() {
     setBusy(true);
     setMessage('');
     try {
-      const options = { kind: 'word-puzzle', wordLength: selectedWordLength, difficulty, playWithMyWords,
-        ...(!playWithMyWords && selectedPoolId ? { collectionId: selectedPoolId } : {}), ...(playWithMyWords && selectedWordListId ? { wordListId: selectedWordListId } : {}) };
+      const personal = !isWordle && playWithMyWords;
+      const options = { kind: selectedGameId, wordLength: practiceLength, difficulty, playWithMyWords: personal,
+        ...(!isWordle && !personal && selectedPoolId ? { collectionId: selectedPoolId } : {}), ...(personal && selectedWordListId ? { wordListId: selectedWordListId } : {}) };
       const key = JSON.stringify([account?.id ?? 'guest', options]);
       if (startRequest.current?.key !== key) {
         try {
@@ -435,7 +438,7 @@ export default function App() {
       {activeSection === 'play' && <>
       {!game && <div className="page-introduction"><div><p className="page-eyebrow">A LITTLE CHALLENGE</p><h2>Play with words.<br /><span>Leave with something new.</span></h2><p>A few guesses, a little curiosity, and a word worth remembering.</p></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
       {!game && <GameCatalog selectedId={selectedGameId} onSelect={setSelectedGameId} />}
-      {selectedGameId === 'word-puzzle' &&
+      {
       <section className="game-card" aria-label="Vocabulary puzzle" onClick={event => {
         const target = event.target;
         if (target instanceof Element && target.closest('button, input, a, select, textarea')) return;
@@ -450,7 +453,7 @@ export default function App() {
             <h2>Ready to play?</h2>
             <section className="game-rules" aria-labelledby="game-rules-title">
               <h3 id="game-rules-title">Wordle rules</h3>
-              <p>Find the hidden {selectedWordLength}-letter word in {difficulties.find(option => option.id === difficulty)!.guesses} guesses. Each full word checks automatically.</p>
+              <p>Find the hidden {practiceLength}-letter word in {difficulties.find(option => option.id === difficulty)!.guesses} guesses. Each full word checks automatically.</p>
               <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />Correct spot</span><span><i className="rule-swatch present" aria-hidden="true" />Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true" />Not in word</span></div>
               <p>Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.</p>
             </section>
@@ -458,20 +461,22 @@ export default function App() {
             <div className="practice-setup">
             <div className="practice-setup-heading"><p className="page-eyebrow">YOUR PRACTICE</p><h3>Make it your kind of puzzle.</h3></div>
             <div className="practice-options">
-              <fieldset className="length-options"><legend>Word length</legend>
+              {!isWordle && <fieldset className="length-options"><legend>Word length</legend>
                 <div className="length-segments">
                   {[3, 4, 5, 6, 7, 8, 9].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
                     <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={`${length} letters`} />
                     <span>{length}</span>
                   </label>)}
                 </div>
-              </fieldset>
+              </fieldset>}
               <fieldset className="difficulty-options"><legend>Difficulty</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{option.label}</strong></label>)}</div></fieldset>
+              {isWordle ? <div className="wordle-pool-summary"><Icon name="play"/><div><strong>Original Wordle</strong><span>5 letters · Classic answers</span></div></div> : <>
               <CollectionPicker value={selectedPoolId} wordLength={selectedWordLength} disabled={playWithMyWords} onChange={id => { setSelectedPoolId(id); setPlayWithMyWords(false); }} />
               <label className="word-pool-option"><span className="word-pool-icon"><Icon name="library"/></span><span><strong>Play with my words</strong></span>
                 <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /><span className="option-switch" aria-hidden="true" />
               </label>
               {playWithMyWords && account && <PersonalListPicker value={selectedWordListId} onChange={setSelectedWordListId} />}
+              </>}
             </div>
             <p className="game-price">{difficulties.find(option => option.id === difficulty)!.guesses} guesses · Entry: 1 coin · Win: {difficulties.find(option => option.id === difficulty)!.reward} coins</p>
             <button className="primary-button" onClick={startPractice} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>

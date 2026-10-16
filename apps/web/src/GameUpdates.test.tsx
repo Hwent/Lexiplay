@@ -30,6 +30,29 @@ describe('saved practice and account updates', () => {
     await screen.findByRole('option', { name: /CEFR A2/ });
     expect(screen.getByLabelText('Official collection')).toHaveValue('cefr-a2');
   });
+  it('starts Original Wordle at five letters without overriding the custom puzzle setup', async () => {
+    const starts: Record<string, unknown>[] = [];
+    stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (init?.method === 'POST') {
+        starts.push(JSON.parse(String(init.body)));
+        return Response.json({ ...emptyGame, wordLength: 5, completed: true, status: 'won' });
+      }
+      return Response.json([]);
+    }));
+    const user = userEvent.setup(); render(<App />);
+    await user.click(screen.getByRole('radio', { name: '9 letters' }));
+    await user.click(screen.getByRole('button', { name: /Original Wordle.*Classic answer pool/ }));
+    expect(screen.queryByRole('group', { name: 'Word length' })).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('Official collection')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    await screen.findByRole('button', { name: 'Return' });
+    expect(starts[0]).toMatchObject({ kind: 'wordle', wordLength: 5, playWithMyWords: false });
+    expect(starts[0]).not.toHaveProperty('collectionId');
+    await user.click(screen.getByRole('button', { name: 'Return' }));
+    await user.click(screen.getByRole('button', { name: /Word puzzle.*Your collections/ }));
+    expect(screen.getByRole('radio', { name: '9 letters' })).toBeChecked();
+  });
   it('waits for the guest wallet, shows prices, and reuses the start request after a network failure', async () => {
     let walletReady!: (response: Response) => void;
     const wallet = new Promise<Response>(resolve => { walletReady = resolve; });

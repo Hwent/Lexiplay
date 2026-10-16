@@ -132,6 +132,7 @@ model VocabularyCollection {
   sourceUrl String? @map("source_url")
   license String?
   status String @default("available")
+  hidden Boolean @default(false)
   entries CollectionEntry[]
   savedBy UserVocabularyCollection[]
   games PracticeGame[]
