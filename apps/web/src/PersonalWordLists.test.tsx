@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it, vi } from 'vitest';
 import PersonalWordLists from './PersonalWordLists';
@@ -6,6 +6,26 @@ const list = { id: 'list-1', name: 'My words', isDefault: true, preferredLanguag
 const word = { id: 'entry-1', dictionaryEntryId: 'word-1', lemma: 'analyse', partOfSpeech: 'verb', stage: 'Core', definition: 'To examine carefully.', language: 'en', definitionSource: 'dictionary', familiarity: 4, nextReviewAt: null };
 const page = { list, page: 1, pageSize: 25, total: 26, words: [word] };
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+it('opens and unsaves collection cards without removing saved words', async () => {
+  const collection = { id: 'a2', slug: 'cefr-a2', name: 'CEFR A2', level: 'A2', wordCount: 793 };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'DELETE') return Response.json({ success: true });
+    if (String(input).endsWith('/collections')) return Response.json([collection]);
+    return Response.json(String(input).endsWith('/mine') ? [list] : page);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  const onOpenCollection = vi.fn(), user = userEvent.setup();
+  render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0} onOpenCollection={onOpenCollection}/>);
+  const collections = await screen.findByRole('region', { name: 'My collections' });
+  expect(within(collections).getByRole('heading', { name: 'CEFR A2' })).toBeInTheDocument();
+  expect(within(collections).getByText('793 words')).toBeInTheDocument();
+  await user.click(within(collections).getByRole('button', { name: 'Open CEFR A2' }));
+  expect(onOpenCollection).toHaveBeenCalledWith('cefr-a2');
+  await user.click(within(collections).getByRole('button', { name: 'Unsave CEFR A2' }));
+  expect(await screen.findByText('Collection removed. Your words and progress are kept.')).toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'My collections' })).not.toBeInTheDocument();
+  expect(await screen.findByText('To examine carefully.')).toBeInTheDocument();
+});
 it('shows dictionary content without definition editing', async () => {
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => Response.json(String(input).endsWith('/mine') ? [list] : page)));
   render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0}/>);

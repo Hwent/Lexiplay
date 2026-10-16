@@ -1,3 +1,4 @@
+import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
 import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -16,8 +17,8 @@ describe('dedicated account page', () => {
       if (path.endsWith('/auth/logout')) return new Response(null, { status: 204 });
       throw new Error(`Unexpected request: ${path}`);
     });
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
-    expect(await screen.findByText('Guest')).toBeInTheDocument();
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
+    expect(await screen.findByText(/^Guest/)).toBeInTheDocument();
     expect(screen.queryByLabelText('Password')).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Forgot password?' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Account' }));
@@ -34,22 +35,22 @@ describe('dedicated account page', () => {
     expect(screen.queryByRole('button', { name: 'Send verification link' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Account' }));
     await user.click(screen.getByRole('button', { name: 'Sign out' }));
-    expect(await screen.findByText('Guest')).toBeInTheDocument();
+    expect(await screen.findByText(/^Guest/)).toBeInTheDocument();
     expect(fetchMock.mock.calls.filter(call => String(call[0]).endsWith('/auth/me'))).toHaveLength(1);
   });
   it('opens the account page directly and retries a failed session lookup', async () => {
     window.history.replaceState({}, '', '/account');
     const fetchMock = vi.fn().mockRejectedValueOnce(new Error('Offline')).mockResolvedValueOnce(new Response('{}', { status: 401 }));
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
     expect(await screen.findByText('Could not load your account. Please try again.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Try again' }));
     expect(await screen.findByLabelText('Username or email')).toBeInTheDocument();
-    expect(screen.getByText('Guest')).toBeInTheDocument();
+    expect(screen.getByText(/^Guest/)).toBeInTheDocument();
   });
   it('opens reset links on Account, removes the token, and updates an eight-character password', async () => {
     window.history.replaceState({}, '', '/account#action=reset&token=' + 'a'.repeat(43));
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ message: 'Password updated. Sign in with your new password.' }));
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
     const input = await screen.findByLabelText('New password');
     expect(window.location.hash).toBe(''); expect(window.location.pathname).toBe('/account');
     await user.type(input, 'newpass8'); await user.click(screen.getByRole('button', { name: 'Update password' }));
@@ -60,7 +61,7 @@ describe('dedicated account page', () => {
   it('does not mark the current account verified when a link verifies a different account', async () => {
     window.history.replaceState({}, '', '/account#action=verify&token=' + 'b'.repeat(43));
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? Response.json({ id: 'user-2', email: 'other@example.test', username: 'other', emailVerified: false }) : Response.json({ message: 'Your email is verified.' }));
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('button', { name: 'Verify email address' }));
     await waitFor(() => expect(screen.getByText('Email not verified · optional')).toBeInTheDocument());
     expect(screen.queryByText('Verified')).not.toBeInTheDocument();
@@ -70,7 +71,7 @@ describe('dedicated account page', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
       ? new Response('{}', { status: 401 })
       : String(input).endsWith('/progress/claim') ? Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }) : Response.json({ user: { id: 'user-1', username: 'learner', email: null, emailVerified: false }, verificationSent: false }));
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('tab', { name: 'Create account' }));
     expect(screen.getByLabelText('Email optional')).not.toBeRequired();
     expect(screen.getByRole('checkbox')).not.toBeChecked(); expect(screen.getByRole('checkbox')).toBeDisabled();
@@ -93,7 +94,7 @@ describe('dedicated account page', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
       ? new Response('{}', { status: 401 })
       : String(input).endsWith('/progress/claim') ? Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }) : Response.json({ user: { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false }, verificationSent: true }));
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('tab', { name: 'Create account' }));
     await user.type(screen.getByLabelText('Username'), 'learner');
     await user.type(screen.getByLabelText('Email optional'), 'learner@example.test');
@@ -113,7 +114,7 @@ describe('dedicated account page', () => {
       if (path.endsWith('/auth/forgot-password')) return Response.json({ message: 'If that email has an account, a reset link will arrive shortly.' });
       throw new Error(`Unexpected request: ${path}`);
     });
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.type(await screen.findByLabelText('Recovery email'), 'learner@example.test');
     await user.type(screen.getByLabelText('Current password'), 'password8');
     await user.click(screen.getByRole('button', { name: 'Add recovery email' }));
@@ -137,7 +138,7 @@ describe('dedicated account page', () => {
       if (path.endsWith('/auth/account')) return ++attempts === 1 ? Response.json({ message: 'Your current password is incorrect.' }, { status: 401 }) : new Response(null, { status: 204 });
       throw new Error(`Unexpected request: ${path}`);
     });
-    vi.stubGlobal('fetch', fetchMock); const user = userEvent.setup(); render(<App />);
+    stubFetchWithVocabularyRanges(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('button', { name: 'Delete account' }));
     expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeDisabled();
     await user.type(screen.getByLabelText('Current password'), 'password8');
@@ -156,7 +157,7 @@ describe('dedicated account page', () => {
     expect(screen.getByText('Signed in as learner')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Permanently delete account' }));
     expect(await screen.findByText('Your account and saved learning data have been deleted.')).toBeInTheDocument();
-    expect(screen.getByText('Guest')).toBeInTheDocument();
+    expect(screen.getByText(/^Guest/)).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toHaveValue('');
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/account', expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ password: 'password8', confirmation: 'DELETE' }) }));
   });

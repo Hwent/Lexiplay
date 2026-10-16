@@ -13,6 +13,7 @@ const paths = {
   back: 'M20 12H4M10 6l-6 6 6 6',
   plus: 'M12 5v14M5 12h14',
   check: 'm5 12 4 4L19 6',
+  coin: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM15 8.5a5 5 0 1 0 0 7M8 10h6M8 14h6',
 } as const;
 export type IconName = keyof typeof paths;
 export default function Icon({ name }: { name: IconName }) {

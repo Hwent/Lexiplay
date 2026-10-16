@@ -19,18 +19,17 @@ pnpm dev
 
 Open the URL printed by the launcher. On first setup, populate the dictionary using the local `docs/DATABASE-MANUAL.md`; a copied production database already includes it. Development uses a local database and email previews. Local `docs/DEVELOPMENT.md` covers conventions and tests.
 
-Keep environment settings in the private root `.env`: `DATABASE_URL` for local development, `SEED_DATABASE_URL` for production dumps/imports, and `REDEPLOY_PRODUCTION_URL`/`REDEPLOY_TARGET_URL` for redeployment. See `.env.example` for placeholders.
+Keep environment settings in the private root `.env`: `DATABASE_URL` for local development and `SEED_DATABASE_URL` for production backups. See `.env.example` for placeholders. Use a database with the schema from `dcdf5ef`; reverting application code does not roll back database migrations.
 
-For a fresh local database without dictionary entries, run this before starting games. It loads the local `.env` explicitly:
-
-```powershell
-Remove-Item Env:DATABASE_URL -ErrorAction SilentlyContinue
-node --env-file=.env apps/api/node_modules/tsx/dist/cli.mjs apps/api/src/modules/word-lists/seed-simple-wiktionary.ts
-```
+For a fresh local database, publish a reviewed dictionary using `pnpm library:publish`. Use `pnpm db:restructure` to prepare a backed-up replacement from an older local schema. See [database maintenance](scripts/DATABASE-REDEPLOY.md) for the required arguments and verification steps.
 
 ## Documentation
 
-The local dictionary can be supplemented with Open English WordNet 2025 Core. Download and extract the [official JSON release](https://en-word.net/static/english-wordnet-2025-json.zip) into `.local-backups/wordnet-2025/json`, retaining the ZIP in `.local-backups/wordnet-2025/`. Run `pnpm dictionary:wordnet` for a transactional dry run; `pnpm dictionary:wordnet --apply` backs up and applies the additive supplement to the local database. Existing useful definitions are preserved. Import tooling and the merge policy are documented in [the WordNet importer guide](apps/api/src/modules/word-lists/WORDNET-IMPORT.md). License notices are shipped under `apps/web/public/licenses/`.
+Dictionary publication preserves referenced entries and updates the library revision so clients refresh cached vocabulary. License notices are shipped under `apps/web/public/licenses/`.
+
+Each puzzle offers a synonym-or-category hint and a definition hint for 1 coin each. Synonyms and category fallbacks use the [Datamuse API](https://www.datamuse.com/api/); definitions use the local dictionary. Failed or unavailable hints cost nothing. Purchased hints stay visible while the puzzle is active, and their fees are not refunded when leaving a puzzle.
+
+Game pools use lowercase alphabetic entries and exclude entries tagged as proper nouns or names. The collection picker counts distinct playable words at the selected length using the same rules.
 
 Documentation is kept locally under `docs/` and excluded from Git. New clones do not include these local files; retain a separate private copy if you need them on another computer. Generated outputs, dictionary source materials, and database dumps are also ignored; application vocabulary data, import fixtures, migrations, and license notices remain tracked.
 

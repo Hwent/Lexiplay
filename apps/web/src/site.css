@@ -13,6 +13,21 @@
 .header-actions .theme-toggle { display: grid; place-items: center; width: 2.65rem; height: 2.65rem; padding: .65rem; font-size: 0; }
 .header-search, .account-status-link { min-height: 2.65rem; background: var(--surface); }
 .header-search button { border-left: 0; }
+.account-coins { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.65rem; padding: .5rem .75rem; border: 1px solid color-mix(in srgb, #d7ae59 40%, var(--line)); border-radius: .65rem; background: color-mix(in srgb, #d7ae59 10%, var(--surface)); color: #dfbc75; white-space: nowrap; }
+.account-coins strong { font-size: 1rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.account-coins .ui-icon { width: 1.3rem; height: 1.3rem; }
+:root[data-theme='light'] .account-coins { color: #866014; }
+.account-status-link strong { font-size: .95rem; }
+.difficulty-segments label { align-items: center; justify-content: center; }
+.game-price { margin: 1rem 0; font-size: 1rem; line-height: 1.6; text-align: center; }
+.game-consumables .friendly-hint { padding: 1rem; gap: .75rem; }
+.game-consumables .friendly-hint > strong { flex: 1; font-size: 1rem; }
+.hint-price { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); font-size: 1rem; }
+.puzzle-clues { display: grid; gap: .75rem; margin-top: 1rem; }
+.puzzle-clues article { padding: 1rem; border-left: 3px solid var(--accent); border-radius: .5rem; background: var(--surface-soft); }
+.puzzle-clues strong { color: var(--accent); font-size: 1rem; }
+.puzzle-clues p { margin: .5rem 0 0; font-size: 1.05rem; line-height: 1.6; }
+.statistics-columns { grid-template-columns: minmax(0, 1fr); }
 .primary-button, .quiet-button { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 2.9rem; padding: .75rem 1.1rem; border: 1px solid transparent; border-radius: .65rem; font-size: .88rem; font-weight: 650; cursor: pointer; transition: background .18s, border-color .18s, transform .18s; }
 .primary-button { background: var(--accent); color: var(--surface); }
 .primary-button span { padding: 0; }
@@ -90,7 +105,11 @@
 .practice-setup-heading h3 { margin: 0; font-size: 1.1rem; font-weight: 650; letter-spacing: -.025em; }
 .practice-options { width: 100%; margin-top: 1.5rem; }
 .practice-options .text-action { display: inline-flex; align-items: center; min-height: 2.75rem; padding: .5rem 0; color: var(--accent); font-size: .85rem; text-underline-offset: .2em; }
-.practice-options .cefr-pool-picker { margin-top: 1rem; }
+.game-collection-picker { display: grid; gap: .65rem; margin-top: 1.25rem; }
+.game-collection-picker label { font-size: 1rem; font-weight: 600; }
+.game-collection-picker select { width: 100%; min-height: 3rem; padding: .7rem .8rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 1rem; }
+.game-collection-count { margin: 0; font-size: 1rem; color: var(--muted); }
+.game-collection-count strong { color: var(--accent); font-variant-numeric: tabular-nums; }
 .length-options legend, .difficulty-options legend { font-size: .9rem; font-weight: 600; }
 .length-segments { grid-template-columns: repeat(7, minmax(0, 1fr)); border-radius: .65rem; }
 .length-segments label { min-height: 2.65rem; border-radius: .45rem; }
@@ -175,6 +194,20 @@
   .home-page, .page-introduction, .account-intro, .library-introduction { animation: page-arrive .35s ease-out; }
   @keyframes page-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 }
+@media (min-width: 1200px) {
+  html { font-size: 112.5%; }
+  .main-navigation button, .header-search input, .account-status-link strong { font-size: 1rem; }
+  .catalog-copy strong, .practice-setup-heading h3, .statistics-card h3 { font-size: 1.25rem; }
+  .catalog-copy > span, .game-rules p, .difficulty-segments strong, .word-pool-option strong,
+  .library-page .vocabulary-library-tabs button, .library-page .vocabulary-collection-card > p,
+  .library-page .vocabulary-collection-card > small, .library-page .vocabulary-collection-card .account-action,
+  .library-page .collection-word-rows p, .library-page .collection-word-rows small,
+  .library-page .personal-entry-actions button, .library-page .word-pagination,
+  .dictionary-tools-panel p, .dictionary-tools-panel button, .dictionary-search-label,
+  .stat-label, .recent-games li span, .recent-games time { font-size: 1rem; }
+  .library-page .collection-word-rows .word-with-pronunciation strong { font-size: 1.2rem; }
+}
+@media (min-width: 1600px) { html { font-size: 125%; } }
 @media (max-width: 1150px) {
   .home-hero { grid-template-columns: minmax(0, 1fr) minmax(13rem, .7fr); }
   .home-hero-actions { flex-direction: column; align-items: flex-start; }

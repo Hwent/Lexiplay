@@ -17,8 +17,7 @@
     "cefr:build-families": "node scripts/build-cefr-families.mjs",
     "cefr:expand-c2": "node scripts/expand-c2.mjs",
     "db:migrate:local": "node scripts/migrate-local-collections.mjs",
-    "dictionary:wordnet": "node apps/api/node_modules/tsx/dist/cli.mjs apps/api/src/modules/word-lists/seed-english-wordnet.ts",
-    "db:redeploy": "node scripts/database-redeploy.mjs",
-    "db:redeploy:prisma": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/prisma-redeploy.ts"
+    "db:restructure": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/restructure-database.ts",
+    "library:publish": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/publish-library.ts"
   }
 }

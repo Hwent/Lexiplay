@@ -1,8 +1,6 @@
 import { CollectionsStorage } from '../collections/collections.storage';
 import { CollectionsService } from '../collections/collections.service';
-import { CollectionsController, PersonalCollectionsController } from '../collections/collections.controller';
-import { CefrPoolsService } from './cefr-pools.service';
-import { CefrPoolsController } from './cefr-pools.controller';
+import { CollectionsController, PersonalCollectionsController, LibraryController } from '../collections/collections.controller';
 import { Module } from '@nestjs/common';
 import { ThrottlerModule } from '@nestjs/throttler';
 import { AccountsModule } from '../accounts/accounts.module';
@@ -13,8 +11,8 @@ import { WordListImportService } from './word-list-import';
 
 @Module({
   imports: [AccountsModule, ThrottlerModule.forRoot([{ ttl: 60_000, limit: 60 }])],
-  controllers: [CollectionsController, PersonalCollectionsController, CefrPoolsController, WordListsController],
-  providers: [CollectionsStorage, CollectionsService, CefrPoolsService, WordListRepository, WordListsService, WordListImportService],
-  exports: [CollectionsService, CefrPoolsService, WordListsService, WordListRepository],
+  controllers: [LibraryController, CollectionsController, PersonalCollectionsController, WordListsController],
+  providers: [CollectionsStorage, CollectionsService, WordListRepository, WordListsService, WordListImportService],
+  exports: [CollectionsService, WordListsService, WordListRepository],
 })
 export class WordListsModule {}

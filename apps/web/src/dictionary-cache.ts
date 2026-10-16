@@ -2,12 +2,13 @@ import { apiRequest } from './services/api-client';
 
 export type DictionaryEntry = { term: string; definition?: string; partOfSpeech: string[]; senses?: { partOfSpeech: string; definitions: string[] }[] };
 type Cached<T> = { value: T; expiresAt: number };
-const STORAGE_KEY = 'lexiplay-dictionary-cache-v5-wordnet-2025';
+const STORAGE_KEY = 'lexiplay-dictionary-cache-v6-canonical';
 const CACHE_LIFETIME = 24 * 60 * 60 * 1000;
 const searches = new Map<string, Cached<DictionaryEntry[]>>();
 const definitions = new Map<string, Cached<string>>();
 const pending = new Map<string, Promise<unknown>>();
 let loaded = false;
+let generation = 0;
 
 export const normalizeTerm = (term: string) => term.trim().toLowerCase();
 
@@ -52,7 +53,7 @@ async function request<T>(path: string): Promise<T> {
 function sharedRequest<T>(key: string, fetchValue: () => Promise<T>): Promise<T> {
   const existing = pending.get(key);
   if (existing) return existing as Promise<T>;
-  const promise = fetchValue().finally(() => { pending.delete(key); });
+  const promise = fetchValue().finally(() => { if (pending.get(key) === promise) pending.delete(key); });
   pending.set(key, promise);
   return promise;
 }
@@ -74,11 +75,16 @@ export function searchDictionary(query: string): Promise<DictionaryEntry[]> {
   const hit = cached(searches, normalized);
   if (hit !== undefined) return Promise.resolve(hit);
   return sharedRequest(`search:${normalized}`, async () => {
+    const current = generation;
     const words = await request<DictionaryEntry[]>(`dictionary?q=${encodeURIComponent(normalized)}`);
     // A term can appear only once even if a provider returns duplicate matches.
     const results = [...new Map(words.map(word => [word.term, word])).values()];
-    searches.set(normalized, { value: results, expiresAt: Date.now() + CACHE_LIFETIME });
-    for (const word of results) if (word.definition) rememberDictionaryDefinition(word.term, word.definition);
+    if (current !== generation) return results;
+    const expiresAt = Date.now() + CACHE_LIFETIME;
+    searches.set(normalized, { value: results, expiresAt });
+    for (const word of results) {
+      if (word.definition?.trim()) definitions.set(word.term.trim(), { value: word.definition, expiresAt });
+    }
     persist();
     return results;
   });
@@ -89,13 +95,16 @@ export function dictionaryDefinition(term: string): Promise<string> {
   const hit = cachedDictionaryDefinition(normalized);
   if (hit !== undefined) return Promise.resolve(hit);
   return sharedRequest(`definition:${normalized}`, async () => {
+    const current = generation;
     const result = await request<{ definition: string }>(`dictionary/${encodeURIComponent(normalized)}/definition`);
-    rememberDictionaryDefinition(normalized, result.definition);
+    if (current === generation) rememberDictionaryDefinition(normalized, result.definition);
     return result.definition;
   });
 }
 
 export function clearDictionaryCache() {
+  generation++;
+  pending.clear();
   searches.clear();
   definitions.clear();
   loaded = false;

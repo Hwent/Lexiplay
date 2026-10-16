@@ -12,13 +12,14 @@ function mockApi() {
 }
 it('adds and cancels dictionary and game selections without any writes, then saves one batch on exit', async () => {
   const fetchMock = mockApi(), store = new PendingWords('user-one'); await store.loadSaved();
-  store.toggle('cover', '', 'my-list'); store.toggle(' COVER '); store.toggle('paper', 'Writing material.'); store.toggle('cover', '', 'my-list');
+  store.toggle('cover', '', 'my-list'); store.toggle(' cover '); store.toggle('paper', 'Writing material.'); store.toggle('cover', '', 'my-list');
   expect(fetchMock.mock.calls.some(([, init]) => init?.method === 'POST')).toBe(false);
   expect(store.getSnapshot().saved.has('cover')).toBe(false);
   const first = store.flush(), second = store.flush(); expect(first).toBe(second); await first;
   const writes = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST'); expect(writes).toHaveLength(1);
   expect(JSON.parse(String(writes[0]![1]?.body))).toEqual({ terms: ['paper', 'cover'] });
   expect(store.getSnapshot().pending.size).toBe(0); expect(store.getSnapshot().saved.has('cover')).toBe(true);
+  expect(store.getSnapshot().notice).toBe('');
 });
 it('does not write a canceled addition or remove an already saved word', async () => {
   const fetchMock = mockApi(), store = new PendingWords('user-one'); await store.loadSaved();
@@ -51,10 +52,16 @@ it('reconciles recovered selections already committed by a background request wi
 });
 it('splits large batches at 200 and retains only the uncommitted batch after failure', async () => {
   const fetchMock = mockApi(), store = new PendingWords('user-one'); await store.loadSaved();
-  store.stage(Array.from({ length: 201 }, (_, index) => `word${index}`), 'my-list');
+  const terms = Array.from({ length: 401 }, (_, index) => `word${index}`);
+  store.stage(terms, 'my-list');
   fetchMock.mockResolvedValueOnce(Response.json({ added: 200, skipped: 0, missing: [] })).mockResolvedValueOnce(Response.json({ message: 'Offline' }, { status: 503 }));
-  await expect(store.flush()).rejects.toThrow(); expect(store.getSnapshot().pending.size).toBe(1); expect(store.getSnapshot().saved.size).toBe(201);
+  await expect(store.flush()).rejects.toThrow(); expect(store.getSnapshot().pending.size).toBe(201); expect(store.getSnapshot().saved.size).toBe(201);
+  expect(JSON.parse(String(fetchMock.mock.calls[1]![1]?.body))).toEqual({ terms: terms.slice(0, 200) });
+  expect(JSON.parse(String(fetchMock.mock.calls[2]![1]?.body))).toEqual({ terms: terms.slice(200, 400) });
   await store.flush(); expect(store.getSnapshot().pending.size).toBe(0);
+  expect(JSON.parse(String(fetchMock.mock.calls[3]![1]?.body))).toEqual({ terms: terms.slice(200, 400) });
+  expect(JSON.parse(String(fetchMock.mock.calls[4]![1]?.body))).toEqual({ terms: terms.slice(400) });
+  expect(store.getSnapshot().saved.size).toBe(402);
 });
 it('never marks missing dictionary words as saved and uses keepalive for a browser exit', async () => {
   const fetchMock = mockApi(), store = new PendingWords('user-one'); await store.loadSaved(); store.toggle('unknown', '', 'my-list');

@@ -76,7 +76,22 @@
 .library-page .personal-word-rows form { padding: 1rem; margin-top: .8rem; border: 1px solid var(--library-border); border-radius: .7rem; background: var(--surface-soft); }
 .library-page .personal-word-rows form button { margin: .5rem .5rem 0 0; }
 .library-tools { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; padding: 1rem 1.2rem; margin-bottom: 1rem; border: 1px dashed var(--library-border); border-radius: .8rem; }
-.library-tools > span { display: flex; flex-direction: column; gap: .3rem; }
+.saved-collections { margin: 1.5rem 0 2.5rem; }
+.saved-collections > h2 { margin: 0 0 1rem; font-size: 1.5rem; }
+.saved-collection-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 18rem), 1fr)); gap: 1rem; }
+.saved-collection-grid article { display: flex; flex-direction: column; gap: 1.5rem; padding: 1.4rem; border: 1px solid var(--library-border); border-radius: 1rem; background: var(--library-card); transition: border-color .18s, box-shadow .18s; }
+.saved-collection-grid article:hover { border-color: var(--library-accent); box-shadow: 0 4px 18px #0000000d; }
+.saved-collection-heading { display: flex; align-items: center; gap: 1rem; }
+.saved-collection-mark { display: grid; place-items: center; flex: 0 0 3rem; height: 3rem; border-radius: .75rem; background: var(--library-soft); color: var(--library-accent); font-size: 1.1rem; font-weight: 700; }
+.saved-collection-heading h3 { margin: 0 0 .35rem; font-size: 1.25rem; }
+.saved-collection-heading div > span { color: var(--muted); font-size: 1rem; }
+.saved-collection-actions { display: flex; align-items: center; gap: .75rem; margin-top: auto; }
+.saved-collection-actions button { min-height: 2.75rem; border-radius: .6rem; padding: .65rem .8rem; font: inherit; cursor: pointer; }
+.saved-collection-open { display: flex; align-items: center; justify-content: space-between; gap: .75rem; flex: 1; border: 1px solid var(--library-border); background: var(--library-soft); color: var(--library-accent); }
+.saved-collection-remove { border: 0; background: transparent; color: var(--muted); }
+.saved-collection-remove:hover { color: var(--text); }
+.saved-collection-actions button:focus-visible { outline: 2px solid var(--library-accent); outline-offset: 3px; }
+.saved-collection-actions button:disabled { opacity: .5; }
 .library-tools strong { font-size: .82rem; }
 .library-tools small { color: var(--muted); font-size: .75rem; }
 .library-tools .text-action { padding: .6rem .8rem; border: 1px solid var(--library-border); border-radius: .55rem; color: var(--library-accent); font-size: .75rem; text-decoration: none; }
