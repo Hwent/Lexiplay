@@ -294,9 +294,6 @@ export default function ExploreVocabulary({
           </span>
         <div className="collection-card-heading">
           <h3>{collection.name}</h3>
-          <span className="collection-saved-badge">
-            {saved.has(collection.slug) ? 'Saved' : ''}
-          </span>
         </div>
         </div></td>
         <td className="collection-word-count">{isAvailable ? collection.wordCount.toLocaleString() : 'Coming soon'}</td>
@@ -329,12 +326,6 @@ export default function ExploreVocabulary({
             <div>
               <h2>Find your next collection</h2>
             </div>
-            {!catalogLoading && (
-              <span className="library-count">
-                {catalog.filter((collection) => collection.status === 'available').length}{' '}
-                ready to explore
-              </span>
-            )}
           </div>
 
           <div className="library-table-scroll">

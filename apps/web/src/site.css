@@ -116,7 +116,6 @@
 .home-note { display: flex; align-items: center; gap: 1rem; padding: 1.4rem 0 0; margin-top: 1.8rem; border-top: 1px solid var(--line); }
 .home-note p { flex: 1; margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.7; }
 .home-note strong { color: var(--text); font-weight: 500; }
-.library-page .vocabulary-library-tabs button[aria-selected='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); background: var(--accent-soft); }
 .collection-card-symbol { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
 .puzzle { position: relative; }
 .puzzle-celebration { position: absolute; z-index: 4; top: 0; left: 0; right: 0; height: 24rem; overflow: hidden; pointer-events: none; }

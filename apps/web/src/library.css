@@ -79,9 +79,10 @@
 .library-art > span:first-child { font-family: Georgia, serif; font-size: 4.6rem; line-height: 1; letter-spacing: -.08em; }
 .library-art > span:nth-child(2) { margin-top: .7rem; font-size: .7rem; }
 .library-art i { position: absolute; right: -1rem; top: -1rem; width: 2.5rem; height: 2.5rem; display: grid; place-items: center; border: 4px solid var(--page); border-radius: 50%; background: var(--library-accent); color: var(--page); font-style: normal; font-size: 1.5rem; }
-.library-page .vocabulary-library-tabs { gap: 1.5rem; margin: 0 0 1.8rem; border-bottom: 1px solid var(--library-border); }
-.library-page .vocabulary-library-tabs button { display: flex; align-items: center; gap: .55rem; min-height: 3.3rem; padding: .8rem .1rem; border: 0; border-bottom: 3px solid transparent; border-radius: 0; background: transparent; color: var(--muted); font-size: .88rem; font-weight: 600; }
-.library-page .vocabulary-library-tabs button[aria-selected='true'] { border-bottom-color: var(--library-accent); background: transparent; color: var(--library-accent); }
+.library-page .vocabulary-library-tabs { display: inline-grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .35rem; max-width: 100%; margin: 0 0 1.5rem; padding: .35rem; border: 1px solid var(--library-border); border-radius: .9rem; background: var(--surface-soft); }
+.library-page .vocabulary-library-tabs button { display: flex; align-items: center; justify-content: center; gap: .55rem; min-height: 2.8rem; padding: .65rem 1rem; border: 1px solid transparent; border-radius: .65rem; background: transparent; color: var(--muted); font-size: 1rem; font-weight: 600; line-height: 1.35; transition: background .18s, color .18s, border-color .18s; }
+.library-page .vocabulary-library-tabs button[aria-selected='true'] { border-color: color-mix(in srgb, var(--library-accent) 40%, var(--library-border)); background: var(--library-soft); color: var(--library-accent); }
+.library-page .vocabulary-library-tabs button:hover:not([aria-selected='true']) { background: var(--library-card); color: var(--text); }
 .vocabulary-library-tabs button span { font-size: 1.15rem; }
 .library-section-heading { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1.4rem; }
 .library-section-heading h2 { margin: 0 0 .4rem; font-size: 1.2rem; letter-spacing: -.025em; }
@@ -103,7 +104,6 @@
 .collection-category-label { color: var(--muted); font-size: .58rem; letter-spacing: .08em; font-weight: 650; text-align: right; }
 .library-page .collection-card-heading { min-height: 1.6rem; }
 .library-page .collection-card-heading h3 { font-size: 1rem; line-height: 1.4; letter-spacing: -.02em; }
-.library-page .collection-saved-badge { min-width: 0; color: var(--library-accent); font-size: .68rem; }
 .library-page .vocabulary-collection-card > p { min-height: 2.8em; color: var(--muted); font-size: .82rem; line-height: 1.55; }
 .library-page .vocabulary-collection-card > small { margin: .2rem 0 .5rem; font-size: .72rem; }
 .library-page .vocabulary-collection-card .account-action { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 2.65rem; margin-top: auto; padding: .65rem .85rem; border: 1px solid var(--library-border); border-radius: .6rem; background: var(--library-soft); color: var(--library-accent); font-size: .78rem; }
@@ -220,8 +220,8 @@
   .library-introduction h2 { font-size: 2rem; }
   .library-introduction > div > p:last-child { font-size: .8rem; }
   .library-art { display: none; }
-  .library-page .vocabulary-library-tabs { gap: 1.1rem; }
-  .library-page .vocabulary-library-tabs button { font-size: .8rem; }
+  .library-page .vocabulary-library-tabs { display: grid; width: 100%; }
+  .library-page .vocabulary-library-tabs button { padding: .65rem .6rem; font-size: .95rem; }
   .library-section-heading { align-items: flex-start; flex-direction: column; gap: .65rem; }
   .library-page .vocabulary-collection-grid { grid-template-columns: 1fr; }
   .library-page .collection-detail-heading { flex-wrap: wrap; }
