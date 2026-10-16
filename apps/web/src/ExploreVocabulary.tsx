@@ -227,14 +227,15 @@ export default function ExploreVocabulary({
 
   function renderWordRow(word: CollectionPage['words'][number]) {
     return (
-      <li key={word.id}>
+      <tr key={word.id}>
+        <td className="word-selection-cell">
         <SelectionControl
           label={`Select ${word.lemma} (${word.partOfSpeech})`}
           disabled={loading || !!word.inMyWordList}
           checked={selected.has(word.id) || !!word.inMyWordList}
           onChange={(checked) => selectMembers([word.id], checked)}
         />
-        <div>
+        </td><td>
           <span className="word-with-pronunciation">
             <strong>{word.lemma}</strong>
             {word.inMyWordList && (
@@ -243,14 +244,13 @@ export default function ExploreVocabulary({
             <PronunciationButton term={word.lemma} />
           </span>
           <small>{word.partOfSpeech}</small>
-          <p>{word.definition ?? 'Dictionary definition not available yet.'}</p>
-        </div>
-      </li>
+        </td><td><p>{word.definition ?? 'Dictionary definition not available yet.'}</p></td>
+      </tr>
     );
   }
 
   function renderWordRows(words: CollectionPage['words']) {
-    return <ul className="collection-word-rows">{words.map(renderWordRow)}</ul>;
+    return <div className="library-table-scroll"><table className="library-data-table collection-entries-table"><thead className="sr-only"><tr><th scope="col">Select</th><th scope="col">Word</th><th scope="col">Meaning</th></tr></thead><tbody>{words.map(renderWordRow)}</tbody></table></div>;
   }
 
   function renderPagination(position: string) {
@@ -283,28 +283,24 @@ export default function ExploreVocabulary({
     const isAvailable = collection.status === 'available';
 
     return (
-      <article
-        className="vocabulary-collection-card"
+      <tr
         data-level={collection.level ?? 'exam'}
         data-available={isAvailable}
         key={collection.id}
       >
-        <div className="collection-card-top">
+        <td><div className="collection-identity">
           <span className="collection-level-mark" aria-hidden="true">
             {collection.level ?? 'Aa'}
           </span>
-          <span className="collection-card-symbol" aria-hidden="true"><Icon name={collection.category === 'CEFR' ? 'library' : 'progress'}/></span>
-        </div>
-
         <div className="collection-card-heading">
           <h3>{collection.name}</h3>
           <span className="collection-saved-badge">
             {saved.has(collection.slug) ? 'Saved' : ''}
           </span>
         </div>
-
-        <small>{isAvailable ? getCollectionSize(collection) : 'Coming soon'}</small>
-
+        </div></td>
+        <td className="collection-word-count">{isAvailable ? collection.wordCount.toLocaleString() : 'Coming soon'}</td>
+        <td className="table-action-cell">
         <button
           type="button"
           className="account-action"
@@ -314,13 +310,14 @@ export default function ExploreVocabulary({
         >
           {isAvailable ? (
             <>
-              Explore collection <Icon name="arrow" />
+              Explore <Icon name="arrow" />
             </>
           ) : (
             'Coming soon'
           )}
         </button>
-      </article>
+        </td>
+      </tr>
     );
   }
 
@@ -340,8 +337,8 @@ export default function ExploreVocabulary({
             )}
           </div>
 
-          <div className="vocabulary-collection-grid">
-            {catalog.map(renderCollectionCard)}
+          <div className="library-table-scroll">
+            <table className="library-data-table collection-catalog-table" aria-label="Vocabulary collections"><thead><tr><th scope="col">Collection</th><th scope="col">Words</th><th scope="col"><span className="sr-only">Explore</span></th></tr></thead><tbody>{catalog.map(renderCollectionCard)}</tbody></table>
           </div>
         </>
       ) : (
@@ -501,13 +498,6 @@ export default function ExploreVocabulary({
                           >
                             <header>
                               <div>
-                                <p className="library-eyebrow">
-                                  {family.kind === 'family'
-                                    ? 'WORD FAMILY'
-                                    : family.kind === 'phrase'
-                                      ? 'PHRASE'
-                                      : 'INDIVIDUAL WORD'}
-                                </p>
                                 <h3>{family.headword}</h3>
                               </div>
 
