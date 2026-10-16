@@ -47,12 +47,13 @@ it('reuses loaded lengths instead of hitting rate limits after repeated changes'
 
 it('keeps collection choices available and retries after a rate limit', async () => {
   const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({ message: 'Too many requests' }, { status: 429 }))
-    .mockResolvedValueOnce(Response.json({ wordLength: 5, totalWords: 50, collections: [] }));
+    .mockResolvedValueOnce(Response.json({ wordLength: 5, totalWords: 50, collections: [{ id: 'a2', slug: 'cefr-a2', name: 'CEFR A2', wordCount: 12 }] }));
   vi.stubGlobal('fetch', fetchMock);
   const user = userEvent.setup();
-  render(<CollectionPicker value="" wordLength={5} disabled={false} onChange={() => {}}/>);
+  render(<CollectionPicker value="cefr-a2" wordLength={5} disabled={false} onChange={() => {}}/>);
   expect(await screen.findByText('Word counts are busy. Try again shortly.')).toBeInTheDocument();
   expect(screen.getByLabelText('Collection')).toBeEnabled();
+  expect(screen.getByLabelText('Collection')).toHaveValue('cefr-a2');
   await user.click(screen.getByRole('button', { name: 'Retry counts' }));
-  expect(await screen.findByLabelText('Playable words')).toHaveTextContent('50 words');
+  expect(await screen.findByLabelText('Playable words')).toHaveTextContent('12 words');
 });
