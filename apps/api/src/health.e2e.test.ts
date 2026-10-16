@@ -135,6 +135,19 @@ describe('game HTTP endpoints and rules', () => {
     await expect(games.hint(game.id, 'definition', 'test')).rejects.toThrow('already complete');
     await expect(games.submit(game.id, 'apple', 'test')).rejects.toThrow('already complete');
   });
+  it('masks the answer in definition hints, including capitals and longer words', async () => {
+    vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple']);
+    vi.mocked(WordListRepository.prototype.getDictionaryDefinition).mockResolvedValue('An APPLE, apples, or pineapple; apple-shaped fruit.');
+    await startApp();
+    const games = app!.get(GameService);
+    const game = await games.start(5, ['apple'], 'medium', 'test');
+    expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({
+      text: 'An _____, _____s, or pine_____; _____-shaped fruit.', cost: 1,
+    });
+    expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({
+      text: 'An _____, _____s, or pine_____; _____-shaped fruit.', cost: 0,
+    });
+  });
   it('scores duplicate letters without overcounting', () => {
     expect(score('apple', 'paper')).toEqual(['PRESENT', 'PRESENT', 'CORRECT', 'PRESENT', 'ABSENT']);
   });

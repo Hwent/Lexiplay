@@ -23,6 +23,10 @@ describe('practice puzzle', () => {
 
     render(<App />);
     await user.click(screen.getByRole('button', { name: /^games$/i }));
+    const rules = screen.getByText('Wordle rules').closest('details')!;
+    expect(rules.open).toBe(false);
+    await user.click(within(rules).getByText('Wordle rules'));
+    expect(rules.open).toBe(true);
     await user.click(screen.getByRole('radio', { name: '4 letters' }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     const guessInput = await screen.findByRole('textbox', { name: /four-letter guess/i });
@@ -171,7 +175,7 @@ describe('practice puzzle', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Games' }));
-    expect(screen.getByRole('heading', { name: 'Wordle rules' })).toBeInTheDocument();
+    await user.click(screen.getByText('Wordle rules'));
     expect(screen.getByText(/hidden 5-letter word in 6 guesses/i)).toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
     await user.click(screen.getByRole('radio', { name: /Hard/ }));
@@ -199,7 +203,7 @@ describe('practice puzzle', () => {
     act(() => window.dispatchEvent(new CustomEvent('lexiplay:account-change')));
     await act(async () => resolveGuess(Response.json({ guess: 'crane', feedback: Array(5).fill('ABSENT'), attemptsRemaining: 5, completed: false })));
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Wordle rules' })).toBeInTheDocument();
+    expect(screen.getByText('Wordle rules').closest('details')).not.toHaveAttribute('open');
     expect(screen.getByRole('button', { name: /start practice/i })).toBeEnabled();
   });
 

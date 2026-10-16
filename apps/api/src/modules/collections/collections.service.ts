@@ -257,11 +257,18 @@ export class CollectionsService {
   async wordleGameWords() { return this.collectionGameWords(WORDLE_POOL.slug, 5, true); }
 
   async collectionGameWords(slug: string, length: number, includeHidden = false) {
-    const collection = await this.collection(slug, includeHidden);
+    const where = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(slug) ? { OR: [{ id: slug }, { slug }] } : { slug };
+    const collection = await this.db.vocabularyCollection.findFirst({
+      where: { ...where, ...(includeHidden ? {} : { hidden: false }) },
+      select: { id: true, name: true, author: true, status: true, entries: {
+        where: { entry: { partOfSpeech: { notIn: ['proper noun', 'proper_noun', 'name'] }, definitions: { some: { languageCode: 'en' } } } },
+        select: { entry: { select: { term: true } } },
+      } },
+    });
+    if (!collection) throw new NotFoundException('Vocabulary collection not found.');
     if (collection.status !== 'available') throw new BadRequestException('This collection is not available for play.');
-    const playable = new Set(await this.dictionary.dictionaryGameWords(length));
-    const words = [...new Set(collection.entries.map(row => row.entry.term).filter(term => playable.has(term)))];
+    const words = [...new Set(collection.entries.map(row => row.entry.term).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
     if (!words.length) throw new BadRequestException('This collection has no playable words at this length.');
-    return { words, collection: this.summary(collection) };
+    return { words, collection: { id: collection.id, name: collection.name, author: collection.author } };
   }
 }

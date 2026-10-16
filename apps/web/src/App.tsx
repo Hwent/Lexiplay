@@ -500,12 +500,12 @@ export default function App() {
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
             <h2>Ready to play?</h2>
-            <section className="game-rules" aria-labelledby="game-rules-title">
-              <h3 id="game-rules-title">Wordle rules</h3>
+            <details className="game-rules">
+              <summary>Wordle rules</summary>
               <p>Find the hidden {selectedWordLength}-letter word in {difficulties.find(option => option.id === difficulty)!.guesses} guesses. Each full word checks automatically.</p>
               <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />Correct spot</span><span><i className="rule-swatch present" aria-hidden="true" />Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true" />Not in word</span></div>
               <p>Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.</p>
-            </section>
+            </details>
             </div>
             <div className="practice-setup">
             <div className="practice-setup-heading"><p className="page-eyebrow">YOUR PRACTICE</p><h3>Make it your kind of puzzle.</h3></div>

@@ -134,7 +134,7 @@
 .practice-story .sample-tile:nth-child(3) { background: var(--surface-soft); color: var(--muted); }
 .welcome-card h2 { font-size: 1.7rem; letter-spacing: -.045em; }
 .game-rules { width: 100%; margin-top: 1.2rem; padding: 0; border: 0; background: transparent; }
-.game-rules h3 { font-size: .95rem; }
+.game-rules summary { cursor: pointer; font-size: .95rem; font-weight: 700; }
 .game-rules p { font-size: .9rem; line-height: 1.75; color: var(--muted); }
 .rule-colors { gap: .65rem; }
 .rule-colors > span { font-size: .78rem; }
@@ -269,7 +269,9 @@
 }
 @media (max-width: 900px) {
   .puzzle-stage.with-hints { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .puzzle-stage .puzzle-play-column { grid-column: 1 / -1; grid-row: 1; }
+  .puzzle-stage.with-hints .puzzle-hint { grid-row: 1; }
+  .puzzle-stage .puzzle-play-column { grid-column: 1 / -1; }
+  .puzzle-stage.with-hints .puzzle-play-column { grid-row: 2; }
   .app-shell { grid-template-columns: 4.5rem minmax(0, 1fr); }
   .sidebar { padding-inline: .5rem; align-items: center; }
   .sidebar .brand { font-size: 0; }

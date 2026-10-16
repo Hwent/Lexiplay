@@ -101,6 +101,17 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(['apple','cover','china']).toContain(saved.answer);
   });
 
+  it('loads the dictionary pool only once per collection start and replay', async () => {
+    const user = await account();
+    const words = vi.spyOn(app.get(WordListRepository), 'dictionaryGameWords');
+    try {
+      await start(user.cookie);
+      expect(words).toHaveBeenCalledTimes(1);
+      await start(user.cookie);
+      expect(words).toHaveBeenCalledTimes(2);
+    } finally { words.mockRestore(); }
+  });
+
   it('matches single-word guess validation to the full pool, excluding proper nouns and missing English definitions', async () => {
     await publishDictionary(pool, [...dictionary, word('paris', ['proper noun']), word('alone')]);
     await pool.query("UPDATE dictionary_definitions SET language_code='fr' WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='alone')");

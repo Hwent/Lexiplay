@@ -44,7 +44,7 @@ export class GameService {
       ? await this.dictionary.dictionarySynonym(current.answer)
       : current.answerDefinition || await this.dictionary.dictionaryDefinition(current.answer));
     if (!text) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: `No ${type} is available for this word. No coins were charged.` });
-    const clue = text.replace(new RegExp(`\\b${current.answer}\\b`, 'gi'), '_____');
+    const clue = text.replace(new RegExp(current.answer, 'gi'), '_____');
     return this.games.change(id, owner, game => {
       this.requireActive(game);
       const purchased = !!game.clues[type];
