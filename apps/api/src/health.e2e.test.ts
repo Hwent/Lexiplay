@@ -69,7 +69,7 @@ describe('game HTTP endpoints and rules', () => {
     }
   });
 
-  it('uses the full dictionary and intersects personal words without ranges', async () => {
+  it('uses dictionary-backed personal words without legacy ranges', async () => {
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'lucid', 'scope']);
     await startApp();
     const games = app!.get(GameService);
@@ -80,6 +80,21 @@ describe('game HTTP endpoints and rules', () => {
     await expect(games.start(5, [], 'medium', 'test')).rejects.toThrow('Your word list has no');
     const unrestricted = await games.start(5, undefined, 'medium', 'test');
     expect(['apple', 'lucid', 'scope']).toContain(stored.get(unrestricted.id)!.answer);
+  });
+  it('narrows default answers by length while accepting wider dictionary guesses and custom sources', async () => {
+    const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'xylyl']);
+    await startApp(); const games = app!.get(GameService);
+    const classic = await games.start(5, undefined, 'medium', 'test');
+    expect(stored.get(classic.id)!.answer).toBe('apple');
+    expect(await games.submit(classic.id, 'xylyl', 'test')).toMatchObject({ completed: false, attemptsRemaining: 5 });
+    const personal = await games.start(5, ['xylyl'], 'medium', 'test');
+    expect(stored.get(personal.id)!.answer).toBe('xylyl');
+    dictionary.mockResolvedValue(['cat', 'qat']);
+    const short = await games.start(3, undefined, 'medium', 'test');
+    expect(stored.get(short.id)!.answer).toBe('cat');
+    expect(await games.submit(short.id, 'qat', 'test')).toMatchObject({ completed: false, attemptsRemaining: 5 });
+    dictionary.mockResolvedValue(['xylyl']);
+    await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('No 5-letter answers');
   });
   it('keeps the dictionary pool stable and checks the selected length without consuming invalid guesses', async () => {
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);

@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
+import { defaultAnswerWords } from '../word-lists/default-answers';
 import { GameRepository } from './game.repository';
 import { DIFFICULTIES, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, WORDLE_COST, score } from './game.types';
 
@@ -14,12 +15,15 @@ export class GameService {
     const rules = DIFFICULTIES[difficulty];
     const allowedWords = await this.dictionary.dictionaryGameWords(wordLength);
     if (!allowedWords.length) throw new ServiceUnavailableException({ code: 'DICTIONARY_NOT_READY', message: `The dictionary has no ${wordLength}-letter game words. Load the dictionary before playing.` });
-    let answers = allowedWords;
+    let answers = defaultAnswerWords(wordLength, allowedWords);
     if (wordList !== undefined) {
       const pool = new Set(allowedWords);
       answers = [...new Set(wordList)].filter(word => pool.has(word));
     }
-    if (!answers.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words in the game dictionary yet.` });
+    if (!answers.length) {
+      if (wordList === undefined) throw new ServiceUnavailableException({ code: 'NO_PLAYABLE_ANSWERS', message: `No ${wordLength}-letter answers are available in this pool yet.` });
+      throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words in the game dictionary yet.` });
+    }
     const game: Game = {
       id: randomUUID(), startRequestId, kind: 'word-puzzle', owner, ...(selectedPool ? { pool: selectedPool } : {}), answer: answers[randomInt(answers.length)]!,
       wordLength, difficulty, attemptLimit: rules.attemptLimit, guesses: [], completed: false,

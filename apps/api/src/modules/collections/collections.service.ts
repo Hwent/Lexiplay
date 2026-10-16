@@ -5,6 +5,7 @@ import { WordListRepository } from '../word-lists/word-list.repository';
 import { AddDictionaryEntries, CollectionWordsQuery, ImportCollection, NewPersonalList, UpdatePersonalEntry } from './collections.dto';
 import { Prisma } from '../../generated/prisma/client';
 import { WORDLE_POOL } from '../word-lists/wordle-pool';
+import { defaultAnswerWords } from '../word-lists/default-answers';
 
 const entryInclude = { family: true, definitions: { where: { languageCode: 'en' }, orderBy: { senseOrder: 'asc' as const } } };
 const collectionInclude = { entries: { orderBy: [{ sortOrder: 'asc' as const }, { dictionaryEntryId: 'asc' as const }], include: { entry: { include: entryInclude } } } };
@@ -238,7 +239,7 @@ export class CollectionsService {
       this.dictionary.dictionaryGameWords(length),
     ]);
     const playable = new Set(words);
-    return { wordLength: length, totalWords: words.length, collections: collections.map(collection => ({
+    return { wordLength: length, totalWords: defaultAnswerWords(length, words).length, collections: collections.map(collection => ({
       id: collection.id, slug: collection.slug, name: collection.name,
       wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => playable.has(term))).size,
     })) };
