@@ -186,7 +186,6 @@
 .family-related ul { list-style: none; display: flex; flex-wrap: wrap; gap: .6rem; padding: 0; margin-top: 1rem; }
 .family-related li { display: flex; flex-direction: column; gap: .3rem; padding: .6rem .8rem; border-radius: .5rem; background: var(--library-soft); }
 .family-related p { line-height: 1.5; }
-.library-loading { padding: 2rem 1rem; border: 1px solid var(--library-border); border-radius: .85rem; color: var(--muted); text-align: center; }
 .dictionary-tools-panel { margin: 1rem 0 1.5rem; padding: 1.5rem; border: 1px solid var(--library-border); border-radius: 1rem; background: var(--library-card); }
 .dictionary-tools-panel > header { display: flex; justify-content: space-between; align-items: flex-start; gap: 1.5rem; }
 .dictionary-tools-panel > header > .ui-icon { width: 2rem; height: 2rem; color: var(--library-accent); }

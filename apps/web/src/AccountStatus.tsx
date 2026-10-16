@@ -19,9 +19,9 @@ export default function AccountStatus({ account, loading, error, onOpen, coinBal
   }, [owner, coinBalance, loading, error]);
   return <>
     {!loading && !error && coinBalance !== undefined && <span className={`account-coins${change ? ' coins-changed' : ''}`} aria-label={`Coin balance: ${coinBalance}`}><Icon name="coin"/><strong>{coinBalance.toLocaleString()}</strong>{change && <span key={change.sequence} className={`coin-change${change.amount > 0 ? ' earned' : ''}`} aria-hidden="true">{change.amount > 0 ? '+' : '−'}{Math.abs(change.amount)}</span>}</span>}
-    <a className="account-status-link" href="/account" aria-label="Account" onClick={event => { event.preventDefault(); onOpen(); }}>
+    <a className="account-status-link" href="/account" aria-label="Account" aria-busy={loading} onClick={event => { event.preventDefault(); onOpen(); }}>
     <span className="account-avatar" aria-hidden="true">{account ? (account.username ?? account.email ?? 'Account')[0]!.toUpperCase() : '○'}</span>
-    <span><strong>{account ? account.username ?? account.email ?? 'Account' : 'Account'}</strong><span className="sr-only">{loading ? 'Loading…' : error ? 'Unavailable' : account ? 'Signed in' : 'Guest'}</span></span>
+    <span><strong>{account ? account.username ?? account.email ?? 'Account' : 'Account'}</strong><span className="sr-only">{loading ? '' : error ? 'Unavailable' : account ? 'Signed in' : 'Guest'}</span></span>
     </a>
   </>;
 }

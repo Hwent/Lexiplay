@@ -475,13 +475,13 @@ export default function App() {
           </button>
         </div>
       </header>
-      {(wordSelection.pending.size > 0 || wordSelection.saving) && <div className="word-selection-banner" role="status"><span>{wordSelection.saving ? 'Saving selected words…' : `${wordSelection.pending.size} word${wordSelection.pending.size === 1 ? '' : 's'} selected. Saved when you leave this page.`}</span><button type="button" disabled={wordSelection.saving} onClick={() => wordStore.cancelAll()}>Cancel additions</button></div>}
+      {wordSelection.pending.size > 0 && <div className="word-selection-banner" role="status" aria-busy={wordSelection.saving}><span>{`${wordSelection.pending.size} word${wordSelection.pending.size === 1 ? '' : 's'} selected. Saved when you leave this page.`}</span><button type="button" disabled={wordSelection.saving} onClick={() => wordStore.cancelAll()}>Cancel additions</button></div>}
       {wordSelection.error && <p className="word-selection-error" role="alert">{wordSelection.error}</p>}
       {wordSelection.notice && <p className="word-selection-notice" role="status">{wordSelection.notice}</p>}
 
       {activeSection === 'play' && <>
       {!game && <div className="page-introduction"><div><h2>Choose your <span>challenge.</span></h2></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
-      <section className="game-card" aria-label="Vocabulary puzzle" onClick={event => {
+      <section className="game-card" aria-label="Vocabulary puzzle" aria-busy={busy || progressSaving || restoring} onClick={event => {
         const target = event.target;
         if (target instanceof Element && target.closest('button, input, a, select, textarea')) return;
         focusGameInput();
@@ -519,7 +519,7 @@ export default function App() {
             </div>
             <div className="game-price" aria-label={`Entry: 1 coin. Win: ${difficulties.find(option => option.id === difficulty)!.reward} coins`}><span><Icon name="coin"/>1 to play</span><span><Icon name="coin"/>+{difficulties.find(option => option.id === difficulty)!.reward} on a win</span></div>
             <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>
-              {progressSaving ? 'Saving your progress…' : restoring ? 'Restoring your puzzle…' : busy ? 'Getting a word…' : 'Start practice'} <Icon name="arrow"/>
+              Start practice <Icon name="arrow"/>
             </button>
             </div>
           </div>
@@ -531,7 +531,7 @@ export default function App() {
               <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
             </div>
             {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>Choose a new puzzle</button></div>}
-            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? game.cancellationReason + ' Your entry cost was returned to the original wallet.' : message || (busy ? 'Checking…' : finished ? `${game.status === 'won' ? 'Solved' : 'Puzzle complete'} in ${game.attemptCount ?? game.guesses.length} guesses.` : `Type ${game.wordLength} letters to check your word automatically.`)}</p>
+            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? game.cancellationReason + ' Your entry cost was returned to the original wallet.' : message || (finished ? `${game.status === 'won' ? 'Solved' : 'Puzzle complete'} in ${game.attemptCount ?? game.guesses.length} guesses.` : `Type ${game.wordLength} letters to check your word automatically.`)}</p>
             {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label="Revealed letters">
               {game.revealedPresent.length > 0 && <span>In the word: <strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong> · position unknown</span>}
               {game.revealedAbsent.length > 0 && <span>Ruled out: <strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
@@ -589,10 +589,10 @@ export default function App() {
           </div>
         )}
       {!game && message && <p className="notice" role="status">{message}</p>}
-      {finished && <div className="next-game"><button className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{busy ? 'Getting a word…' : 'Play again'}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>Change settings</button></div>}
+      {finished && <div className="next-game"><button className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>Play again</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>Change settings</button></div>}
       </section>
       </>}
-      <Suspense fallback={<section className="page-loading" role="status">Loading…</section>}>
+      <Suspense fallback={<section className="page-loading" aria-busy="true" />}>
       {activeSection === 'library' && <section className="library-page">
         <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery={quickSearch} onSignIn={() => navigateTo('account')} />
       </section>}

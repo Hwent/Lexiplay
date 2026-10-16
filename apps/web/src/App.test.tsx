@@ -98,7 +98,8 @@ describe('practice puzzle', () => {
     for (const letter of ['C', 'R', 'A', 'N']) await user.click(screen.getByRole('button', { name: letter }));
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/guesses'))).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'E' }));
-    expect(screen.getByRole('status')).toHaveTextContent('Checking…');
+    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toHaveAttribute('aria-busy', 'true');
+    expect(screen.queryByText('Checking…')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'E' })).toBeDisabled();
     await user.keyboard('{Enter}{Enter}');
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/guesses'))).toHaveLength(1);

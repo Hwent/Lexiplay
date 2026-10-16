@@ -319,7 +319,7 @@ export default function ExploreVocabulary({
   }
 
   return (
-    <section className="explore-vocabulary" aria-label="Explore Vocabulary">
+    <section className="explore-vocabulary" aria-label="Explore Vocabulary" aria-busy={(slug ? loading : catalogLoading) || saving}>
       {!slug ? (
         <>
           <div className="library-section-heading">
@@ -386,9 +386,7 @@ export default function ExploreVocabulary({
                 >
                   {saved.has(current.slug)
                     ? 'Collection saved'
-                    : saving
-                      ? 'Saving…'
-                      : 'Save collection'}
+                    : 'Save collection'}
                 </button>
 
                 <button
@@ -561,12 +559,6 @@ export default function ExploreVocabulary({
             </>
           )}
         </>
-      )}
-
-      {(slug ? loading : catalogLoading) && (
-        <p className="library-loading" role="status">
-          Loading vocabulary…
-        </p>
       )}
 
       {error && (

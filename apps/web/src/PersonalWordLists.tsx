@@ -121,7 +121,6 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
     {error && <p role="alert">{error} <button type="button" onClick={() => { setLoading(true); if (list) { store.requests.invalidate(`/word-lists/${list.id}/entries`); setRefresh(value => value + 1); } else { store.requests.invalidate('/word-lists/mine'); setListRetry(value => value + 1); } }}>Retry</button></p>}
     {message && <p role="status">{message}</p>}
     {pagination('top')}
-    {(loading || busy) && <p className="library-loading" role="status">{busy ? 'Saving your review…' : 'Loading your entries…'}</p>}
     {showEntries && <><div className="library-table-scroll"><table className="library-data-table personal-entries-table" aria-label="Saved vocabulary"><thead><tr><th scope="col">Word</th><th scope="col">Meaning</th><th scope="col">Review</th></tr></thead><tbody>{data.words.map(word => <tr key={word.id}>
       <td><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech}</small></td>
       <td><p className="personal-definition">{word.definition ?? 'Dictionary definition not available yet.'}</p></td>
