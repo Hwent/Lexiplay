@@ -8,6 +8,75 @@ describe('saved practice and account updates', () => {
   beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
+  it('keeps the chosen collection for replay, new setup, and reopening the app', async () => {
+    const starts: Record<string, unknown>[] = [];
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: 10, kind: 'guest' });
+      if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [
+        { id: 'a2', slug: 'cefr-a2', name: 'CEFR A2', wordCount: 12 },
+      ] }]);
+      if (path.endsWith('/games') && init?.method === 'POST') {
+        starts.push(JSON.parse(String(init.body)));
+        return Response.json({ ...emptyGame, id: `game-${starts.length}`, wordLength: 5, difficulty: 'medium', completed: starts.length === 1, status: starts.length === 1 ? 'won' : 'active' });
+      }
+      return Response.json([]);
+    }));
+    const user = userEvent.setup();
+    const view = render(<App />);
+    await screen.findByRole('option', { name: /CEFR A2/ });
+    await user.selectOptions(screen.getByLabelText('Collection'), 'cefr-a2');
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    await user.click(await screen.findByRole('button', { name: 'Play again' }));
+    await user.click(await screen.findByRole('button', { name: 'Choose a new puzzle' }));
+    await screen.findByRole('option', { name: /CEFR A2/ });
+    expect(screen.getByLabelText('Collection')).toHaveValue('cefr-a2');
+    expect(starts).toHaveLength(2);
+    expect(starts[1]).toMatchObject({ collectionId: 'cefr-a2', wordLength: 5, difficulty: 'medium' });
+    expect(starts[1]!.startRequestId).not.toBe(starts[0]!.startRequestId);
+    view.unmount();
+    render(<App />);
+    await screen.findByRole('option', { name: /CEFR A2/ });
+    expect(screen.getByLabelText('Collection')).toHaveValue('cefr-a2');
+  });
+  it('focuses global word-list search with slash without interrupting text entry', async () => {
+    stubFetchWithVocabularyRanges(vi.fn(async () => new Response('{}', { status: 401 })));
+    const user = userEvent.setup(); render(<App/>);
+    await user.keyboard('/');
+    const search = screen.getByRole('searchbox', { name: 'Search your words' });
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue('');
+    await user.type(search, 'apple/');
+    expect(search).toHaveValue('apple/');
+    await user.keyboard('{Escape}');
+    expect(search).not.toHaveFocus();
+  });
+  it('uses one collection selector for default and personal words without a top game selector', async () => {
+    const starts: Record<string, unknown>[] = [];
+    stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      if (String(input).endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
+      if (String(input).endsWith('/games') && init?.method === 'POST') {
+        starts.push(JSON.parse(String(init.body)));
+        return Response.json({ ...emptyGame, wordLength: 5 });
+      }
+      return Response.json([]);
+    }));
+    const user = userEvent.setup(); render(<App />);
+    expect(screen.queryByRole('region', { name: 'Available games' })).not.toBeInTheDocument();
+    expect(screen.getByRole('option', { name: 'Classic Wordle' })).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('option', { name: 'My word list' })).toBeEnabled());
+    await user.selectOptions(screen.getByLabelText('Collection'), 'my-words');
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    await screen.findByRole('grid', { name: '5-letter puzzle board' });
+    expect(starts[0]).toMatchObject({ kind: 'word-puzzle', wordLength: 5, playWithMyWords: true });
+    expect(starts[0]).not.toHaveProperty('collectionId');
+    await user.click(screen.getByRole('button', { name: 'Choose a new puzzle' }));
+    expect(screen.getByLabelText('Collection')).toHaveValue('my-words');
+    await user.selectOptions(screen.getByLabelText('Collection'), '');
+    await user.click(screen.getByRole('radio', { name: '9 letters' }));
+    expect(screen.getByRole('option', { name: 'Common vocabulary' })).toBeInTheDocument();
+  });
   it('waits for the guest wallet, shows prices, and reuses the start request after a network failure', async () => {
     let walletReady!: (response: Response) => void;
     const wallet = new Promise<Response>(resolve => { walletReady = resolve; });
@@ -16,7 +85,7 @@ describe('saved practice and account updates', () => {
       const url = String(input);
       if (url.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (url.endsWith('/games/wallet')) return wallet;
-      if (url.includes('/collections/game-options?')) return Response.json({ wordLength: 5, totalWords: 100, collections: [] });
+      if (url.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [] }]);
       if (url.endsWith('/collections')) return Response.json([]);
       if (url.endsWith('/library/revision')) return Response.json({});
       if (url.endsWith('/games') && init?.method === 'POST') {
@@ -31,7 +100,7 @@ describe('saved practice and account updates', () => {
     walletReady(Response.json({ coinBalance: 10, kind: 'guest' }));
     await waitFor(() => expect(screen.getByRole('button', { name: /start practice/i })).toBeEnabled());
     expect(screen.getByLabelText('Coin balance: 10')).toHaveTextContent('10');
-    expect(screen.getByText(/Entry: 1 coin/)).toHaveTextContent('Win: 5 coins');
+    expect(screen.getByLabelText('Entry: 1 coin. Win: 5 coins')).toHaveTextContent('+5 on a win');
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     expect(await screen.findByText('Connection lost')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /start practice/i }));
@@ -51,7 +120,6 @@ describe('saved practice and account updates', () => {
     });
     stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup(); render(<App />);
-    expect(screen.getByRole('region', { name: 'Available games' })).toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
     await user.click(screen.getByRole('radio', { name: /Hard/ }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
@@ -62,7 +130,7 @@ describe('saved practice and account updates', () => {
     await user.click(screen.getByRole('button', { name: /synonym or category hint.*1 coin/i }));
     expect(await screen.findByRole('button', { name: /synonym or category hint.*revealed/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeEnabled();
-    expect(screen.getByRole('region', { name: 'Revealed hints' })).toHaveTextContent('lovely');
+    expect(screen.getByRole('complementary', { name: 'Synonym or category hint' })).toHaveTextContent('lovely');
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/games/saved-game/hints', expect.objectContaining({ body: JSON.stringify({ type: 'synonym' }) }));
     await user.click(screen.getByRole('button', { name: /^Home$/i }));
     await user.click(screen.getByRole('button', { name: /^Games$/i }));
@@ -75,7 +143,7 @@ describe('saved practice and account updates', () => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: balance, kind: 'guest' });
-      if (path.includes('/collections/game-options?')) return Response.json({ wordLength: 5, totalWords: 100, collections: [] });
+      if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [] }]);
       if (path.endsWith('/games/saved-game')) return Response.json(emptyGame);
       if (path.endsWith('/hints')) {
         if (JSON.parse(String(init?.body)).type === 'synonym') return Response.json({ message: 'Synonym lookup is unavailable. No coins were charged.' }, { status: 503 });
@@ -92,7 +160,7 @@ describe('saved practice and account updates', () => {
     expect(screen.getByLabelText('Coin balance: 9')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /definition hint.*1 coin/i }));
     expect(await screen.findByLabelText('Coin balance: 8')).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Revealed hints' })).toHaveTextContent('Pleasing to look at.');
+    expect(screen.getByRole('complementary', { name: 'Definition hint' })).toHaveTextContent('Pleasing to look at.');
     expect(screen.getByRole('button', { name: /definition hint.*revealed/i })).toBeDisabled();
   });
   it('restores saved guesses, hint counts, and definitions after a remount', async () => {
@@ -103,7 +171,7 @@ describe('saved practice and account updates', () => {
     expect(await screen.findByRole('row', { name: 'beautiful' })).toBeInTheDocument();
     expect(screen.getByText('Pleasing to look at.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /definition hint.*revealed/i })).toBeDisabled();
-    expect(screen.getByRole('region', { name: 'Revealed hints' })).toHaveTextContent('Having great beauty.');
+    expect(screen.getByRole('complementary', { name: 'Definition hint' })).toHaveTextContent('Having great beauty.');
     expect(screen.getByText('4 guesses left')).toBeInTheDocument();
   });
   it('restores a completed summary without rebuilding discarded guesses', async () => {
@@ -136,7 +204,7 @@ describe('saved practice and account updates', () => {
   });
   it('renders Statistics and recent practice without the winning guesses panel', async () => {
     window.history.replaceState({}, '', '/progress');
-    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 8, wins: 4, losses: 4, winRate: 50, streak: 2, timezone: 'America/Toronto', distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 4 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', answer:'apple',status:'won',attemptCount:1,coinChange:4 }] })));
+    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ total: 8, wins: 4, losses: 4, winRate: 50, streak: 2, timezone: 'America/Toronto', page: 1, pageSize: 10, totalPages: 1, distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: i === 2 ? 4 : 0 })), recent: [{ id: 'one', wordLength: 5, difficulty: 'medium', completedAt: '2026-10-11T12:00:00Z', answer:'apple',status:'won',attemptCount:1,coinChange:4 }] })));
     render(<App />);
     expect(await screen.findByText('50%')).toBeInTheDocument();
     expect(screen.getByText('2 days')).toBeInTheDocument();
@@ -155,7 +223,7 @@ describe('saved practice and account updates', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ message: 'If that email has an account, a reset link will arrive shortly.' }));
     stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(screen.getByText('Account'));
-    await user.click(screen.getByRole('button', { name: 'Forgot password?' }));
+    await user.click(await screen.findByRole('button', { name: 'Forgot password?' }));
     await user.type(screen.getByRole('textbox', { name: 'Email' }), 'learner@example.test');
     await user.click(screen.getByRole('button', { name: 'Send reset link' }));
     expect(await screen.findByRole('status')).toHaveTextContent('If that email has an account');

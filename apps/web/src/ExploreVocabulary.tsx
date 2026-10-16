@@ -15,15 +15,6 @@ type ExploreVocabularyProps = {
   onUseCollection?: ((id: string) => void) | undefined;
 };
 
-const CEFR_DESCRIPTIONS: Record<string, string> = {
-  A1: 'Everyday English foundations',
-  A2: 'Build confidence in everyday conversations',
-  B1: 'Communicate about familiar topics',
-  B2: 'Express ideas with greater confidence',
-  C1: 'Understand and use complex English',
-  C2: 'Master subtle meanings and nuance',
-};
-
 export default function ExploreVocabulary({
   signedIn,
   onImported,
@@ -194,27 +185,8 @@ export default function ExploreVocabulary({
       .catch(() => undefined);
   }, [signedIn, store]);
 
-  function getCollectionDescription(collection: VocabularyCollection) {
-    if (collection.level === 'C2' && collection.status === 'available') {
-      return collection.description;
-    }
-
-    if (collection.category === 'CEFR' && collection.level) {
-      return CEFR_DESCRIPTIONS[collection.level] ?? '';
-    }
-
-    return collection.status === 'available' ? collection.description : 'Coming soon';
-  }
-
   function getCollectionSize(collection: VocabularyCollection) {
-    if (collection.familyCount === undefined) {
-      return `${collection.wordCount.toLocaleString()} words`;
-    }
-
-    const membersSummary = `${collection.familyCount.toLocaleString()} families · ${collection.wordCount.toLocaleString()} members`;
-    return collection.otherUnitCount
-      ? `${membersSummary} · ${collection.otherUnitCount} other items`
-      : membersSummary;
+    return `${collection.wordCount.toLocaleString()} words`;
   }
 
   function openCollection(value: string) {
@@ -255,14 +227,15 @@ export default function ExploreVocabulary({
 
   function renderWordRow(word: CollectionPage['words'][number]) {
     return (
-      <li key={word.id}>
+      <tr key={word.id}>
+        <td className="word-selection-cell">
         <SelectionControl
           label={`Select ${word.lemma} (${word.partOfSpeech})`}
           disabled={loading || !!word.inMyWordList}
           checked={selected.has(word.id) || !!word.inMyWordList}
           onChange={(checked) => selectMembers([word.id], checked)}
         />
-        <div>
+        </td><td>
           <span className="word-with-pronunciation">
             <strong>{word.lemma}</strong>
             {word.inMyWordList && (
@@ -271,14 +244,13 @@ export default function ExploreVocabulary({
             <PronunciationButton term={word.lemma} />
           </span>
           <small>{word.partOfSpeech}</small>
-          <p>{word.definition ?? 'Dictionary definition not available yet.'}</p>
-        </div>
-      </li>
+        </td><td><p>{word.definition ?? 'Dictionary definition not available yet.'}</p></td>
+      </tr>
     );
   }
 
   function renderWordRows(words: CollectionPage['words']) {
-    return <ul className="collection-word-rows">{words.map(renderWordRow)}</ul>;
+    return <div className="library-table-scroll"><table className="library-data-table collection-entries-table"><thead className="sr-only"><tr><th scope="col">Select</th><th scope="col">Word</th><th scope="col">Meaning</th></tr></thead><tbody>{words.map(renderWordRow)}</tbody></table></div>;
   }
 
   function renderPagination(position: string) {
@@ -311,31 +283,21 @@ export default function ExploreVocabulary({
     const isAvailable = collection.status === 'available';
 
     return (
-      <article
-        className="vocabulary-collection-card"
+      <tr
         data-level={collection.level ?? 'exam'}
         data-available={isAvailable}
         key={collection.id}
       >
-        <div className="collection-card-top">
+        <td><div className="collection-identity">
           <span className="collection-level-mark" aria-hidden="true">
             {collection.level ?? 'Aa'}
           </span>
-          <span className="collection-category-label">
-            {collection.category === 'CEFR' ? 'GENERAL ENGLISH' : 'EXAM PREPARATION'}
-          </span>
-        </div>
-
         <div className="collection-card-heading">
           <h3>{collection.name}</h3>
-          <span className="collection-saved-badge">
-            {saved.has(collection.slug) ? 'Saved' : ''}
-          </span>
         </div>
-
-        <p>{getCollectionDescription(collection)}</p>
-        <small>{isAvailable ? getCollectionSize(collection) : 'Coming soon'}</small>
-
+        </div></td>
+        <td className="collection-word-count">{isAvailable ? collection.wordCount.toLocaleString() : 'Coming soon'}</td>
+        <td className="table-action-cell">
         <button
           type="button"
           className="account-action"
@@ -345,37 +307,29 @@ export default function ExploreVocabulary({
         >
           {isAvailable ? (
             <>
-              Explore collection <Icon name="arrow" />
+              Explore <Icon name="arrow" />
             </>
           ) : (
             'Coming soon'
           )}
         </button>
-      </article>
+        </td>
+      </tr>
     );
   }
 
   return (
-    <section className="explore-vocabulary" aria-label="Explore Vocabulary">
+    <section className="explore-vocabulary" aria-label="Explore Vocabulary" aria-busy={(slug ? loading : catalogLoading) || saving}>
       {!slug ? (
         <>
           <div className="library-section-heading">
             <div>
               <h2>Find your next collection</h2>
-              <p className="collection-intro">
-                Discover word collections for your learning goals.
-              </p>
             </div>
-            {!catalogLoading && (
-              <span className="library-count">
-                {catalog.filter((collection) => collection.status === 'available').length}{' '}
-                ready to explore
-              </span>
-            )}
           </div>
 
-          <div className="vocabulary-collection-grid">
-            {catalog.map(renderCollectionCard)}
+          <div className="library-table-scroll">
+            <table className="library-data-table collection-catalog-table" aria-label="Vocabulary collections"><thead><tr><th scope="col">Collection</th><th scope="col">Words</th><th scope="col"><span className="sr-only">Explore</span></th></tr></thead><tbody>{catalog.map(renderCollectionCard)}</tbody></table>
           </div>
         </>
       ) : (
@@ -397,7 +351,6 @@ export default function ExploreVocabulary({
                 <div>
                   <p className="library-eyebrow">VOCABULARY COLLECTION</p>
                   <h2>{current.name}</h2>
-                  <p>{getCollectionDescription(current)}</p>
                 </div>
                 <span className="library-count">{getCollectionSize(current)}</span>
               </header>
@@ -433,9 +386,7 @@ export default function ExploreVocabulary({
                 >
                   {saved.has(current.slug)
                     ? 'Collection saved'
-                    : saving
-                      ? 'Saving…'
-                      : 'Save collection'}
+                    : 'Save collection'}
                 </button>
 
                 <button
@@ -536,13 +487,6 @@ export default function ExploreVocabulary({
                           >
                             <header>
                               <div>
-                                <p className="library-eyebrow">
-                                  {family.kind === 'family'
-                                    ? 'WORD FAMILY'
-                                    : family.kind === 'phrase'
-                                      ? 'PHRASE'
-                                      : 'INDIVIDUAL WORD'}
-                                </p>
                                 <h3>{family.headword}</h3>
                               </div>
 
@@ -615,12 +559,6 @@ export default function ExploreVocabulary({
             </>
           )}
         </>
-      )}
-
-      {(slug ? loading : catalogLoading) && (
-        <p className="library-loading" role="status">
-          Loading vocabulary…
-        </p>
       )}
 
       {error && (

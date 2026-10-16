@@ -26,10 +26,14 @@ export class GameController {
 
   @Post()
   async start(@Headers('cookie') cookie: string | undefined, @Body() body: StartGameDto, @Res({ passthrough: true }) response: Response) {
+    if (body.kind === 'wordle' && ((body.wordLength !== undefined && body.wordLength !== 5) || body.collectionId || body.wordListId || body.playWithMyWords)) {
+      throw new BadRequestException('Original Wordle uses its own five-letter answer collection.');
+    }
     if (body.collectionId && (body.playWithMyWords || body.wordListId)) throw new BadRequestException('Choose either a collection or your saved words.');
     const owner = await this.owner(cookie, response);
     const length = body.wordLength ?? 5, token = owner.startsWith('user:') ? readSessionCookie(cookie) : undefined;
-    const selected = body.collectionId ? await this.collections.collectionGameWords(body.collectionId, length) : undefined;
+    const selected = body.kind === 'wordle' ? await this.collections.wordleGameWords()
+      : body.collectionId ? await this.collections.collectionGameWords(body.collectionId, length) : undefined;
     const personal = body.wordListId ?? (body.playWithMyWords ? (await this.accounts.current(token)).id : undefined);
     const words = personal ? await this.collections.gameWords(token, personal, length) : selected?.words;
     const collection = selected ? { id: selected.collection.id, name: selected.collection.name, author: selected.collection.author ?? '' } : undefined;

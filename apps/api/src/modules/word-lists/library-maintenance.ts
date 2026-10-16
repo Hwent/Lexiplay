@@ -2,6 +2,7 @@ import { createHash, randomUUID } from 'node:crypto';
 import { Pool, PoolClient } from 'pg';
 import { CEFR_POOLS } from './cefr-pools';
 import familyData from './family-data/bnc-coca.json';
+import { WORDLE_POOL } from './wordle-pool';
 
 export type LibraryWord = {
   term: string;
@@ -111,6 +112,17 @@ async function updateFamilies(client: PoolClient) {
 }
 
 export async function publishCollections(client: PoolClient) {
+  const wordle = (await client.query(`INSERT INTO vocabulary_collections(slug,name,category,author,source_name,source_version,source_url,hidden)
+    VALUES($1,$2,'Games',$3,'Original Wordle',$4,$5,true)
+    ON CONFLICT(slug) DO UPDATE SET hidden=true,status='available',source_version=EXCLUDED.source_version RETURNING id`,
+    [WORDLE_POOL.slug, WORDLE_POOL.name, WORDLE_POOL.author, WORDLE_POOL.version, WORDLE_POOL.source])).rows[0].id;
+  await client.query('DELETE FROM collection_entries WHERE collection_id=$1', [wordle]);
+  await client.query(`INSERT INTO collection_entries(collection_id,dictionary_entry_id,sort_order)
+    SELECT $1,e.id,(w.position-1)::int FROM jsonb_array_elements_text($2::jsonb) WITH ORDINALITY w(term,position)
+    JOIN dictionary_entries e ON e.term=w.term
+    WHERE e.part_of_speech NOT IN ('proper noun','proper_noun','name')
+      AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')`,
+    [wordle, JSON.stringify(WORDLE_POOL.words)]);
   for (const pool of CEFR_POOLS) {
     const collection = (await client.query(`INSERT INTO vocabulary_collections(slug,name,description,category,author,source_name,source_version,source_url,license)
       VALUES($1,$2,$3,'CEFR',$4,$5,$6,$7,$8)

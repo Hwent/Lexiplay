@@ -31,14 +31,14 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
   useEffect(() => {
     let active = true;
     setResults([]); setError(''); setSearching(normalized.length >= 2);
-    if (normalized.length < 2) return;
+    if (normalized.length < 2 || mode !== 'search') { setSearching(false); return; }
     const timer = setTimeout(() => {
       searchDictionary(normalized).then(rows => { if (active) { setResults(rows); setSearched(normalized); } })
         .catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not search the dictionary.'); })
         .finally(() => { if (active) setSearching(false); });
     }, 300);
     return () => { active = false; clearTimeout(timer); };
-  }, [normalized]);
+  }, [normalized, mode]);
   function stage(values: string[]) {
     if (!listId) return;
     setError(''); setResult(store.stage(values, listId));
@@ -54,13 +54,12 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
     catch { setError('Could not read this file. Try pasting the words instead.'); }
     finally { setReading(false); }
   }
-  return <section className="dictionary-tools-panel" aria-label="Dictionary tools">
+  return <section className="dictionary-tools-panel" aria-label="Dictionary tools" aria-busy={searching || saving || reading}>
     <header><div><p className="library-eyebrow">FROM THE DICTIONARY</p><h3>Add words worth learning</h3><p>Choose words for My Word List. Add or cancel now; your selections save when you leave the page.</p></div><Icon name="library"/></header>
     <div className="dictionary-tool-tabs" role="group" aria-label="Dictionary tool"><button type="button" aria-pressed={mode === 'search'} onClick={() => { setMode('search'); setResult(null); }}><Icon name="search"/>Find a word</button><button type="button" aria-pressed={mode === 'import'} onClick={() => { setMode('import'); setResult(null); }}>Import words</button></div>
     {!listId && <p className="dictionary-tool-hint">Browse the dictionary here. <a href="/account">Sign in</a> to save or import words.</p>}
     {mode === 'search' ? <>
       <label className="dictionary-search-label" htmlFor="library-dictionary-search">Search the dictionary</label><input id="library-dictionary-search" type="search" value={query} maxLength={100} placeholder="Try a word, like curious" onChange={event => { setQuery(event.target.value); setResult(null); }}/>
-      {searching && <p role="status">Searching the dictionary…</p>}
       {normalized.length < 2 && <p className="dictionary-tool-hint">Enter at least two characters to discover words.</p>}
       {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <p>No dictionary matches. Try another spelling.</p>}
       {!searching && searched === normalized && <ul className="dictionary-tool-results">{results.map(entry => {
@@ -71,11 +70,10 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
     </> : <>
       <label className="dictionary-search-label" htmlFor="library-import-words">Words to import</label><textarea id="library-import-words" rows={5} value={pasted} maxLength={25000} placeholder={'curious\nexplore\nconfidence'} disabled={saving || reading} onChange={event => { setPasted(event.target.value); setResult(null); }}/>
       <p className="dictionary-tool-hint">One word or phrase per line, up to 200. For CSV or TSV files, use the first column for words. Matches are checked on exit; duplicates and words without definitions are skipped.</p>
-      <div className="dictionary-import-actions"><label className="dictionary-file-label">Choose a word file<input aria-label="Choose a word file" type="file" accept=".txt,.csv,.tsv" disabled={saving || reading} onChange={event => { void readFile(event.target.files?.[0]); event.target.value = ''; }}/></label><span>{terms.length} unique {terms.length === 1 ? 'word' : 'words'}</span><button type="button" disabled={!listId || saving || reading || !terms.length || terms.length > 200 || terms.some(term => term.length > 100)} onClick={() => stage(terms)}>{saving ? 'Saving selections…' : 'Select dictionary matches'}</button></div>
+      <div className="dictionary-import-actions"><label className="dictionary-file-label">Choose a word file<input aria-label="Choose a word file" type="file" accept=".txt,.csv,.tsv" disabled={saving || reading} onChange={event => { void readFile(event.target.files?.[0]); event.target.value = ''; }}/></label><span>{terms.length} unique {terms.length === 1 ? 'word' : 'words'}</span><button type="button" disabled={!listId || saving || reading || !terms.length || terms.length > 200 || terms.some(term => term.length > 100)} onClick={() => stage(terms)}>Select dictionary matches</button></div>
       {terms.length > 200 && <p role="alert">Import up to 200 unique words at a time.</p>}
       {terms.some(term => term.length > 100) && <p role="alert">Each word or phrase must be 100 characters or fewer.</p>}
     </>}
-    {reading && <p role="status">Reading your word file…</p>}
     {result !== null && <div className="dictionary-import-summary" role="status"><p>{result} new {result === 1 ? 'word selected' : 'words selected'}. Dictionary matches will be saved when you leave this page.</p><button type="button" disabled={saving || !selection.pending.size} onClick={() => { store.cancelAll(); setResult(null); }}>Cancel additions</button></div>}
     {error && <p role="alert">{error}</p>}
   </section>;

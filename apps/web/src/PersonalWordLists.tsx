@@ -109,24 +109,24 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
   return <section className="personal-word-lists" aria-label="My Word List" aria-busy={loading || busy}>
     {!!collections.length && <section aria-label="My collections" className="saved-collections">
       <h2>My collections</h2>
-      <div className="saved-collection-grid">{collections.map(collection => <article key={collection.id}>
+      <ul className="saved-collection-list">{collections.map(collection => <li key={collection.id}>
         <div className="saved-collection-heading"><span className="saved-collection-mark" aria-hidden="true">{collection.level ?? <Icon name="library"/>}</span><div><h3>{collection.name}</h3><span>{collection.wordCount.toLocaleString()} words</span></div></div>
         <div className="saved-collection-actions">{onOpenCollection && <button className="saved-collection-open" type="button" aria-label={`Open ${collection.name}`} disabled={busy} onClick={() => onOpenCollection(collection.slug)}>Open collection <Icon name="arrow"/></button>}
           <button className="saved-collection-remove" type="button" aria-label={`Unsave ${collection.name}`} disabled={busy} onClick={() => void unsave(collection)}>Unsave</button></div>
-      </article>)}</div>
+      </li>)}</ul>
     </section>}
     <div className="library-section-heading"><h2>Your words</h2>{data && <span className="library-count">{data.total.toLocaleString()} {query ? 'matching' : 'saved'} {data.total === 1 ? 'word' : 'words'}</span>}</div>
-    <div className="library-tools"><strong>Grow your vocabulary</strong><button type="button" className="text-action" aria-expanded={tools} aria-controls="library-dictionary-tools" onClick={() => setTools(value => !value)}><Icon name="search"/>{tools ? 'Close dictionary tools' : 'Open dictionary tools'}</button></div>
+    <div className="library-tools"><strong>Dictionary</strong><button type="button" className="text-action" aria-expanded={tools} aria-controls="library-dictionary-tools" onClick={() => setTools(value => !value)}><Icon name="search"/>{tools ? 'Close dictionary tools' : 'Open dictionary tools'}</button></div>
     {tools && list && <div id="library-dictionary-tools"><DictionaryTools listId={list.id} searchQuery={searchQuery}/></div>}
     {error && <p role="alert">{error} <button type="button" onClick={() => { setLoading(true); if (list) { store.requests.invalidate(`/word-lists/${list.id}/entries`); setRefresh(value => value + 1); } else { store.requests.invalidate('/word-lists/mine'); setListRetry(value => value + 1); } }}>Retry</button></p>}
     {message && <p role="status">{message}</p>}
     {pagination('top')}
-    {(loading || busy) && <p className="library-loading" role="status">{busy ? 'Saving your review…' : 'Loading your entries…'}</p>}
-    {showEntries && <><ul className="collection-word-rows personal-word-rows">{data.words.map(word => <li key={word.id}><div>
-      <div className="personal-word-heading"><div><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech}</small></div><div className="word-familiarity"><small>Familiarity {word.familiarity}/5</small><span className="familiarity-dots" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <i key={index} data-filled={index < word.familiarity}/>)}</span></div></div>
-      <p className="personal-definition">{word.definition ?? 'Dictionary definition not available yet.'}</p>
+    {showEntries && <><div className="library-table-scroll"><table className="library-data-table personal-entries-table" aria-label="Saved vocabulary"><thead><tr><th scope="col">Word</th><th scope="col">Meaning</th><th scope="col">Review</th></tr></thead><tbody>{data.words.map(word => <tr key={word.id}>
+      <td><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech}</small></td>
+      <td><p className="personal-definition">{word.definition ?? 'Dictionary definition not available yet.'}</p></td>
+      <td><div className="word-familiarity"><small>Familiarity {word.familiarity}/5</small><span className="familiarity-dots" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <i key={index} data-filled={index < word.familiarity}/>)}</span></div>
       <div className="personal-entry-actions"><button type="button" onClick={() => void review(word)}>Reviewed</button><button type="button" onClick={() => void review(word, true)}>Review again</button><button type="button" onClick={() => void remove(word)}>Remove {word.lemma}</button></div>
-    </div></li>)}</ul>{!data.words.length && <p className="library-empty">{query ? 'No saved words match your search. Try the dictionary tools above.' : 'Your word list is ready for a fresh start. Explore a collection or open dictionary tools to add words.'}</p>}</>}
+    </td></tr>)}</tbody></table></div>{!data.words.length && <p className="library-empty">{query ? 'No saved words match your search. Try the dictionary tools above.' : 'Your word list is ready for a fresh start. Explore a collection or open dictionary tools to add words.'}</p>}</>}
     {showEntries && pagination('bottom')}
   </section>;
 }

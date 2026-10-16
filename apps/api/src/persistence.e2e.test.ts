@@ -10,6 +10,7 @@ import { AccountMailService } from './modules/accounts/account-mail.service';
 import { GameService } from './modules/games/game.service';
 import { guestOwner } from './modules/games/guest-cookie';
 import { CEFR_POOLS } from './modules/word-lists/cefr-pools';
+import { WORDLE_POOL } from './modules/word-lists/wordle-pool';
 import { WordListsService } from './modules/word-lists/word-lists.service';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
 
@@ -86,11 +87,48 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(options.collections.find((row: { id: string }) => row.id === appleCollection)).toMatchObject({ wordCount: 3 });
     const longer = await (await request('/collections/game-options?wordLength=6')).json();
     expect(longer.collections.find((row: { id: string }) => row.id === appleCollection)).toMatchObject({ wordCount: 0 });
+    const allResponse = await request('/collections/game-options/all');
+    expect(allResponse.status).toBe(200);
+    const all = await allResponse.json();
+    expect(all.map((row: { wordLength: number }) => row.wordLength)).toEqual([3, 4, 5, 6, 7, 8, 9]);
+    expect(all.find((row: { wordLength: number }) => row.wordLength === 5)).toEqual(options);
+    expect(all.find((row: { wordLength: number }) => row.wordLength === 6)).toEqual(longer);
     expect((await request('/collections/game-options?wordLength=10')).status).toBe(400);
     const user = await account();
     const started = await start(user.cookie);
     const saved = (await pool.query('SELECT answer FROM practice_games WHERE id=$1', [started.id])).rows[0];
     expect(['apple','cover','china']).toContain(saved.answer);
+  });
+
+  it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
+    expect(new Set(WORDLE_POOL.words).size).toBe(2315);
+    expect(WORDLE_POOL.words.every(term => /^[a-z]{5}$/.test(term))).toBe(true);
+    const hidden = (await pool.query("SELECT id FROM vocabulary_collections WHERE slug='wordle-original' AND hidden")).rows[0];
+    expect(hidden).toBeDefined();
+    const catalog = await (await request('/collections')).json();
+    expect(catalog.some((row: { id: string }) => row.id === hidden.id)).toBe(false);
+    expect(await (await request('/collections/categories')).json()).not.toContain('Games');
+    const options = await (await request('/collections/game-options?wordLength=5')).json();
+    expect(options.collections.some((row: { id: string }) => row.id === hidden.id)).toBe(false);
+    for (const suffix of ['', '/words', '/snapshot']) {
+      expect((await request('/collections/wordle-original' + suffix)).status).toBe(404);
+    }
+    const user = await account();
+    expect((await request('/collections/wordle-original/save', 'POST', {}, user.cookie)).status).toBe(404);
+    for (const body of [{ wordLength: 6 }, { collectionId: appleCollection }, { playWithMyWords: true }]) {
+      expect((await request('/games', 'POST', { kind: 'wordle', ...body }, user.cookie)).status).toBe(400);
+    }
+    expect(await balance(user.cookie)).toBe(100);
+    const response = await request('/games', 'POST', { kind: 'wordle', startRequestId: randomUUID() }, user.cookie);
+    expect(response.status).toBe(201);
+    const game = await response.json();
+    expect(game).toMatchObject({ wordLength: 5, pool: { id: hidden.id, name: 'Original Wordle' } });
+    expect(game).not.toHaveProperty('answer');
+    const stored = (await pool.query('SELECT answer,collection_id FROM practice_games WHERE id=$1', [game.id])).rows[0];
+    expect(WORDLE_POOL.words).toContain(stored.answer);
+    expect(stored.collection_id).toBe(hidden.id);
+    const guess = await request(`/games/${game.id}/guesses`, 'POST', { guess: stored.answer }, user.cookie);
+    expect(await guess.json()).toMatchObject({ completed: true, outcome: 'WON' });
   });
 
   it('uses 14 tables and enforces balances, ownership, and case-preserved identities', async () => {
@@ -278,6 +316,30 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(stats).toMatchObject({ total: 1, wins: 1, losses: 0 });
     const columns = (await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='practice_guesses'")).rows.map(row => row.column_name);
     expect(columns).toEqual([]);
+  });
+
+  it('paginates recent practice without changing overall statistics or exposing other accounts', async () => {
+    const user = await account(), other = await account();
+    for (let index = 0; index < 3; index++) {
+      const game = await start(user.cookie);
+      await request(`/games/${game.id}/guesses`, 'POST', { guess: 'apple' }, user.cookie);
+    }
+    const foreign = await start(other.cookie);
+    await request(`/games/${foreign.id}/guesses`, 'POST', { guess: 'apple' }, other.cookie);
+    const first = await (await request('/progress/summary?page=1&pageSize=2', 'GET', undefined, user.cookie)).json();
+    const second = await (await request('/progress/summary?page=2&pageSize=2', 'GET', undefined, user.cookie)).json();
+    expect(first).toMatchObject({ total: 3, wins: 3, page: 1, pageSize: 2, totalPages: 2 });
+    expect(second).toMatchObject({ total: 3, wins: 3, page: 2, totalPages: 2 });
+    expect(first.recent).toHaveLength(2);
+    expect(second.recent).toHaveLength(1);
+    expect(new Set([...first.recent, ...second.recent].map(game => game.id)).size).toBe(3);
+    expect([...first.recent, ...second.recent].some(game => game.id === foreign.id)).toBe(false);
+    expect(first.recent[0]).toMatchObject({ answer: 'apple', answerDefinition: 'Definition of apple.' });
+    const clamped = await (await request('/progress/summary?page=99&pageSize=2', 'GET', undefined, user.cookie)).json();
+    expect(clamped.page).toBe(2);
+    for (const query of ['page=0', 'page=abc', 'pageSize=51', 'pageSize=0']) {
+      expect((await request('/progress/summary?' + query, 'GET', undefined, user.cookie)).status).toBe(400);
+    }
   });
   it('persists only active inputs, resumes scoring, and clears state after completion', async () => {
     const user=await account(),game=await start(user.cookie);

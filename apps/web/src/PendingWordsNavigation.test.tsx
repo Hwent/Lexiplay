@@ -44,7 +44,7 @@ it('waits for the exit batch before navigation, then shows the committed Saved s
   const add = await screen.findByRole('button', { name: 'Add cover to word list' }); await waitFor(() => expect(add).toBeEnabled());
   await user.click(add); expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary-entries'))).toBe(false);
   await user.click(screen.getByRole('button', { name: 'Home' })); await waitFor(() => expect(finish).toBeDefined());
-  expect(window.location.pathname).toBe('/games'); expect(screen.getByText('Saving selected words…')).toBeInTheDocument();
+  expect(window.location.pathname).toBe('/games'); expect(screen.getByText(/1 word selected/).closest('[role="status"]')).toHaveAttribute('aria-busy', 'true');
   await act(async () => { finish(Response.json({ added: 1, skipped: 0, missing: [] })); });
   await waitFor(() => expect(window.location.pathname).toBe('/'));
   await user.click(screen.getByRole('button', { name: 'Games' }));
@@ -65,7 +65,7 @@ it('keeps the current page and pending selection when an exit write fails, then 
 it('keeps dictionary additions cancellable across tools remounts and saves only when leaving the library', async () => {
   window.history.replaceState({}, '', '/library'); const fetchMock = apiFixture();
   const user = userEvent.setup(); render(<App/>);
-  await user.click(screen.getByRole('tab', { name: 'My Word List' })); await user.click(await screen.findByRole('button', { name: 'Open dictionary tools' }));
+  await user.click(await screen.findByRole('tab', { name: 'My Word List' })); await user.click(await screen.findByRole('button', { name: 'Open dictionary tools' }));
   await user.type(screen.getByRole('searchbox', { name: 'Search the dictionary' }), 'cover');
   await user.click(await screen.findByRole('button', { name: 'Add cover' }));
   await user.click(screen.getByRole('button', { name: 'Close dictionary tools' })); await user.click(screen.getByRole('button', { name: 'Open dictionary tools' }));

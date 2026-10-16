@@ -4,6 +4,7 @@ import { AccountService } from '../accounts/account.service';
 import { readSessionCookie } from '../accounts/session-cookie';
 import { GameRepository } from './game.repository';
 import { Game, publicGame } from './game.types';
+import { StatisticsQuery } from './statistics.dto';
 
 @Controller('progress')
 @UseGuards(ThrottlerGuard)
@@ -11,14 +12,17 @@ import { Game, publicGame } from './game.types';
 export class StatisticsController {
   constructor(@Inject(AccountService) private readonly accounts: AccountService, @Inject(GameRepository) private readonly games: GameRepository) {}
   @Get('summary')
-  async summary(@Headers('cookie') cookie: string | undefined, @Query('timezone') timezone = 'UTC') {
+  async summary(@Headers('cookie') cookie: string | undefined, @Query() query: StatisticsQuery) {
     const user = await this.accounts.current(readSessionCookie(cookie));
+    const { timezone, page, pageSize } = query;
     try { new Intl.DateTimeFormat('en', { timeZone: timezone }).format(); } catch { throw new BadRequestException('Choose a valid timezone.'); }
-    return statistics(await this.games.history(`user:${user.id}`), timezone);
+    const history = await this.games.history(`user:${user.id}`, page, pageSize);
+    return { ...statistics(history.summaries, timezone), recent: history.recent.map(publicGame),
+      page: history.page, pageSize: history.pageSize, totalPages: history.totalPages };
   }
 }
 
-export function statistics(games: Game[], timezone: string, now = new Date()) {
+export function statistics(games: Pick<Game, 'status' | 'completedAt' | 'attemptCount'>[], timezone: string, now = new Date()) {
   games = games.filter(game => game.status !== 'cancelled');
   const day = (date: Date) => new Intl.DateTimeFormat('en-CA', { timeZone: timezone, year: 'numeric', month: '2-digit', day: '2-digit' }).format(date);
   const days = new Set(games.map(game => day(new Date(game.completedAt!))));
@@ -32,6 +36,5 @@ export function statistics(games: Game[], timezone: string, now = new Date()) {
     timezone, total: games.length, wins: won.length, losses: games.length - won.length,
     winRate: games.length ? Math.round(won.length / games.length * 100) : 0, streak,
     distribution: Array.from({ length: 7 }, (_, i) => ({ attempts: i + 1, wins: won.filter(game => game.attemptCount === i + 1).length })),
-    recent: games.slice(0, 20).map(publicGame),
   };
 }

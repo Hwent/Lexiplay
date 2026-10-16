@@ -4,6 +4,8 @@ import { CollectionsStorage } from './collections.storage';
 import { WordListRepository } from '../word-lists/word-list.repository';
 import { AddDictionaryEntries, CollectionWordsQuery, ImportCollection, NewPersonalList, UpdatePersonalEntry } from './collections.dto';
 import { Prisma } from '../../generated/prisma/client';
+import { WORDLE_POOL } from '../word-lists/wordle-pool';
+import { defaultAnswerWords } from '../word-lists/default-answers';
 
 const entryInclude = { family: true, definitions: { where: { languageCode: 'en' }, orderBy: { senseOrder: 'asc' as const } } };
 const collectionInclude = { entries: { orderBy: [{ sortOrder: 'asc' as const }, { dictionaryEntryId: 'asc' as const }], include: { entry: { include: entryInclude } } } };
@@ -33,7 +35,7 @@ export class CollectionsService {
   }
 
   async categories() {
-    const rows = await this.db.vocabularyCollection.findMany({ distinct: ['category'], select: { category: true }, orderBy: { category: 'asc' } });
+    const rows = await this.db.vocabularyCollection.findMany({ where: { hidden: false, status: { not: 'retired' } }, distinct: ['category'], select: { category: true }, orderBy: { category: 'asc' } });
     return rows.map(row => row.category);
   }
 
@@ -43,15 +45,15 @@ export class CollectionsService {
   }
 
   async catalog(category?: string) {
-    const rows = await this.db.vocabularyCollection.findMany({ where: { ...(category ? { category } : {}), status: { not: 'retired' } },
+    const rows = await this.db.vocabularyCollection.findMany({ where: { hidden: false, ...(category ? { category } : {}), status: { not: 'retired' } },
       include: collectionInclude, orderBy: [{ category: 'asc' }, { slug: 'asc' }] });
     const library = await this.revision();
     return rows.map(row => this.summary({ ...row, libraryVersion: library.version }));
   }
 
-  private async collection(slug: string) {
+  private async collection(slug: string, includeHidden = false) {
     const where = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(slug) ? { OR: [{ id: slug }, { slug }] } : { slug };
-    const collection = await this.db.vocabularyCollection.findFirst({ where, include: collectionInclude });
+    const collection = await this.db.vocabularyCollection.findFirst({ where: { ...where, ...(includeHidden ? {} : { hidden: false }) }, include: collectionInclude });
     if (!collection) throw new NotFoundException('Vocabulary collection not found.');
     return { ...collection, libraryVersion: (await this.revision()).version };
   }
@@ -82,7 +84,7 @@ export class CollectionsService {
       stage: row.stage, inMyWordList: savedIds.has(row.entry.id), ...this.definition(row.entry) }));
     const familyIds = selected.filter(group => group.kind === 'family').map(group => group.id);
     const related = familyView && familyIds.length ? await this.db.collectionEntry.findMany({
-      where: { collectionId: { not: collection.id }, entry: { familyId: { in: familyIds } } },
+      where: { collectionId: { not: collection.id }, collection: { hidden: false }, entry: { familyId: { in: familyIds } } },
       include: { collection: true, entry: true },
     }) : [];
     return { collection: this.summary(collection), page, pageSize, total: familyView ? groups.size : filtered.length,
@@ -123,7 +125,7 @@ export class CollectionsService {
 
   async savedCollections(cookie: string | undefined) {
     const user = await this.accounts.current(cookie);
-    const rows = await this.db.userVocabularyCollection.findMany({ where: { userId: user.id }, include: { collection: { include: collectionInclude } }, orderBy: { savedAt: 'asc' } });
+    const rows = await this.db.userVocabularyCollection.findMany({ where: { userId: user.id, collection: { hidden: false } }, include: { collection: { include: collectionInclude } }, orderBy: { savedAt: 'asc' } });
     const library = await this.revision();
     return rows.map(row => this.summary({ ...row.collection, libraryVersion: library.version }));
   }
@@ -231,20 +233,32 @@ export class CollectionsService {
   }
 
   async gameOptions(length: number) {
-    const [collections, words] = await Promise.all([
-      this.db.vocabularyCollection.findMany({ where: { status: 'available' }, orderBy: { slug: 'asc' },
-        select: { id: true, slug: true, name: true, entries: { select: { entry: { select: { term: true } } } } } }),
-      this.dictionary.dictionaryGameWords(length),
-    ]);
-    const playable = new Set(words);
-    return { wordLength: length, totalWords: words.length, collections: collections.map(collection => ({
-      id: collection.id, slug: collection.slug, name: collection.name,
-      wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => playable.has(term))).size,
-    })) };
+    return (await this.gameOptionsForLengths(length, length))[0];
   }
 
-  async collectionGameWords(slug: string, length: number) {
-    const collection = await this.collection(slug);
+  allGameOptions() { return this.gameOptionsForLengths(3, 9); }
+
+  private async gameOptionsForLengths(minLength: number, maxLength: number) {
+    const [collections, words] = await Promise.all([
+      this.db.vocabularyCollection.findMany({ where: { status: 'available', hidden: false }, orderBy: { slug: 'asc' },
+        select: { id: true, slug: true, name: true, entries: { select: { entry: { select: { term: true } } } } } }),
+      this.dictionary.dictionaryGameWords(minLength, maxLength),
+    ]);
+    const playable = new Set(words);
+    return Array.from({ length: maxLength - minLength + 1 }, (_, index) => {
+      const length = minLength + index;
+      return { wordLength: length, totalWords: defaultAnswerWords(length, words).length, collections: collections.map(collection => ({
+        id: collection.id, slug: collection.slug, name: collection.name,
+        wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => term.length === length && playable.has(term))).size,
+      })) };
+    });
+  }
+
+  async wordleGameWords() { return this.collectionGameWords(WORDLE_POOL.slug, 5, true); }
+
+  async collectionGameWords(slug: string, length: number, includeHidden = false) {
+    const collection = await this.collection(slug, includeHidden);
+    if (collection.status !== 'available') throw new BadRequestException('This collection is not available for play.');
     const playable = new Set(await this.dictionary.dictionaryGameWords(length));
     const words = [...new Set(collection.entries.map(row => row.entry.term).filter(term => playable.has(term)))];
     if (!words.length) throw new BadRequestException('This collection has no playable words at this length.');
