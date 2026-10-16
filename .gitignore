@@ -1,6 +1,7 @@
 node_modules/
 .local-mail/
 .local-backups/
+.local-monitor/
 .pnpm-store/
 dist/
 coverage/
