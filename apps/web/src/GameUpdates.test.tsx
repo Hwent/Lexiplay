@@ -223,7 +223,7 @@ describe('saved practice and account updates', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ message: 'If that email has an account, a reset link will arrive shortly.' }));
     stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(screen.getByText('Account'));
-    await user.click(screen.getByRole('button', { name: 'Forgot password?' }));
+    await user.click(await screen.findByRole('button', { name: 'Forgot password?' }));
     await user.type(screen.getByRole('textbox', { name: 'Email' }), 'learner@example.test');
     await user.click(screen.getByRole('button', { name: 'Send reset link' }));
     expect(await screen.findByRole('status')).toHaveTextContent('If that email has an account');

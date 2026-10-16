@@ -186,7 +186,7 @@ describe('practice puzzle', () => {
 
     render(<App />);
     await user.click(screen.getByText('Account'));
-    await user.click(screen.getByRole('tab', { name: /create account/i }));
+    await user.click(await screen.findByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
     await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');
@@ -210,7 +210,7 @@ describe('practice puzzle', () => {
 
     render(<App />);
     await user.click(screen.getByText('Account'));
-    await user.click(screen.getByRole('tab', { name: /create account/i }));
+    await user.click(await screen.findByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
     await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');

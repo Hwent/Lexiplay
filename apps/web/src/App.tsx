@@ -2,21 +2,22 @@ import { PendingWords } from './services/pending-words';
 import { PendingWordsContext, useWordSelection } from './usePendingWords';
 import Icon, { IconName } from './Icon';
 import CollectionPicker from './CollectionPicker';
-import VocabularyLibrary from './VocabularyLibrary';
-import { CSSProperties, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
-import AccountPage from './AccountPage';
+import { CSSProperties, KeyboardEvent, lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react';
 import AccountStatus from './AccountStatus';
 import useAccount from './useAccount';
 import HomePage from './HomePage';
-import SettingsPage from './SettingsPage';
-import CommunityPage from './CommunityPage';
-import StatisticsPanel from './StatisticsPanel';
 import PronunciationButton from './PronunciationButton';
 import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
+
+const VocabularyLibrary = lazy(() => import('./VocabularyLibrary'));
+const AccountPage = lazy(() => import('./AccountPage'));
+const SettingsPage = lazy(() => import('./SettingsPage'));
+const CommunityPage = lazy(() => import('./CommunityPage'));
+const StatisticsPanel = lazy(() => import('./StatisticsPanel'));
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
@@ -244,7 +245,7 @@ export default function App() {
 
   useEffect(() => {
     let active = true;
-    api<{version:string}>('/library/revision').then(value => {
+    wordStore.requests.get<{version:string}>('/library/revision', 60_000).then(value => {
       if (!active || typeof value.version !== 'string') return;
       let previous: string | null = null;
       try {
@@ -254,6 +255,7 @@ export default function App() {
       if (previous !== value.version) {
         clearDictionaryCache();
         wordStore.requests.invalidate();
+        wordStore.requests.prime('/library/revision', value, 60_000);
         void wordStore.loadSaved(true).catch(() => {});
         setAccountRevision(revision => revision + 1);
         if (game) void api<Game>(`/games/${game.id}`).then(updated => { if (active) setGame(updated); }).catch(() => {});
@@ -590,6 +592,7 @@ export default function App() {
       {finished && <div className="next-game"><button className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{busy ? 'Getting a word…' : 'Play again'}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>Change settings</button></div>}
       </section>
       </>}
+      <Suspense fallback={<section className="page-loading" role="status">Loading…</section>}>
       {activeSection === 'library' && <section className="library-page">
         <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery={quickSearch} onSignIn={() => navigateTo('account')} />
       </section>}
@@ -609,6 +612,7 @@ export default function App() {
         <article><h3>Word-family grouping</h3><p>Family identities are adapted from Paul Nation's BNC/COCA word-family lists v1.0.0, hosted by <a href="https://www.wgtn.ac.nz/lals/resources/paul-nations-resources" target="_blank" rel="noreferrer">Victoria University of Wellington</a>. The adapted mapping is provided under CC BY-SA 4.0, following the university's resource licence statement. Grouping does not assign one CEFR level or shared learning progress to every member. Phrases and entries without a published match remain separate study items. <a href="/data/bnc-coca-families.json" target="_blank" rel="noreferrer">Download the adapted family mapping</a></p></article>
         <article><h3>Original Wordle answers</h3><p>The five-letter answer pool uses the original 2,315-word selection by Josh Wardle, preserved in <a href="https://gist.github.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b" target="_blank" rel="noreferrer">cfreshman’s source extraction</a>. Playable answers have matching English definitions in the LexiPlay dictionary. This selection does not track subsequent New York Times editorial changes.</p></article>
       </section>}
+      </Suspense>
       <footer className="workspace-footer"><div className="footer-links"><a href="https://github.com/Hwent" target="_blank" rel="noopener noreferrer" aria-label="Visit Hwent on GitHub (opens in a new tab)">Hwent on GitHub <Icon name="arrow" /></a><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>Licenses</a></div></footer>
       </div>
     </main></PendingWordsContext.Provider>

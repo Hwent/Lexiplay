@@ -39,7 +39,7 @@ describe('guest progress on authentication', () => {
     expect(await screen.findByRole('row', { name: 'paper' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Word List' }));
-    await user.click(screen.getByRole('tab', { name: 'My Word List' }));
+    await user.click(await screen.findByRole('tab', { name: 'My Word List' }));
     expect(await screen.findByText('chair')).toBeInTheDocument(); expect(screen.getByText(/Familiarity 5\/5/)).toBeInTheDocument();
   });
   it('keeps authentication successful when transfer fails and offers a retry without losing progress', async () => {

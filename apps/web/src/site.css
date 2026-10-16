@@ -327,3 +327,4 @@
   .account-page, .licenses-page { margin-top: 2rem; }
   .workspace-footer { padding-block: 1rem; }
 }
+.page-loading { min-height: 12rem; display: grid; place-items: center; color: var(--muted); }

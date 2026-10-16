@@ -31,14 +31,14 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
   useEffect(() => {
     let active = true;
     setResults([]); setError(''); setSearching(normalized.length >= 2);
-    if (normalized.length < 2) return;
+    if (normalized.length < 2 || mode !== 'search') { setSearching(false); return; }
     const timer = setTimeout(() => {
       searchDictionary(normalized).then(rows => { if (active) { setResults(rows); setSearched(normalized); } })
         .catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not search the dictionary.'); })
         .finally(() => { if (active) setSearching(false); });
     }, 300);
     return () => { active = false; clearTimeout(timer); };
-  }, [normalized]);
+  }, [normalized, mode]);
   function stage(values: string[]) {
     if (!listId) return;
     setError(''); setResult(store.stage(values, listId));

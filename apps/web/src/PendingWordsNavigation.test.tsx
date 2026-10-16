@@ -65,7 +65,7 @@ it('keeps the current page and pending selection when an exit write fails, then 
 it('keeps dictionary additions cancellable across tools remounts and saves only when leaving the library', async () => {
   window.history.replaceState({}, '', '/library'); const fetchMock = apiFixture();
   const user = userEvent.setup(); render(<App/>);
-  await user.click(screen.getByRole('tab', { name: 'My Word List' })); await user.click(await screen.findByRole('button', { name: 'Open dictionary tools' }));
+  await user.click(await screen.findByRole('tab', { name: 'My Word List' })); await user.click(await screen.findByRole('button', { name: 'Open dictionary tools' }));
   await user.type(screen.getByRole('searchbox', { name: 'Search the dictionary' }), 'cover');
   await user.click(await screen.findByRole('button', { name: 'Add cover' }));
   await user.click(screen.getByRole('button', { name: 'Close dictionary tools' })); await user.click(screen.getByRole('button', { name: 'Open dictionary tools' }));

@@ -1,16 +1,34 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import DictionaryTools from './DictionaryTools';
 import { importTerms } from './dictionary-import';
 import { PendingWords } from './services/pending-words';
 import { PendingWordsContext } from './usePendingWords';
+import { searchDictionary } from './dictionary-cache';
 vi.mock('./dictionary-cache', () => ({ normalizeTerm: (value: string) => value.trim().toLowerCase(), searchDictionary: vi.fn(async () => [{ term: 'cover', partOfSpeech: ['verb'], senses: [{ partOfSpeech: 'verb', definitions: ['To place over.'] }] }]) }));
 beforeEach(() => localStorage.clear());
-afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 function renderTools(store: PendingWords, query = '') {
   return render(<PendingWordsContext.Provider value={store}><DictionaryTools listId="my-list" searchQuery={query}/></PendingWordsContext.Provider>);
 }
+it('debounces rapid typing and cancels a queued search when switching to imports', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ terms: [] })));
+  const search = vi.mocked(searchDictionary);
+  search.mockClear();
+  renderTools(new PendingWords('user'));
+  const input = screen.getByRole('searchbox', { name: 'Search the dictionary' });
+  for (const value of ['co', 'cov', 'cove', 'cover']) fireEvent.change(input, { target: { value } });
+  await act(() => vi.advanceTimersByTimeAsync(299));
+  expect(search).not.toHaveBeenCalled();
+  await act(() => vi.advanceTimersByTimeAsync(1));
+  expect(search).toHaveBeenCalledExactlyOnceWith('cover');
+  fireEvent.change(input, { target: { value: 'apple' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Import words' }));
+  await act(() => vi.advanceTimersByTimeAsync(300));
+  expect(search).toHaveBeenCalledOnce();
+});
 it('parses word files, deduplicates terms and leaves supplied definitions out', () => {
   expect(importTerms('word,definition\nCover,Personal note\ncover,Other note\n"analyse",My text', 'csv')).toEqual(['Cover', 'cover', 'analyse']);
   expect(importTerms('term\tdefinition\ncover\tPrivate text', 'tsv')).toEqual(['cover']);

@@ -23,7 +23,7 @@ describe('dedicated account page', () => {
     expect(screen.queryByRole('button', { name: 'Forgot password?' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('link', { name: 'Account' }));
     expect(window.location.pathname).toBe('/account');
-    const page = screen.getByRole('region', { name: 'Account management' });
+    const page = await screen.findByRole('region', { name: 'Account management' });
     await user.type(within(page).getByLabelText('Username or email'), 'learner');
     await user.type(within(page).getByLabelText('Password'), 'password8');
     await user.click(within(page).getByRole('button', { name: 'Sign in' }));
