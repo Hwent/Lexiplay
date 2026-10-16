@@ -2,7 +2,7 @@
 
 Prerequisites: Docker, PostgreSQL 17, matching application/schema versions. Backups stay in ignored `.local-backups/`; keep a secure copy elsewhere.
 
-Create private `.env.redeploy`:
+Add these settings to the private root `.env`:
 
 ```dotenv
 # Development defaults to DATABASE_URL from .env.
@@ -48,7 +48,7 @@ Scripts never clear a populated target. A failed restore is transactional; faile
 
 ## 3. Update an existing database with Prisma; preserve users
 
-Source connection: private `.env` → `DATABASE_URL`. Target connection: private `.env.deploy` → `SEED_DATABASE_URL`. Pause the application first.
+Connections in the private root `.env`: source → `DATABASE_URL`; target → `SEED_DATABASE_URL`. Pause the application first.
 
 ```powershell
 # Preview on an isolated target clone; the real target stays unchanged.

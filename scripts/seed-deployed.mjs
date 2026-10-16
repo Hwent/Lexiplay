@@ -9,9 +9,10 @@ const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 const apiRequire = createRequire(resolve(project, 'apps/api/package.json'));
 const { Pool } = apiRequire('pg');
 async function main() {
+  if (!process.env.SEED_DATABASE_URL) process.loadEnvFile(resolve(project, '.env'));
   let database;
   try { database = new URL(process.env.SEED_DATABASE_URL ?? ''); }
-  catch { throw new Error('Set SEED_DATABASE_URL to the Render External Database URL in the private .env.deploy file.'); }
+  catch { throw new Error('Set SEED_DATABASE_URL to the Render External Database URL in the private .env file.'); }
   if (!['postgres:', 'postgresql:'].includes(database.protocol)) throw new Error('SEED_DATABASE_URL must be a PostgreSQL URL.');
   database.searchParams.set('sslmode', 'verify-full');
   const entry = resolve(project, 'apps/api/dist/modules/word-lists/seed-simple-wiktionary.js');

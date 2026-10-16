@@ -6,7 +6,7 @@ import { fileURLToPath } from 'node:url';
 const project = resolve(dirname(fileURLToPath(import.meta.url)), '..');
 
 async function main() {
-  if (!process.env.SEED_DATABASE_URL) process.loadEnvFile(resolve(project, '.env.deploy'));
+  if (!process.env.SEED_DATABASE_URL) process.loadEnvFile(resolve(project, '.env'));
   const source = new URL(process.env.SEED_DATABASE_URL);
   if (!['postgres:', 'postgresql:'].includes(source.protocol)) throw new Error('SEED_DATABASE_URL must be a PostgreSQL URL.');
 

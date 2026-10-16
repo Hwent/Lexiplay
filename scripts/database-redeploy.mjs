@@ -16,10 +16,8 @@ const clients = [];
 const local = url => ['localhost', '127.0.0.1', '[::1]'].includes(url.hostname);
 async function config() {
   const result = {};
-  for (const name of ['.env', '.env.redeploy']) {
-    try { Object.assign(result, parseEnv(await readFile(resolve(project, name), 'utf8'))); }
-    catch (error) { if (error.code !== 'ENOENT') throw new Error('Invalid environment file.'); }
-  }
+  try { Object.assign(result, parseEnv(await readFile(resolve(project, '.env'), 'utf8'))); }
+  catch (error) { if (error.code !== 'ENOENT') throw new Error('Invalid environment file.'); }
   return { ...result, ...process.env };
 }
 function connection(value, label) {

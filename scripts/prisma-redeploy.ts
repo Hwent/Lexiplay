@@ -152,10 +152,9 @@ async function main() {
   const {values}=parseArgs({options:{'source-database':{type:'string'},'target-database':{type:'string'},'align-only':{type:'boolean'},'backup-dir':{type:'string'},'strict-dictionary':{type:'boolean'},apply:{type:'boolean'},help:{type:'boolean'}}});
   if(values.help){console.log('pnpm db:redeploy:prisma --source-database <local-name> --target-database <name> [--strict-dictionary] [--apply]');return;}
   if(!values['source-database']||!values['target-database'])throw new Error('Pass --source-database <name> --target-database <name> [--apply].');
-  const development=parseEnv(await readFile(resolve(project,'.env'),'utf8'));
-  const production=parseEnv(await readFile(resolve(project,'.env.deploy'),'utf8'));
-  const sourceUrl=new URL(process.env.PRISMA_REDEPLOY_SOURCE_URL||development.DATABASE_URL);
-  const targetUrl=new URL(process.env.PRISMA_REDEPLOY_TARGET_URL||production.SEED_DATABASE_URL);
+  const env=parseEnv(await readFile(resolve(project,'.env'),'utf8'));
+  const sourceUrl=new URL(process.env.PRISMA_REDEPLOY_SOURCE_URL||env.DATABASE_URL);
+  const targetUrl=new URL(process.env.PRISMA_REDEPLOY_TARGET_URL||env.SEED_DATABASE_URL);
   if(!local(sourceUrl))throw new Error('Source must be the local development database.');
   if(decodeURIComponent(sourceUrl.pathname.slice(1))!==values['source-database']||decodeURIComponent(targetUrl.pathname.slice(1))!==values['target-database'])throw new Error('Configured database names do not match the explicitly requested names.');
   if(!local(targetUrl))targetUrl.searchParams.set('sslmode','verify-full');

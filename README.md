@@ -19,6 +19,8 @@ pnpm dev
 
 Open the URL printed by the launcher. On first setup, populate the dictionary using the local `docs/DATABASE-MANUAL.md`; a copied production database already includes it. Development uses a local database and email previews. Local `docs/DEVELOPMENT.md` covers conventions and tests.
 
+Keep environment settings in the private root `.env`: `DATABASE_URL` for local development, `SEED_DATABASE_URL` for production dumps/imports, and `REDEPLOY_PRODUCTION_URL`/`REDEPLOY_TARGET_URL` for redeployment. See `.env.example` for placeholders.
+
 For a fresh local database without dictionary entries, run this before starting games. It loads the local `.env` explicitly:
 
 ```powershell
