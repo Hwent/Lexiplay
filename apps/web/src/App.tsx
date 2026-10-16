@@ -14,6 +14,7 @@ import PuzzleCelebration from './PuzzleCelebration';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
 
 const VocabularyLibrary = lazy(() => import('./VocabularyLibrary'));
+const DictionaryPage = lazy(() => import('./DictionaryPage'));
 const AccountPage = lazy(() => import('./AccountPage'));
 const SettingsPage = lazy(() => import('./SettingsPage'));
 const CommunityPage = lazy(() => import('./CommunityPage'));
@@ -21,9 +22,9 @@ const StatisticsPanel = lazy(() => import('./StatisticsPanel'));
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
-type Section = 'home' | 'play' | 'library' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
+type Section = 'home' | 'play' | 'library' | 'dictionary' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
 const sectionPaths: Record<Section, string> = {
-  home: '/', play: '/games', library: '/library', progress: '/progress', community: '/community', settings: '/settings',
+  home: '/', play: '/games', library: '/library', dictionary: '/dictionary', progress: '/progress', community: '/community', settings: '/settings',
   licenses: '/licenses', account: '/account',
 };
 const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
@@ -450,11 +451,12 @@ export default function App() {
   }
 
   const sectionTitle: Record<Section, string> = {
-    home: 'Home', play: 'Games', library: 'Word List',
+    home: 'Home', play: 'Games', library: 'Word List', dictionary: 'Dictionary',
     progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses', account: 'Account',
   };
   const navigation: { key: Section; icon: IconName }[] = [
     { key: 'home', icon: 'home' }, { key: 'play', icon: 'play' }, { key: 'library', icon: 'library' },
+    { key: 'dictionary', icon: 'dictionary' },
     { key: 'progress', icon: 'progress' }, { key: 'community', icon: 'community' }, { key: 'settings', icon: 'settings' },
   ];
 
@@ -607,6 +609,7 @@ export default function App() {
       {activeSection === 'library' && <section className="library-page">
         <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery={quickSearch} onSignIn={() => navigateTo('account')} />
       </section>}
+      {activeSection === 'dictionary' && <DictionaryPage key={accountRevision} signedIn={!!account} accountLoading={accountLoading} />}
       {activeSection === 'home' && <HomePage onNavigate={navigateTo} />}
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}

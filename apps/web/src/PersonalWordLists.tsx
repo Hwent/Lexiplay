@@ -2,7 +2,6 @@ import { useEffect, useState } from 'react';
 import { apiRequest as api } from './services/api-client';
 import { PersonalList, PersonalPage, PersonalWord, VocabularyCollection } from './collection-types';
 import PronunciationButton from './PronunciationButton';
-import DictionaryTools from './DictionaryTools';
 import Icon from './Icon';
 import usePendingWords from './usePendingWords';
 
@@ -16,7 +15,6 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState('');
   const [message, setMessage] = useState('');
-  const [tools, setTools] = useState(!!searchQuery);
   const [loadedKey, setLoadedKey] = useState('');
   const [listRetry, setListRetry] = useState(0);
   const [collections, setCollections] = useState<VocabularyCollection[]>([]);
@@ -48,7 +46,7 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
     return () => { active = false; };
   }, [signedIn, initialId, revision, listRetry, store]);
 
-  useEffect(() => { setPage(1); setMessage(''); if (query) setTools(true); }, [query]);
+  useEffect(() => { setPage(1); setMessage(''); }, [query]);
   useEffect(() => {
     if (!signedIn || !list) return;
     let active = true;
@@ -105,7 +103,7 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
   function pagination(position: string) {
     return data && <nav className="word-pagination" aria-label={`Personal list pages ${position}`}><button type="button" disabled={page <= 1 || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value - 1); }}>Previous</button><span>Page {page} of {Math.max(1, Math.ceil(data.total / data.pageSize))} · {data.total.toLocaleString()} {data.total === 1 ? 'word' : 'words'}</span><button type="button" disabled={page * data.pageSize >= data.total || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value + 1); }}>Next</button></nav>;
   }
-  if (!signedIn) return <><div className="library-empty"><h2>Your own dictionary collection</h2><p>Sign in to save dictionary words and review your vocabulary.</p><a href="/account">Sign in</a></div><DictionaryTools listId="" searchQuery={searchQuery}/></>;
+  if (!signedIn) return <div className="library-empty"><h2>My Word List</h2><p>Sign in to save words and review your vocabulary.</p><a href="/account">Sign in</a></div>;
   return <section className="personal-word-lists" aria-label="My Word List" aria-busy={loading || busy}>
     {!!collections.length && <section aria-label="My collections" className="saved-collections">
       <h2>My collections</h2>
@@ -116,8 +114,6 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
       </li>)}</ul>
     </section>}
     <div className="library-section-heading"><h2>Your words</h2>{data && <span className="library-count">{data.total.toLocaleString()} {query ? 'matching' : 'saved'} {data.total === 1 ? 'word' : 'words'}</span>}</div>
-    <div className="library-tools"><strong>Dictionary</strong><button type="button" className="text-action" aria-expanded={tools} aria-controls="library-dictionary-tools" onClick={() => setTools(value => !value)}><Icon name="search"/>{tools ? 'Close dictionary tools' : 'Open dictionary tools'}</button></div>
-    {tools && list && <div id="library-dictionary-tools"><DictionaryTools listId={list.id} searchQuery={searchQuery}/></div>}
     {error && <p role="alert">{error} <button type="button" onClick={() => { setLoading(true); if (list) { store.requests.invalidate(`/word-lists/${list.id}/entries`); setRefresh(value => value + 1); } else { store.requests.invalidate('/word-lists/mine'); setListRetry(value => value + 1); } }}>Retry</button></p>}
     {message && <p role="status">{message}</p>}
     {pagination('top')}
@@ -126,7 +122,7 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
       <td><p className="personal-definition">{word.definition ?? 'Dictionary definition not available yet.'}</p></td>
       <td><div className="word-familiarity"><small>Familiarity {word.familiarity}/5</small><span className="familiarity-dots" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <i key={index} data-filled={index < word.familiarity}/>)}</span></div>
       <div className="personal-entry-actions"><button type="button" onClick={() => void review(word)}>Reviewed</button><button type="button" onClick={() => void review(word, true)}>Review again</button><button type="button" onClick={() => void remove(word)}>Remove {word.lemma}</button></div>
-    </td></tr>)}</tbody></table></div>{!data.words.length && <p className="library-empty">{query ? 'No saved words match your search. Try the dictionary tools above.' : 'Your word list is ready for a fresh start. Explore a collection or open dictionary tools to add words.'}</p>}</>}
+    </td></tr>)}</tbody></table></div>{!data.words.length && <p className="library-empty">{query ? 'No saved words match your search.' : 'Your word list is ready for a fresh start.'} Explore a collection or visit the <a href="/dictionary">Dictionary</a> to add words.</p>}</>}
     {showEntries && pagination('bottom')}
   </section>;
 }

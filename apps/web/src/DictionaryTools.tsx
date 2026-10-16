@@ -6,7 +6,7 @@ import Icon from './Icon';
 import { importTerms } from './dictionary-import';
 
 
-export default function DictionaryTools({ listId, searchQuery }: { listId: string; searchQuery: string }) {
+export default function DictionaryTools({ listId, searchQuery, signedIn = !!listId }: { listId: string; searchQuery: string; signedIn?: boolean }) {
   const { store, selection } = usePendingWords(listId);
   const [mode, setMode] = useState<'search' | 'import'>('search');
   const [query, setQuery] = useState(searchQuery);
@@ -19,6 +19,7 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
   const saved = selection.saved;
   const [result, setResult] = useState<number | null>(null);
   const [error, setError] = useState('');
+  const [retry, setRetry] = useState(0);
   const normalized = normalizeTerm(query);
   const terms = importTerms(pasted);
   useEffect(() => {
@@ -38,7 +39,7 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
         .finally(() => { if (active) setSearching(false); });
     }, 300);
     return () => { active = false; clearTimeout(timer); };
-  }, [normalized, mode]);
+  }, [normalized, mode, retry]);
   function stage(values: string[]) {
     if (!listId) return;
     setError(''); setResult(store.stage(values, listId));
@@ -55,12 +56,13 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
     finally { setReading(false); }
   }
   return <section className="dictionary-tools-panel" aria-label="Dictionary tools" aria-busy={searching || saving || reading}>
-    <header><div><p className="library-eyebrow">FROM THE DICTIONARY</p><h3>Add words worth learning</h3><p>Choose words for My Word List. Add or cancel now; your selections save when you leave the page.</p></div><Icon name="library"/></header>
+    <header><div><h3>Words and meanings</h3><p>Look up a word, hear it pronounced, and add it to My Word List.</p></div><Icon name="dictionary"/></header>
     <div className="dictionary-tool-tabs" role="group" aria-label="Dictionary tool"><button type="button" aria-pressed={mode === 'search'} onClick={() => { setMode('search'); setResult(null); }}><Icon name="search"/>Find a word</button><button type="button" aria-pressed={mode === 'import'} onClick={() => { setMode('import'); setResult(null); }}>Import words</button></div>
-    {!listId && <p className="dictionary-tool-hint">Browse the dictionary here. <a href="/account">Sign in</a> to save or import words.</p>}
+    {!signedIn && <p className="dictionary-tool-hint"><a href="/account">Sign in</a> to save or import words.</p>}
     {mode === 'search' ? <>
       <label className="dictionary-search-label" htmlFor="library-dictionary-search">Search the dictionary</label><input id="library-dictionary-search" type="search" value={query} maxLength={100} placeholder="Try a word, like curious" onChange={event => { setQuery(event.target.value); setResult(null); }}/>
       {normalized.length < 2 && <p className="dictionary-tool-hint">Enter at least two characters to discover words.</p>}
+      {searching && <p role="status">Searching the dictionary…</p>}
       {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <p>No dictionary matches. Try another spelling.</p>}
       {!searching && searched === normalized && <ul className="dictionary-tool-results">{results.map(entry => {
         const definition = entry.definition || entry.senses?.flatMap(sense => sense.definitions).join('; ');
@@ -75,6 +77,6 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
       {terms.some(term => term.length > 100) && <p role="alert">Each word or phrase must be 100 characters or fewer.</p>}
     </>}
     {result !== null && <div className="dictionary-import-summary" role="status"><p>{result} new {result === 1 ? 'word selected' : 'words selected'}. Dictionary matches will be saved when you leave this page.</p><button type="button" disabled={saving || !selection.pending.size} onClick={() => { store.cancelAll(); setResult(null); }}>Cancel additions</button></div>}
-    {error && <p role="alert">{error}</p>}
+    {error && <p role="alert">{error} {mode === 'search' && normalized.length >= 2 && <button type="button" onClick={() => setRetry(value => value + 1)}>Retry search</button>}</p>}
   </section>;
 }

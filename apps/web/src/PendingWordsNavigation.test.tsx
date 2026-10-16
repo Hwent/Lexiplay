@@ -62,14 +62,13 @@ it('keeps the current page and pending selection when an exit write fails, then 
   offline = false; await user.click(screen.getByRole('button', { name: 'Home' })); await waitFor(() => expect(window.location.pathname).toBe('/'));
   expect(fetchMock.mock.calls.filter(([path]) => String(path).endsWith('/dictionary-entries'))).toHaveLength(2);
 });
-it('keeps dictionary additions cancellable across tools remounts and saves only when leaving the library', async () => {
-  window.history.replaceState({}, '', '/library'); const fetchMock = apiFixture();
+it('keeps dictionary additions cancellable across modes and saves only when leaving the dictionary', async () => {
+  window.history.replaceState({}, '', '/dictionary'); const fetchMock = apiFixture();
   const user = userEvent.setup(); render(<App/>);
-  await user.click(await screen.findByRole('tab', { name: 'My Word List' })); await user.click(await screen.findByRole('button', { name: 'Open dictionary tools' }));
-  await user.type(screen.getByRole('searchbox', { name: 'Search the dictionary' }), 'cover');
-  await user.click(await screen.findByRole('button', { name: 'Add cover' }));
-  await user.click(screen.getByRole('button', { name: 'Close dictionary tools' })); await user.click(screen.getByRole('button', { name: 'Open dictionary tools' }));
-  await user.type(screen.getByRole('searchbox', { name: 'Search the dictionary' }), 'cover');
+  await user.type(await screen.findByRole('searchbox', { name: 'Search the dictionary' }), 'cover');
+  const add = await screen.findByRole('button', { name: 'Add cover' }); await waitFor(() => expect(add).toBeEnabled());
+  await user.click(add);
+  await user.click(screen.getByRole('button', { name: 'Import words' })); await user.click(screen.getByRole('button', { name: 'Find a word' }));
   expect(await screen.findByRole('button', { name: 'Cancel addition of cover' })).toBeEnabled();
   expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary-entries'))).toBe(false);
   await user.click(screen.getByRole('button', { name: 'Home' })); await waitFor(() => expect(window.location.pathname).toBe('/'));

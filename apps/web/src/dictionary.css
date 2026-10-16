@@ -1,0 +1,15 @@
+.dictionary-page {
+  --library-accent: var(--accent);
+  --library-soft: var(--accent-soft);
+  --library-card: var(--surface);
+  --library-border: var(--line);
+}
+.dictionary-page .dictionary-tools-panel { margin-top: 0; padding: clamp(1.25rem, 3vw, 2rem); }
+.dictionary-page .dictionary-tools-panel > header h3 { font-size: 1.5rem; }
+.dictionary-page .dictionary-tools-panel > header p:last-child { font-size: .95rem; }
+.dictionary-page .dictionary-tool-tabs button, .dictionary-page .dictionary-tool-results button { font-size: .9rem; }
+.dictionary-page .dictionary-search-label { font-size: .95rem; }
+.dictionary-page .dictionary-tool-results strong { font-size: 1.3rem; }
+.dictionary-page .dictionary-tool-results small { font-size: .85rem; }
+.dictionary-page .dictionary-tool-results p { font-size: 1rem; line-height: 1.75; }
+.dictionary-page .dictionary-tool-hint { font-size: .9rem; }

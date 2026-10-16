@@ -305,9 +305,9 @@
 @media (max-width: 560px) {
   .app-shell { display: flex; }
   .sidebar { padding: .4rem .3rem calc(.4rem + env(safe-area-inset-bottom)); }
-  .main-navigation { gap: .1rem; }
-  .main-navigation button { width: auto; min-height: 3.25rem; font-size: .65rem; }
-  .main-navigation .nav-mobile-label { font-size: .65rem; }
+  .main-navigation { gap: .1rem; overflow-x: auto; justify-content: flex-start; }
+  .main-navigation button { width: auto; min-height: 3.25rem; font-size: .65rem; flex: 1 0 3rem; }
+  .main-navigation .nav-mobile-label { font-size: .6rem; }
   .workspace { padding: 0 1rem calc(5rem + env(safe-area-inset-bottom)); }
   .workspace .topbar { min-height: 6.5rem; gap: .75rem; }
   .header-search { width: 100%; }

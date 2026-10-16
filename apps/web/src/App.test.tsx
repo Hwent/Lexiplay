@@ -276,9 +276,15 @@ describe('practice puzzle', () => {
     expect(within(navigation).getByRole('button', { name: /^word list$/i })).toBeInTheDocument();
     await user.type(screen.getByRole('searchbox', { name: /search your words/i }), 'apple');
     await user.keyboard('{Enter}');
-    expect(await screen.findByText('apple')).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/library');
+    expect(screen.queryByRole('searchbox', { name: 'Search the dictionary' })).not.toBeInTheDocument();
     expect(screen.queryByText('chair')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Dictionary' }));
+    expect(window.location.pathname).toBe('/dictionary');
+    await user.type(await screen.findByRole('searchbox', { name: 'Search the dictionary' }), 'apple');
+    expect(await screen.findByText('apple')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pronounce apple' })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^games$/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/games');
