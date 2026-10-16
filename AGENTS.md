@@ -4,7 +4,7 @@
 - Act autonomously. 
 - If requirements or implementation direction are unclear, ask the user immediately. Never guess.
 - Keep changes focused. Avoid overengineering and excessive defensive programming.
-- Write clean, concise, readable, and maintainable code.
+- Write clean, reusable, readable, and maintainable code.
 
 ## Frontend
 - Build modern, minimal, responsive interfaces.
