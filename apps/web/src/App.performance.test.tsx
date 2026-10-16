@@ -19,10 +19,15 @@ it('prefetches every word count before opening setup and reuses them across leng
   render(<App />);
   await waitFor(() => expect(counts).toHaveBeenCalledOnce());
   await user.click(screen.getByRole('button', { name: 'Games' }));
+  const setup = screen.getByRole('region', { name: 'Vocabulary puzzle' });
+  const count = screen.getByLabelText('Playable words');
   expect(screen.getByLabelText('Playable words')).toHaveTextContent('50 words');
   for (const length of [3, 9, 4, 7, 6, 8, 5]) {
     await user.click(screen.getByRole('radio', { name: `${length} letters` }));
     expect(screen.getByLabelText('Playable words')).toHaveTextContent(`${length * 10} words`);
+    expect(screen.getByLabelText('Playable words')).toBe(count);
+    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toBe(setup);
+    expect(location.pathname).toBe('/games');
   }
   expect(counts).toHaveBeenCalledOnce();
 });

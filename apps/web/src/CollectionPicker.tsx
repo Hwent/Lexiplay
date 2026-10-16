@@ -7,21 +7,23 @@ export default function CollectionPicker({ value, wordLength, disabled, personal
   value: string; wordLength: number; disabled: boolean; personalAvailable?: boolean; onChange: (id: string) => void;
 }) {
   const { store } = usePendingWords();
-  const [options, setOptions] = useState<GameOptions | null>(null);
+  const [loadedOptions, setLoadedOptions] = useState<GameOptions[]>([]);
+  const options = (store.requests.peek<GameOptions[]>(GAME_OPTIONS_PATH) ?? loadedOptions)
+    .find(option => option.wordLength === wordLength);
   const [error, setError] = useState('');
   const [retry, setRetry] = useState(0);
   useEffect(() => {
     let active = true;
     setError('');
     const cached = store.requests.peek<GameOptions[]>(GAME_OPTIONS_PATH)?.find(option => option.wordLength === wordLength);
-    if (cached) { setOptions(cached); return; }
+    if (cached) return;
     store.requests.get<GameOptions[]>(GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME).then(rows => {
       const result = rows.find(option => option.wordLength === wordLength);
       if (!result || !Array.isArray(result.collections)) {
         store.requests.invalidate(GAME_OPTIONS_PATH);
         throw new Error('Invalid collection response');
       }
-      if (active) setOptions(result);
+      if (active) setLoadedOptions(rows);
     }).catch(error => {
       if (active) setError(error instanceof ApiError && error.status === 429
         ? 'Word counts are busy. Try again shortly.' : 'Word counts are unavailable. You can still choose a collection.');
@@ -39,7 +41,7 @@ export default function CollectionPicker({ value, wordLength, disabled, personal
       {value && value !== 'my-words' && !selectedCollection && <option value={value}>Selected collection</option>}
       {options?.collections.map(collection => <option value={collection.slug} key={collection.id} disabled={ready && collection.wordCount === 0}>{collection.name}{ready ? ` · ${collection.wordCount.toLocaleString()} words` : ''}</option>)}
     </select>
-    {!disabled && count !== undefined && <p className="game-collection-count" aria-label="Playable words"><strong>{count.toLocaleString()}</strong> {count === 1 ? 'word' : 'words'}</p>}
+    {!disabled && <p className="game-collection-count" aria-label={count === undefined ? undefined : 'Playable words'} aria-hidden={count === undefined}>{count !== undefined && <><strong>{count.toLocaleString()}</strong> {count === 1 ? 'word' : 'words'}</>}</p>}
     {error && <div className="collection-count-error"><p role="status">{error}</p><button type="button" className="quiet-button" disabled={disabled} onClick={() => setRetry(value => value + 1)}>Retry counts</button></div>}
   </div>;
 }

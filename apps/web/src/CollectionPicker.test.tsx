@@ -27,14 +27,16 @@ it('shows playable words for the selected length and collection without a browse
   expect(fetchMock).toHaveBeenCalledOnce();
 });
 
-it('reuses loaded lengths instead of hitting rate limits after repeated changes', async () => {
+it('keeps the count row mounted and reuses loaded lengths during repeated changes', async () => {
   const fetchMock = vi.fn().mockResolvedValueOnce(Response.json(Array.from({ length: 7 }, (_, index) => ({ wordLength: index + 3, totalWords: (index + 3) * 10, collections: [] }))))
     .mockImplementation(async () => Response.json({ message: 'Too many requests' }, { status: 429 }));
   vi.stubGlobal('fetch', fetchMock);
   const { rerender } = render(<CollectionPicker value="" wordLength={5} disabled={false} onChange={() => {}}/>);
+  const count = await screen.findByLabelText('Playable words');
   for (const length of [5, 6, 3, 9, 4, 7, 8, 5]) {
     rerender(<CollectionPicker value="" wordLength={length} disabled={false} onChange={() => {}}/>);
     await waitFor(() => expect(screen.getByLabelText('Playable words')).toHaveTextContent(`${length * 10} words`));
+    expect(screen.getByLabelText('Playable words')).toBe(count);
   }
   expect(screen.queryByText('Collections could not be loaded.')).not.toBeInTheDocument();
   expect(fetchMock).toHaveBeenCalledOnce();

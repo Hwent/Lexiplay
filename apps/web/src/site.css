@@ -147,7 +147,7 @@
 .game-collection-picker { display: grid; gap: .65rem; margin-top: 1.25rem; }
 .game-collection-picker label { font-size: 1rem; font-weight: 600; }
 .game-collection-picker select { width: 100%; min-height: 3rem; padding: .7rem .8rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface-soft); color: var(--text); font: inherit; font-size: 1rem; }
-.game-collection-count { margin: 0; font-size: 1rem; color: var(--muted); }
+.game-collection-count { min-height: 1.5em; margin: 0; font-size: 1rem; color: var(--muted); }
 .game-collection-count strong { color: var(--accent); font-variant-numeric: tabular-nums; }
 .length-options legend, .difficulty-options legend { font-size: .9rem; font-weight: 600; }
 .length-segments { grid-template-columns: repeat(7, minmax(0, 1fr)); border-radius: .65rem; }
