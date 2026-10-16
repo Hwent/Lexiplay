@@ -1,5 +1,5 @@
 import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -101,12 +101,41 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText('Checking…')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'E' })).toBeDisabled();
+    expect(screen.getByRole('row', { name: 'Guess 1' })).toHaveAttribute('aria-busy', 'true');
     await user.keyboard('{Enter}{Enter}');
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/guesses'))).toHaveLength(1);
     await act(async () => resolveGuess(Response.json({ guess: 'crane', feedback: Array(5).fill('ABSENT'), attemptsRemaining: 5, completed: false })));
     expect(await screen.findByRole('row', { name: 'crane' })).toBeInTheDocument();
     expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
+    await user.keyboard('pl');
+    expect(input).toHaveValue('pl');
+    expect(screen.getByRole('row', { name: 'Guess 2' })).not.toHaveAttribute('aria-busy');
     expect(screen.queryByText('Find the word')).not.toBeInTheDocument();
+  });
+
+  it('resumes typing after navigation and leaves modified keyboard shortcuts alone', async () => {
+    stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      return Response.json({ id: 'game-focus', wordLength: 5, attemptLimit: 6, guesses: [] });
+    }));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Games' }));
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    const input = await screen.findByRole('textbox', { name: /five-letter guess/i });
+    expect(fireEvent.keyDown(input, { key: 'a', ctrlKey: true })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: 'k', metaKey: true })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: 'b', altKey: true })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: 'a', isComposing: true })).toBe(true);
+    expect(input).toHaveValue('');
+    await user.keyboard('cr');
+    await user.click(screen.getByRole('button', { name: 'Home' }));
+    await user.click(screen.getByRole('button', { name: 'Games' }));
+    const resumed = screen.getByRole('textbox', { name: /five-letter guess/i });
+    expect(resumed).toHaveFocus();
+    await user.keyboard('a');
+    expect(resumed).toHaveValue('cra');
   });
 
   it('keeps a network-failed guess for an explicit retry without resubmitting in a loop', async () => {

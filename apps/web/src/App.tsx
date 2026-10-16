@@ -82,6 +82,7 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [rejectedAttempt, setRejectedAttempt] = useState(0);
+  const [revealingGuess, setRevealingGuess] = useState<{ gameId: string; row: number } | null>(null);
   const [celebrationId, setCelebrationId] = useState('');
   const [selectedWordLength, setSelectedWordLength] = useState(preferences.wordLength);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(preferences.difficulty);
@@ -265,8 +266,12 @@ export default function App() {
   }, [activeSection, wordStore]);
 
   useEffect(() => {
-    if (game && !finished) inputRef.current?.focus({ preventScroll: true });
-  }, [game?.id, game?.guesses.length, finished]);
+    if (game && !finished && activeSection === 'play') inputRef.current?.focus({ preventScroll: true });
+  }, [game?.id, game?.guesses.length, finished, activeSection]);
+
+  useEffect(() => {
+    if (activeSection !== 'play') setRevealingGuess(null);
+  }, [activeSection]);
 
   useEffect(() => {
     if (game && activeSection === 'play') puzzleRef.current?.scrollIntoView?.({ block: 'start' });
@@ -367,6 +372,7 @@ export default function App() {
       if (session !== guessSession.current) return;
       if (result.definition) rememberDictionaryDefinition(result.guess, result.definition);
       if (result.answer && result.answerDefinition) rememberDictionaryDefinition(result.answer, result.answerDefinition);
+      setRevealingGuess({ gameId: game.id, row: game.guesses.length });
       setGame({ ...game, guesses: [...game.guesses, result], attemptCount: game.guesses.length + 1, completed: result.completed,
         ...(result.completed ? { status: result.outcome === 'WON' ? 'won' : 'lost', answer: result.answer, answerDefinition: result.answerDefinition } : {}) });
       setGuess('');
@@ -416,6 +422,7 @@ export default function App() {
   }
 
   function handleInputKeyDown(event: KeyboardEvent<HTMLInputElement>) {
+    if (event.ctrlKey || event.metaKey || event.altKey || event.nativeEvent.isComposing) return;
     if (/^[a-z]$/i.test(event.key) && event.key.length === 1) {
       event.preventDefault();
       addLetter(event.key.toLowerCase());
@@ -524,7 +531,7 @@ export default function App() {
             </div>
           </div>
         ) : (
-          <div ref={puzzleRef} className={`puzzle${celebrationId === game.id ? ' puzzle-won' : ''}`}>
+          <div ref={puzzleRef} key={game.id} className={`puzzle${celebrationId === game.id ? ' puzzle-won' : ''}`}>
             {celebrationId === game.id && <PuzzleCelebration key={game.id}/>}
             <div className="puzzle-heading">
               <div><p className="eyebrow">{game.difficulty ?? difficulty} · {game.wordLength} letters</p>{game.pool && <small>{game.pool.name} · {game.pool.author}</small>}</div>
@@ -545,11 +552,15 @@ export default function App() {
                 const result = game.guesses[row];
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
                 const rejected = !result && row === game.guesses.length && rejectedAttempt > 0;
-                return <div className={`guess-row${rejected ? ' invalid-guess' : ''}`} role="row" aria-label={result?.guess ?? `Guess ${row + 1}`} key={`${row}-${rejected ? rejectedAttempt : 0}`} style={{ gridTemplateColumns: `repeat(${game.wordLength}, minmax(0, 1fr))` }}>
+                const revealing = revealingGuess?.gameId === game.id && revealingGuess.row === row;
+                const checking = !result && row === game.guesses.length && busy && submittingGuess.current;
+                return <div className={`guess-row${rejected ? ' invalid-guess' : ''}${revealing ? ' revealing-guess' : ''}${checking ? ' checking-guess' : ''}`} role="row" aria-label={result?.guess ?? `Guess ${row + 1}`} aria-busy={checking || undefined} key={`${game.id}-${row}-${rejected ? rejectedAttempt : 0}`} onAnimationEnd={event => {
+                  if (event.animationName === 'puzzle-tile-reveal' && event.target === event.currentTarget.lastElementChild) setRevealingGuess(null);
+                }} style={{ gridTemplateColumns: `repeat(${game.wordLength}, minmax(0, 1fr))` }}>
                   {Array.from({ length: game.wordLength }, (_, column) => {
                     const letter = result?.guess[column] ?? activeGuess[column] ?? '';
                     const state = result?.feedback[column]?.toLowerCase() ?? '';
-                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)` }} key={column}>{letter}</span>;
+                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)`, '--tile-delay': `${column * 45}ms` } as CSSProperties} key={`${column}-${letter}`}>{letter}</span>;
                   })}
                 </div>;
               })}
