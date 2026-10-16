@@ -8,7 +8,7 @@ import { LAST_GAME_KEY, LOCAL_WORDS_KEY, TRANSFER_KEY } from './services/guest-p
 const account = { id: '00000000-0000-4000-8000-000000000001', username: 'learner', email: null, emailVerified: false };
 const gameId = '00000000-0000-4000-8000-000000000002';
 const word = { id: 'local-1', term: 'chair', definition: 'A seat.', status: 'KNOWN' };
-const game = { id: gameId, wordLength: 5, difficulty: 'medium', attemptLimit: 6, guesses: [{ guess: 'paper', feedback: ['PRESENT', 'ABSENT', 'PRESENT', 'ABSENT', 'ABSENT'], attemptsRemaining: 5, completed: false, definition: 'Writing material.' }], hints: { unused: 2, present: 1 }, revealedAbsent: [], revealedPresent: ['a'] };
+const game = { id: gameId, wordLength: 5, difficulty: 'medium', attemptLimit: 6, guesses: [{ guess: 'paper', feedback: ['PRESENT', 'ABSENT', 'PRESENT', 'ABSENT', 'ABSENT'], attemptsRemaining: 5, completed: false, definition: 'Writing material.' }], hints: { synonym: 1, definition: 1 }, revealedAbsent: [], revealedPresent: [] };
 describe('guest progress on authentication', () => {
   beforeEach(() => {
     window.localStorage.clear(); window.history.replaceState({}, '', '/account');
@@ -37,7 +37,7 @@ describe('guest progress on authentication', () => {
     expect(window.localStorage.getItem(LOCAL_WORDS_KEY)).toBeNull(); expect(window.localStorage.getItem(LAST_GAME_KEY)).toBe(gameId);
     await user.click(screen.getByRole('button', { name: 'Games' }));
     expect(await screen.findByRole('row', { name: 'paper' })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /reveal a letter.*1 left/i })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Word List' }));
     await user.click(screen.getByRole('tab', { name: 'My Word List' }));
     expect(await screen.findByText('chair')).toBeInTheDocument(); expect(screen.getByText(/Familiarity 5\/5/)).toBeInTheDocument();

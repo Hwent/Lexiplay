@@ -8,4 +8,4 @@ export class StartGameDto {
   @IsOptional() @IsBoolean() playWithMyWords?: boolean;
   @IsOptional() @IsIn(['word-puzzle']) kind?: 'word-puzzle';
 }
-export class HintDto { @IsString() @IsIn(['unused', 'present']) type!: 'unused' | 'present'; }
+export class HintDto { @IsString() @IsIn(['synonym', 'definition']) type!: 'synonym' | 'definition'; }

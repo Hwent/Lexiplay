@@ -10,6 +10,7 @@ import { AccountMailService } from './modules/accounts/account-mail.service';
 import { GameService } from './modules/games/game.service';
 import { guestOwner } from './modules/games/guest-cookie';
 import { CEFR_POOLS } from './modules/word-lists/cefr-pools';
+import { WordListsService } from './modules/word-lists/word-lists.service';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
 
 const database = process.env.TEST_DATABASE_URL;
@@ -32,6 +33,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     vi.stubEnv('DATABASE_URL', database!);
     vi.spyOn(ThrottlerGuard.prototype, 'canActivate').mockResolvedValue(true);
     vi.spyOn(AccountMailService.prototype, 'send').mockResolvedValue(undefined);
+    vi.spyOn(WordListsService.prototype, 'dictionarySynonym').mockResolvedValue('fruit');
     pool = new Pool({ connectionString: database! });
     app = await NestFactory.create(AppModule, { logger: false });
     app.setGlobalPrefix('api/v1');
@@ -179,6 +181,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
 
   it('cancels unplayable games and refunds the original guest payer once after transfer', async () => {
     const cookie = await guest(), game = await start(cookie), user = await account();
+    expect((await request('/games/' + game.id + '/hints', 'POST', { type: 'definition' }, cookie)).status).toBe(201);
     await request('/progress/claim', 'POST', { accountId: user.id, transferId: randomUUID(), words: [], lastGameId: game.id }, user.cookie + '; ' + cookie);
     const next = dictionary.filter(row => row.term !== 'apple');
     await pool.query("DELETE FROM collection_entries WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='apple')");
@@ -187,7 +190,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const cancelled = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
     expect(cancelled).toMatchObject({ status: 'cancelled', completed: true });
     expect(await balance(user.cookie)).toBe(100);
-    expect((await pool.query('SELECT coin_balance FROM guest_sessions WHERE token_hash=$1', [guestOwner(cookie)!.slice(6)])).rows[0].coin_balance).toBe(10);
+    expect((await pool.query('SELECT coin_balance FROM guest_sessions WHERE token_hash=$1', [guestOwner(cookie)!.slice(6)])).rows[0].coin_balance).toBe(9);
     expect(await (await request('/progress/summary', 'GET', undefined, user.cookie)).json()).toMatchObject({ total: 0, wins: 0, losses: 0 });
     expect((await request('/games/' + game.id + '/guesses', 'POST', { guess: 'paper' }, user.cookie)).status).toBe(400);
   });
@@ -264,15 +267,63 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
   it('persists only active inputs, resumes scoring, and clears state after completion', async () => {
     const user=await account(),game=await start(user.cookie);
     await request('/games/'+game.id+'/guesses','POST',{guess:'paper'},user.cookie);
-    await request('/games/'+game.id+'/hints','POST',{type:'unused'},user.cookie);
+    await request('/games/'+game.id+'/hints','POST',{type:'definition'},user.cookie);
     const row=(await pool.query('SELECT active_state FROM practice_games WHERE id=$1',[game.id])).rows[0];
     expect(row.active_state.guesses).toEqual(['paper']);
-    expect(row.active_state.hints.unused).toBe(1);
+    expect(row.active_state.hints.definition).toBe(0);
     expect(row.active_state).not.toHaveProperty('feedback');
     const resumed=await (await request('/games/'+game.id,'GET',undefined,user.cookie)).json();
     expect(resumed.guesses[0]).toMatchObject({guess:'paper',attemptsRemaining:5});
     await request('/games/'+game.id+'/guesses','POST',{guess:'apple'},user.cookie);
     expect((await pool.query('SELECT active_state,attempt_count FROM practice_games WHERE id=$1',[game.id])).rows[0]).toEqual({active_state:null,attempt_count:2});
+  });
+
+  it('charges each hint once under concurrent requests and restores purchased clues', async () => {
+    const user = await account(), game = await start(user.cookie);
+    const hint = (type: string) => request('/games/' + game.id + '/hints', 'POST', { type }, user.cookie);
+    const replies = await Promise.all([hint('definition'), hint('definition')]);
+    expect(replies.map(response => response.status)).toEqual([201, 201]);
+    const clues = await Promise.all(replies.map(response => response.json()));
+    expect(clues.map(clue => clue.cost).sort()).toEqual([0, 1]);
+    expect(await balance(user.cookie)).toBe(98);
+    expect(await (await hint('synonym')).json()).toMatchObject({ text: 'fruit', cost: 1 });
+    expect(await balance(user.cookie)).toBe(97);
+    const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
+    expect(restored).toMatchObject({ hints: { synonym: 0, definition: 0 }, clues: { synonym: 'fruit', definition: 'Definition of _____.' }, hintCoinsSpent: 2 });
+    expect(restored).not.toHaveProperty('answer');
+    await request('/games/' + game.id + '/abandon', 'POST', {}, user.cookie);
+    expect(await balance(user.cookie)).toBe(98);
+    expect((await pool.query('SELECT coin_change FROM practice_games WHERE id=$1', [game.id])).rows[0].coin_change).toBe(-2);
+  });
+
+  it('does not charge for unavailable hints or commit a hint without enough coins', async () => {
+    const user = await account(), game = await start(user.cookie);
+    vi.mocked(WordListsService.prototype.dictionarySynonym).mockResolvedValueOnce(undefined);
+    const path = '/games/' + game.id + '/hints';
+    const unavailable = await request(path, 'POST', { type: 'synonym' }, user.cookie);
+    expect(unavailable.status).toBe(400);
+    expect(await balance(user.cookie)).toBe(99);
+    await pool.query('UPDATE account_users SET coin_balance=0 WHERE id=$1', [user.id]);
+    const denied = await request(path, 'POST', { type: 'definition' }, user.cookie);
+    expect(denied.status).toBe(400);
+    expect(await denied.json()).toMatchObject({ code: 'INSUFFICIENT_COINS' });
+    expect(await balance(user.cookie)).toBe(0);
+    const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
+    expect(restored).toMatchObject({ hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0 });
+    const other = await account();
+    expect((await request(path, 'POST', { type: 'definition' }, other.cookie)).status).toBe(404);
+    expect(await balance(other.cookie)).toBe(100);
+  });
+
+  it('keeps hint fees when replacing a puzzle and upgrades saved letter hints', async () => {
+    const cookie = await guest(), first = await start(cookie);
+    await pool.query("UPDATE practice_games SET active_state=jsonb_set(active_state,'{hints}','{\"unused\":2,\"present\":1}'::jsonb) WHERE id=$1", [first.id]);
+    expect((await request('/games/' + first.id + '/hints', 'POST', { type: 'definition' }, cookie)).status).toBe(201);
+    expect(await balance(cookie)).toBe(8);
+    const second = await start(cookie);
+    expect(await balance(cookie)).toBe(8);
+    await request('/games/' + second.id + '/abandon', 'POST', {}, cookie);
+    expect(await balance(cookie)).toBe(9);
   });
 
   it('refunds abandonment once and replaces unfinished games without another net debit', async () => {

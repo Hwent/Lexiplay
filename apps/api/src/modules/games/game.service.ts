@@ -2,7 +2,7 @@ import { BadRequestException, Inject, Injectable, ServiceUnavailableException } 
 import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { GameRepository } from './game.repository';
-import { DIFFICULTIES, Difficulty, Game, Guess, publicGame, WORDLE_COST, score } from './game.types';
+import { DIFFICULTIES, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, WORDLE_COST, score } from './game.types';
 
 @Injectable()
 export class GameService {
@@ -24,7 +24,7 @@ export class GameService {
       id: randomUUID(), startRequestId, kind: 'word-puzzle', owner, ...(selectedPool ? { pool: selectedPool } : {}), answer: answers[randomInt(answers.length)]!,
       wordLength, difficulty, attemptLimit: rules.attemptLimit, guesses: [], completed: false,
       startedAt: new Date().toISOString(), completedAt: null,
-      hints: { unused: rules.hints, present: rules.hints }, revealedAbsent: [], revealedPresent: [],
+      hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [],
       status: 'active', coinCost: WORDLE_COST, winRewardCoins: rules.reward, coinPayer: owner.startsWith('user:') ? 'account' : 'guest',
     };
     return publicGame(await this.games.create(game));
@@ -32,27 +32,24 @@ export class GameService {
 
   async read(id: string, owner: string) { return publicGame(await this.games.read(id, owner)); }
 
-  async hint(id: string, type: 'unused' | 'present', owner: string) {
+  async hint(id: string, type: HintType, owner: string) {
+    const current = await this.games.read(id, owner);
+    this.requireActive(current);
+    // Resolve online clues before taking wallet and game locks.
+    const text = current.clues[type] ?? (type === 'synonym'
+      ? await this.dictionary.dictionarySynonym(current.answer)
+      : current.answerDefinition || await this.dictionary.dictionaryDefinition(current.answer));
+    if (!text) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: `No ${type} is available for this word. No coins were charged.` });
+    const clue = text.replace(new RegExp(`\\b${current.answer}\\b`, 'gi'), '_____');
     return this.games.change(id, owner, game => {
       this.requireActive(game);
-      if (!game.hints[type]) throw new BadRequestException({ code: 'NO_HINTS_LEFT', message: 'You have used all hints of this type.' });
-      if (type === 'unused') {
-        const guessed = new Set(game.guesses.flatMap(item => item.guess.split('')));
-        const candidates = 'abcdefghijklmnopqrstuvwxyz'.split('').filter(letter => !game.answer.includes(letter) && !guessed.has(letter) && !game.revealedAbsent.includes(letter));
-        if (!candidates.length) throw new BadRequestException({ code: 'NO_HINTS_AVAILABLE', message: 'There are no more unused letters to reveal.' });
-        const letters: string[] = [];
-        while (letters.length < 3 && candidates.length) letters.push(candidates.splice(randomInt(candidates.length), 1)[0]!);
-        game.revealedAbsent.push(...letters);
-        game.hints.unused--;
-        return { type, letters, hints: { ...game.hints } };
+      const purchased = !!game.clues[type];
+      if (!purchased) {
+        game.clues[type] = clue;
+        game.hints[type] = 0;
+        game.hintCoinsSpent += HINT_COST;
       }
-      const known = new Set(game.guesses.flatMap(item => item.feedback.flatMap((feedback, index) => feedback !== 'ABSENT' ? [item.guess[index]!] : [])));
-      const candidates = [...new Set(game.answer)].filter(letter => !known.has(letter) && !game.revealedPresent.includes(letter));
-      if (!candidates.length) throw new BadRequestException({ code: 'NO_HINTS_AVAILABLE', message: 'Every answer letter is already known.' });
-      const letter = candidates[randomInt(candidates.length)]!;
-      game.revealedPresent.push(letter);
-      game.hints.present--;
-      return { type, letter, hints: { ...game.hints } };
+      return { type, text: game.clues[type]!, hints: { ...game.hints }, cost: purchased ? 0 : HINT_COST };
     });
   }
 

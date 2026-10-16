@@ -4,6 +4,7 @@ import { NestFactory } from '@nestjs/core';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppModule } from './app.module';
 import { WordListRepository } from './modules/word-lists/word-list.repository';
+import { WordListsService } from './modules/word-lists/word-lists.service';
 import { GameService, score } from './modules/games/game.service';
 import { GameRepository } from './modules/games/game.repository';
 import { Game } from './modules/games/game.types';
@@ -27,6 +28,7 @@ describe('game HTTP endpoints and rules', () => {
       return result;
     });
     vi.spyOn(WordListRepository.prototype, 'getDictionaryDefinition').mockImplementation(async term => `Definition of ${term}.`);
+    vi.spyOn(WordListsService.prototype, 'dictionarySynonym').mockResolvedValue('fruit');
   });
   afterEach(async () => { await app?.close(); app = undefined; vi.restoreAllMocks(); });
   async function startApp() {
@@ -98,19 +100,18 @@ describe('game HTTP endpoints and rules', () => {
     dictionary.mockResolvedValue([]);
     await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('Load the dictionary');
   });
-  it.each([['easy', 7, 3], ['medium', 6, 2], ['hard', 5, 1]] as const)('enforces %s guesses and both hint budgets', async (difficulty, attempts, hints) => {
+  it.each([['easy', 7], ['medium', 6], ['hard', 5]] as const)('enforces %s guesses and offers one of each hint', async (difficulty, attempts) => {
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
     await startApp(); const games = app!.get(GameService);
     const game = await games.start(5, ['apple'], difficulty, 'test');
-    expect(game.hints).toEqual({ unused: hints, present: hints });
-    const absent = await games.hint(game.id, 'unused', 'test');
-    expect(absent.letters).toHaveLength(3); expect(absent.letters?.every(letter => !'apple'.includes(letter))).toBe(true);
-    const present = await games.hint(game.id, 'present', 'test'); expect('apple').toContain(present.letter);
-    for (let i = 1; i < hints; i++) await games.hint(game.id, 'unused', 'test');
-    await expect(games.hint(game.id, 'unused', 'test')).rejects.toThrow('used all');
+    expect(game.hints).toEqual({ synonym: 1, definition: 1 });
+    expect(await games.hint(game.id, 'synonym', 'test')).toMatchObject({ text: 'fruit', cost: 1 });
+    expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({ text: 'Definition of _____.', cost: 1 });
+    expect(await games.hint(game.id, 'synonym', 'test')).toMatchObject({ text: 'fruit', cost: 0 });
+    expect(stored.get(game.id)!.hintCoinsSpent).toBe(2);
     for (let i = 1; i <= attempts; i++) expect(await games.submit(game.id, 'paper', 'test')).toMatchObject({ attemptsRemaining: attempts - i, completed: i === attempts, definition: 'Definition of paper.', ...(i === attempts ? { outcome: 'LOST', answer: 'apple', answerDefinition: 'Definition of apple.' } : {}) });
-    expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(attempts + 1);
-    await expect(games.hint(game.id, 'present', 'test')).rejects.toThrow('already complete');
+    expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(attempts + 2);
+    await expect(games.hint(game.id, 'definition', 'test')).rejects.toThrow('already complete');
     await expect(games.submit(game.id, 'apple', 'test')).rejects.toThrow('already complete');
   });
   it('scores duplicate letters without overcounting', () => {

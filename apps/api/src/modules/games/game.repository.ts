@@ -4,6 +4,7 @@ import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, score } from './game
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
 type ActiveState = { guesses: string[]; hints: Game['hints']; revealedAbsent: string[]; revealedPresent: string[];
+  clues?: Game['clues']; hintCoinsSpent?: number;
   coinCost: number; winRewardCoins: number; startedAt: string };
 type GameRow = {
   id: string; start_request_id: string; answer: string; difficulty: Difficulty; attempt_count: number; coin_change: number;
@@ -54,7 +55,8 @@ export class GameRepository implements OnModuleDestroy {
       const answer = await this.resolveWord(client, game.answer);
       if (!answer) throw new BadRequestException('The dictionary changed. Choose a new game.');
       // Replacing a puzzle refunds its original payer in this same transaction.
-      const unfinished = (await client.query(`SELECT g.id,g.coin_user_id,g.coin_guest_session_id,g.coin_change FROM practice_games g
+      const unfinished = (await client.query(`SELECT g.id,g.coin_user_id,g.coin_guest_session_id,
+        COALESCE((g.active_state->>'coinCost')::int,1) AS entry_cost FROM practice_games g
         LEFT JOIN guest_sessions s ON s.id=g.guest_session_id WHERE g.status='active'
         AND (g.user_id::text=$1 OR s.token_hash=$2) ORDER BY g.id`,
         [wallet.kind === 'account' ? wallet.id : null, wallet.kind === 'guest' ? game.owner.slice(6) : null])).rows;
@@ -63,14 +65,15 @@ export class GameRepository implements OnModuleDestroy {
         const payerId = previous.coin_user_id ?? previous.coin_guest_session_id;
         await client.query(`SELECT id FROM ${payerTable} WHERE id=$1 FOR UPDATE`, [payerId]);
         const refunded = await client.query(`UPDATE practice_games SET status='cancelled',finished_at=now(),
-          active_state=NULL,collection_id=NULL,coin_change=0 WHERE id=$1 AND status='active' RETURNING id`, [previous.id]);
-        if (refunded.rowCount) await client.query(`UPDATE ${payerTable} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId, -previous.coin_change]);
+          active_state=NULL,collection_id=NULL,coin_change=coin_change+$2 WHERE id=$1 AND status='active' RETURNING id`, [previous.id, previous.entry_cost]);
+        if (refunded.rowCount) await client.query(`UPDATE ${payerTable} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId, previous.entry_cost]);
       }
       const available = (await client.query(`SELECT coin_balance FROM ${wallet.kind === 'account' ? 'account_users' : 'guest_sessions'} WHERE id=$1`, [wallet.id])).rows[0].coin_balance;
       if (available < game.coinCost) throw new BadRequestException({ code: 'INSUFFICIENT_COINS', message: 'You need 1 coin to start this game.' });
       const table = wallet.kind === 'account' ? 'account_users' : 'guest_sessions';
       await client.query(`UPDATE ${table} SET coin_balance=coin_balance-$2 WHERE id=$1`, [wallet.id, game.coinCost]);
       const state: ActiveState = { guesses: [], hints: game.hints, revealedAbsent: [], revealedPresent: [],
+        clues: game.clues, hintCoinsSpent: 0,
         coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
       await client.query(`INSERT INTO practice_games(id,start_request_id,user_id,guest_session_id,coin_user_id,coin_guest_session_id,
         answer,collection_id,difficulty,coin_change,active_state) VALUES($1,$2,$3,$4,$3,$4,$5,$6,$7,$8,$9)`,
@@ -109,20 +112,24 @@ export class GameRepository implements OnModuleDestroy {
       if (!payer) throw new NotFoundException('Game not found.');
       const table = payer.coin_user_id ? 'account_users' : 'guest_sessions', payerId = payer.coin_user_id ?? payer.coin_guest_session_id;
       // Wallets precede game locks, matching starts, account deletion, and guest claims.
-      await client.query(`SELECT id FROM ${table} WHERE id=$1 FOR UPDATE`, [payerId]);
+      const wallet = (await client.query<{ coin_balance: number }>(`SELECT coin_balance FROM ${table} WHERE id=$1 FOR UPDATE`, [payerId])).rows[0]!;
       const game = await this.load(client, id, owner, true);
       const wasCompleted = game.completed;
+      const previousHintCost = game.hintCoinsSpent;
       const result = await operation(game);
       if (!wasCompleted) {
+        const debit = game.hintCoinsSpent - previousHintCost;
+        if (wallet.coin_balance < debit) throw new BadRequestException({ code: 'INSUFFICIENT_COINS', message: 'You need 1 coin to use this hint.' });
         const credit = game.status === 'won' ? game.winRewardCoins : game.status === 'cancelled' ? game.coinCost : 0;
-        if (credit) await client.query(`UPDATE ${table} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId,credit]);
+        if (credit || debit) await client.query(`UPDATE ${table} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId,credit-debit]);
         const state: ActiveState | null = game.completed ? null : {
           guesses: game.guesses.map(guess => guess.guess), hints: game.hints,
+          clues: game.clues, hintCoinsSpent: game.hintCoinsSpent,
           revealedAbsent: game.revealedAbsent, revealedPresent: game.revealedPresent,
           coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
         await client.query(`UPDATE practice_games SET status=$2,finished_at=$3,active_state=$4,
           attempt_count=$5,coin_change=coin_change+$6,collection_id=CASE WHEN $7 THEN NULL ELSE collection_id END WHERE id=$1`,
-          [id,game.status,game.completedAt,state ? JSON.stringify(state) : null,game.guesses.length,credit,game.completed]);
+          [id,game.status,game.completedAt,state ? JSON.stringify(state) : null,game.guesses.length,credit-debit,game.completed]);
       }
       await client.query('COMMIT'); return result;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
@@ -176,7 +183,9 @@ export class GameRepository implements OnModuleDestroy {
         answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
         wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit:rules.attemptLimit,guesses,completed,status:row.status,
         startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
-        hints:state?.hints ?? {unused:0,present:0},revealedAbsent:state?.revealedAbsent ?? [],revealedPresent:state?.revealedPresent ?? [],
+        hints: { synonym: completed ? 0 : state?.hints.synonym ?? 1, definition: completed ? 0 : state?.hints.definition ?? 1 },
+        clues: state?.clues ?? {}, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
+        revealedAbsent:state?.revealedAbsent ?? [],revealedPresent:state?.revealedPresent ?? [],
         coinCost:state?.coinCost ?? (row.status === 'lost' ? -row.coin_change : 0),
         winRewardCoins:state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',
         ...(row.status === 'cancelled' ? {cancellationReason:'This unfinished game was refunded.'} : {}),

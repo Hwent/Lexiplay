@@ -27,6 +27,8 @@ For a fresh local database, publish a reviewed dictionary using `pnpm library:pu
 
 Dictionary publication preserves referenced entries and updates the library revision so clients refresh cached vocabulary. License notices are shipped under `apps/web/public/licenses/`.
 
+Each puzzle offers a synonym-or-category hint and a definition hint for 1 coin each. Synonyms and category fallbacks use the [Datamuse API](https://www.datamuse.com/api/); definitions use the local dictionary. Failed or unavailable hints cost nothing. Purchased hints stay visible while the puzzle is active, and their fees are not refunded when leaving a puzzle.
+
 Documentation is kept locally under `docs/` and excluded from Git. New clones do not include these local files; retain a separate private copy if you need them on another computer. Generated outputs, dictionary source materials, and database dumps are also ignored; application vocabulary data, import fixtures, migrations, and license notices remain tracked.
 
 - `docs/README.md`: documentation index.

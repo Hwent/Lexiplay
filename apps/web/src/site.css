@@ -20,6 +20,14 @@
 .account-status-link strong { font-size: .95rem; }
 .difficulty-segments label { align-items: center; justify-content: center; }
 .game-price { margin: 1rem 0; font-size: 1rem; line-height: 1.6; text-align: center; }
+.game-consumables .friendly-hint { padding: 1rem; gap: .75rem; }
+.game-consumables .friendly-hint > strong { flex: 1; font-size: 1rem; }
+.hint-price { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); font-size: 1rem; }
+.puzzle-clues { display: grid; gap: .75rem; margin-top: 1rem; }
+.puzzle-clues article { padding: 1rem; border-left: 3px solid var(--accent); border-radius: .5rem; background: var(--surface-soft); }
+.puzzle-clues strong { color: var(--accent); font-size: 1rem; }
+.puzzle-clues p { margin: .5rem 0 0; font-size: 1.05rem; line-height: 1.6; }
+.statistics-columns { grid-template-columns: minmax(0, 1fr); }
 .primary-button, .quiet-button { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 2.9rem; padding: .75rem 1.1rem; border: 1px solid transparent; border-radius: .65rem; font-size: .88rem; font-weight: 650; cursor: pointer; transition: background .18s, border-color .18s, transform .18s; }
 .primary-button { background: var(--accent); color: var(--surface); }
 .primary-button span { padding: 0; }

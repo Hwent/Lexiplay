@@ -146,9 +146,10 @@ export async function cancelUnplayableGames(client: PoolClient) {
       WHERE lower(e.term COLLATE "default")=g.answer AND d.language_code='en') ORDER BY g.id FOR UPDATE`)).rows;
   for (const game of games) {
     const table = game.coin_user_id ? 'account_users' : 'guest_sessions';
-    await client.query(`UPDATE ${table} SET coin_balance=coin_balance-$2 WHERE id=$1`, [game.coin_user_id ?? game.coin_guest_session_id, game.coin_change]);
-    await client.query(`UPDATE practice_games SET status='cancelled',finished_at=now(),coin_change=0,
-      active_state=NULL,collection_id=NULL WHERE id=$1`, [game.id]);
+    const refund = game.active_state.coinCost;
+    await client.query(`UPDATE ${table} SET coin_balance=coin_balance+$2 WHERE id=$1`, [game.coin_user_id ?? game.coin_guest_session_id, refund]);
+    await client.query(`UPDATE practice_games SET status='cancelled',finished_at=now(),coin_change=coin_change+$2,
+      active_state=NULL,collection_id=NULL WHERE id=$1`, [game.id, refund]);
   }
   return games.length;
 }

@@ -41,9 +41,10 @@ type GuessResult = {
   answerDefinition?: string;
   rewardCoins?: number;
 };
-type Game = { answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { unused: number; present: number }; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
+type HintType = 'synonym' | 'definition';
+type Game = { answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: Record<HintType, number>; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
-const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, hints: 3, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, hints: 2, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, hints: 1, reward: 6 }] as const;
+const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, reward: 6 }] as const;
 
 function BookmarkIcon({ added }: { added: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
@@ -208,7 +209,7 @@ export default function App() {
       if (active) setWalletOwner(account?.id ?? 'guest');
     });
     return () => { active = false; };
-  }, [account?.id, accountLoading, game?.id, game?.guesses.length]);
+  }, [account?.id, accountLoading, game?.id, game?.guesses.length, game?.hintCoinsSpent]);
 
   useEffect(() => {
     let active = true;
@@ -263,7 +264,7 @@ export default function App() {
         method: 'POST',
         body: JSON.stringify({ ...options, startRequestId: startRequest.current.id }),
       });
-      setGame({ ...newGame, hints: newGame.hints ?? { unused: 3, present: 3 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
+      setGame({ ...newGame, hints: newGame.hints ?? { synonym: 1, definition: 1 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
       try { window.localStorage.setItem(LAST_GAME_KEY, newGame.id); } catch { /* Gameplay remains available without browser storage. */ }
       setGuess('');
       startRequest.current = null;
@@ -275,20 +276,19 @@ export default function App() {
     }
   }
 
-  async function useHint(type: 'unused' | 'present') {
+  async function useHint(type: HintType) {
     if (!game || busy || progressSaving || finished) return;
+    const session = guessSession.current;
     setBusy(true);
     setMessage('');
     setRejectedAttempt(0);
     try {
-      const result = await api<{ type: string; letters?: string[]; letter?: string; hints: Game['hints'] }>(`/games/${game.id}/hints`, {
+      const result = await api<{ type: HintType; text: string; hints: Game['hints']; cost: number }>(`/games/${game.id}/hints`, {
         method: 'POST', body: JSON.stringify({ type }),
       });
-      setGame({ ...game, hints: result.hints,
-        revealedAbsent: [...game.revealedAbsent, ...(result.letters ?? [])],
-        revealedPresent: result.letter ? [...game.revealedPresent, result.letter] : game.revealedPresent,
-      });
-      setMessage(result.letter ? `${result.letter.toUpperCase()} is in the answer. Its position is still yours to find.` : `${result.letters?.map(letter => letter.toUpperCase()).join(', ')} ${result.letters?.length === 1 ? 'is' : 'are'} not in the answer.`);
+      if (session !== guessSession.current) return;
+      setGame({ ...game, hints: result.hints, clues: { ...game.clues, [type]: result.text }, hintCoinsSpent: (game.hintCoinsSpent ?? 0) + result.cost });
+      setMessage('');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not use this hint.');
     } finally {
@@ -502,10 +502,16 @@ export default function App() {
                 </div>;
               })}
             </div>}
-            {!finished && <div className="game-consumables" aria-label="Hints">
-              <button className="friendly-hint" type="button" onClick={() => void useHint('unused')} disabled={busy || progressSaving || game.hints.unused === 0}><span className="hint-icon" aria-hidden="true">⌫</span><span><strong>Remove letters</strong><small>Hide up to 3 incorrect letters</small></span><span className="hint-count">{game.hints.unused} left</span></button>
-              <button className="friendly-hint" type="button" onClick={() => void useHint('present')} disabled={busy || progressSaving || game.hints.present === 0}><span className="hint-icon" aria-hidden="true">✦</span><span><strong>Reveal a letter</strong><small>Position stays hidden</small></span><span className="hint-count">{game.hints.present} left</span></button>
-            </div>}
+            {!finished && <>
+              <div className="game-consumables" aria-label="Hints">{(['synonym', 'definition'] as const).map(type => {
+                const title = type === 'synonym' ? 'Synonym or category' : 'Definition';
+                const used = !!game.clues?.[type];
+                return <button className="friendly-hint" key={type} type="button" aria-label={`${title} hint · ${used ? 'Revealed' : '1 coin'}`} onClick={() => void useHint(type)} disabled={busy || progressSaving || used || game.hints[type] === 0}>
+                  <span className="hint-icon" aria-hidden="true">{type === 'synonym' ? '≈' : <Icon name="library"/>}</span><strong>{title}</strong><span className="hint-price">{used ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
+                </button>;
+              })}</div>
+              {game.clues && Object.keys(game.clues).length > 0 && <section className="puzzle-clues" aria-label="Revealed hints">{(['synonym', 'definition'] as const).map(type => game.clues?.[type] && <article key={type}><strong>{type === 'synonym' ? 'Synonym or category' : 'Definition'}</strong><p>{game.clues[type]}</p></article>)}</section>}
+            </>}
             {!finished && <>
               <label className="sr-only" htmlFor="guess-input">Type your {lengthName(game.wordLength)} guess one letter at a time</label>
               <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly={busy || progressSaving} onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="text" />
