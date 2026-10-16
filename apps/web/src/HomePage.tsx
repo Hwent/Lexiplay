@@ -2,7 +2,7 @@ import Icon, { IconName } from './Icon';
 
 const destinations: { section: 'library' | 'play' | 'progress'; icon: IconName; title: string; copy: string; action: string }[] = [
   { section: 'library', icon: 'library', title: 'Vocabulary', copy: 'Browse collections and save words to your list.', action: 'Explore the library' },
-  { section: 'play', icon: 'play', title: 'Games', copy: 'Choose Original Wordle or practise your vocabulary.', action: 'Choose a puzzle' },
+  { section: 'play', icon: 'play', title: 'Games', copy: 'Solve a word puzzle or practise your vocabulary.', action: 'Choose a puzzle' },
   { section: 'progress', icon: 'progress', title: 'Statistics', copy: 'View your games, results, and practice streak.', action: 'View Statistics' },
 ];
 

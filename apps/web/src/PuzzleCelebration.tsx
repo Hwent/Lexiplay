@@ -1,12 +1,6 @@
-import { CSSProperties, useEffect, useState } from 'react';
+import { CSSProperties } from 'react';
 
 export default function PuzzleCelebration() {
-  const [visible, setVisible] = useState(true);
-  useEffect(() => {
-    const timer = window.setTimeout(() => setVisible(false), 2800);
-    return () => window.clearTimeout(timer);
-  }, []);
-  if (!visible) return null;
   return <div className="puzzle-celebration" aria-hidden="true">
     <svg viewBox="0 0 600 320" preserveAspectRatio="xMidYMid slice">
       {Array.from({ length: 28 }, (_, index) => <g className="confetti-piece" key={index} style={{

@@ -20,6 +20,8 @@ it('selects family members independently, keeps selections across family pages a
     return Response.json([familyCollection]);
   });
   vi.stubGlobal('fetch',fetchMock);const user=userEvent.setup();render(<ExploreVocabulary signedIn={false} onImported={()=>{}} onSignIn={()=>{}}/>);
+  await screen.findByText('27 words');
+  expect(screen.queryByText(/26 families|27 members/)).not.toBeInTheDocument();
   await user.click(await screen.findByRole('button',{name:'Explore CEFR A1'}));
   await user.click(await screen.findByRole('checkbox',{name:'Select act family members'}));
   expect(screen.getByRole('checkbox',{name:'Select action (noun)'})).toBeChecked();

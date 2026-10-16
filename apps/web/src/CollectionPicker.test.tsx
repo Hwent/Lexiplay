@@ -15,14 +15,14 @@ it('shows playable words for the selected length and collection without a browse
   vi.stubGlobal('fetch', fetchMock);
   const onChange = vi.fn(), user = userEvent.setup();
   const { rerender } = render(<CollectionPicker value="" wordLength={5} disabled={false} onChange={onChange}/>);
-  expect(await screen.findByLabelText('Playable words')).toHaveTextContent('100 playable 5-letter words');
+  expect(await screen.findByLabelText('Playable words')).toHaveTextContent('100 words');
   expect(screen.queryByRole('button', { name: 'Browse collections' })).not.toBeInTheDocument();
   expect(screen.getByRole('option', { name: 'CEFR C2 · 0 words' })).toBeDisabled();
-  await user.selectOptions(screen.getByLabelText('Official collection'), 'cefr-a2');
+  await user.selectOptions(screen.getByLabelText('Collection'), 'cefr-a2');
   expect(onChange).toHaveBeenCalledWith('cefr-a2');
   rerender(<CollectionPicker value="cefr-a2" wordLength={5} disabled={false} onChange={onChange}/>);
-  expect(screen.getByLabelText('Playable words')).toHaveTextContent('12 playable 5-letter words');
+  expect(screen.getByLabelText('Playable words')).toHaveTextContent('12 words');
   rerender(<CollectionPicker value="cefr-a2" wordLength={6} disabled={false} onChange={onChange}/>);
-  await waitFor(() => expect(screen.getByLabelText('Playable words')).toHaveTextContent('3 playable 6-letter words'));
+  await waitFor(() => expect(screen.getByLabelText('Playable words')).toHaveTextContent('3 words'));
   expect(fetchMock).toHaveBeenCalledWith('/api/v1/collections/game-options?wordLength=6', expect.anything());
 });

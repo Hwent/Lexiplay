@@ -15,15 +15,6 @@ type ExploreVocabularyProps = {
   onUseCollection?: ((id: string) => void) | undefined;
 };
 
-const CEFR_DESCRIPTIONS: Record<string, string> = {
-  A1: '',
-  A2: 'Build confidence in everyday conversations',
-  B1: 'Communicate about familiar topics',
-  B2: 'Express ideas with greater confidence',
-  C1: 'Understand and use complex English',
-  C2: 'Master subtle meanings and nuance',
-};
-
 export default function ExploreVocabulary({
   signedIn,
   onImported,
@@ -194,27 +185,8 @@ export default function ExploreVocabulary({
       .catch(() => undefined);
   }, [signedIn, store]);
 
-  function getCollectionDescription(collection: VocabularyCollection) {
-    if (collection.level === 'C2' && collection.status === 'available') {
-      return collection.description;
-    }
-
-    if (collection.category === 'CEFR' && collection.level) {
-      return CEFR_DESCRIPTIONS[collection.level] ?? '';
-    }
-
-    return collection.status === 'available' ? collection.description : 'Coming soon';
-  }
-
   function getCollectionSize(collection: VocabularyCollection) {
-    if (collection.familyCount === undefined) {
-      return `${collection.wordCount.toLocaleString()} words`;
-    }
-
-    const membersSummary = `${collection.familyCount.toLocaleString()} families · ${collection.wordCount.toLocaleString()} members`;
-    return collection.otherUnitCount
-      ? `${membersSummary} · ${collection.otherUnitCount} other items`
-      : membersSummary;
+    return `${collection.wordCount.toLocaleString()} words`;
   }
 
   function openCollection(value: string) {
@@ -331,7 +303,6 @@ export default function ExploreVocabulary({
           </span>
         </div>
 
-        {getCollectionDescription(collection) && <p>{getCollectionDescription(collection)}</p>}
         <small>{isAvailable ? getCollectionSize(collection) : 'Coming soon'}</small>
 
         <button
@@ -392,7 +363,6 @@ export default function ExploreVocabulary({
                 <div>
                   <p className="library-eyebrow">VOCABULARY COLLECTION</p>
                   <h2>{current.name}</h2>
-                  <p>{getCollectionDescription(current)}</p>
                 </div>
                 <span className="library-count">{getCollectionSize(current)}</span>
               </header>

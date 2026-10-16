@@ -66,13 +66,16 @@ describe('practice puzzle', () => {
     await user.type(guessInput, 'plant');
     expect(await screen.findByText(/you found it/i)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toHaveAttribute('aria-hidden', 'true');
+    await user.click(screen.getByRole('button', { name: 'Home' }));
+    await user.click(screen.getByRole('button', { name: 'Games' }));
+    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toBeNull();
+    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-won')).toBeNull();
     expect(cachedDictionaryDefinition('crane')).toBe('A large bird.');
     expect(cachedDictionaryDefinition('plant')).toBe('A living organism.');
-    await user.click(screen.getByRole('button', { name: /^return$/i }));
-    expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
-    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toBeNull();
-    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    await user.click(screen.getByRole('button', { name: 'Play again' }));
     expect(await screen.findByRole('textbox', { name: /five-letter guess/i })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toBeNull();
+    expect(screen.queryByRole('button', { name: /start practice/i })).not.toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(6);
   });
 
@@ -266,7 +269,7 @@ describe('practice puzzle', () => {
   });
 
   it('selects word lengths and the personal pool with the redesigned controls', async () => {
-    stubFetchWithVocabularyRanges( vi.fn(async () => new Response('{}', { status: 401 })));
+    stubFetchWithVocabularyRanges( vi.fn(async input => String(input).endsWith('/auth/me') ? Response.json({ id: 'learner', username: 'learner' }) : Response.json([])));
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: /^games$/i }));
@@ -274,8 +277,10 @@ describe('practice puzzle', () => {
     await user.click(screen.getByRole('radio', { name: '8 letters' }));
     expect(screen.getByRole('radio', { name: '8 letters' })).toBeChecked();
     expect(screen.getByRole('radio', { name: '5 letters' })).not.toBeChecked();
-    const personalPool = screen.getByRole('switch', { name: 'Play with my words' });
-    await user.click(personalPool);
-    expect(personalPool).toBeChecked();
+    const collection = screen.getByLabelText('Collection');
+    await waitFor(() => expect(screen.getByRole('option', { name: 'My word list' })).toBeEnabled());
+    await user.selectOptions(collection, 'my-words');
+    expect(collection).toHaveValue('my-words');
+    expect(screen.queryByRole('switch', { name: 'Play with my words' })).not.toBeInTheDocument();
   });
 });
