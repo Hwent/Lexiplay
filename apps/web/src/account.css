@@ -1,5 +1,5 @@
-.account-page { --accent: #8dbc7d; --account-danger: #e7a29b; --account-danger-fill: #b54037; width: min(100%, 66rem); margin: .5rem auto 2rem; }
-:root[data-theme='light'] .account-page { --accent: #047857; --account-danger: #a73630; }
+.account-page { --account-danger: #e7a29b; --account-danger-fill: #b54037; width: min(100%, 66rem); margin: .5rem auto 2rem; }
+:root[data-theme='light'] .account-page { --account-danger: #a73630; }
 .account-intro { margin: .5rem 0 1.5rem; }
 .account-intro .eyebrow { color: var(--accent); font-size: .67rem; letter-spacing: .16em; }
 .account-intro h2 { margin: .6rem 0; font-family: inherit; font-weight: 650; font-size: clamp(1.8rem, 3vw, 2.55rem); line-height: 1.15; letter-spacing: -.045em; }

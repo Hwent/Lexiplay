@@ -1,8 +1,8 @@
 .library-page {
-  --library-accent: #a6cb9c;
-  --library-soft: #263329;
-  --library-card: #1b1e1c;
-  --library-border: #343c36;
+  --library-accent: var(--accent);
+  --library-soft: var(--accent-soft);
+  --library-card: var(--surface);
+  --library-border: var(--line);
 }
 :root[data-theme='light'] .library-page {
   --library-accent: #376747;

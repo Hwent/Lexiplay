@@ -1,0 +1,246 @@
+/* The Library palette and spacing carry through every learning space. */
+.app-shell { max-width: 100rem; grid-template-columns: 14rem minmax(0, 1fr); }
+.sidebar { background: var(--surface); border-color: var(--line); }
+.sidebar .brand { font-family: inherit; font-size: 1.4rem; font-weight: 700; }
+.brand-mark { border-radius: .75rem .75rem .75rem .2rem; background: var(--accent); color: var(--surface); }
+.main-navigation { gap: .4rem; }
+.main-navigation button { min-height: 3rem; border-radius: .7rem; font-size: .9rem; font-weight: 500; }
+.main-navigation button.active { font-weight: 650; }
+.main-navigation button.active::before { display: none; }
+.workspace { padding-inline: clamp(1.25rem, 3.5vw, 3.5rem); }
+.workspace .topbar { min-height: 5.5rem; margin-bottom: 0; }
+.page-title h1 { font-size: 1.15rem; font-weight: 650; }
+.header-actions .theme-toggle { display: grid; place-items: center; width: 2.65rem; height: 2.65rem; padding: .65rem; font-size: 0; }
+.header-search, .account-status-link { min-height: 2.65rem; background: var(--surface); }
+.header-search button { border-left: 0; }
+.primary-button, .quiet-button { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 2.9rem; padding: .75rem 1.1rem; border: 1px solid transparent; border-radius: .65rem; font-size: .88rem; font-weight: 650; cursor: pointer; transition: background .18s, border-color .18s, transform .18s; }
+.primary-button { background: var(--accent); color: var(--surface); }
+.primary-button span { padding: 0; }
+.primary-button:hover:enabled { filter: none; background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
+.quiet-button { background: transparent; color: var(--accent); }
+.quiet-button:hover:enabled { border-color: var(--line); background: var(--accent-soft); }
+.page-eyebrow { margin: 0 0 .9rem; color: var(--accent); font-size: .72rem; font-weight: 750; letter-spacing: .14em; line-height: 1.5; }
+.page-introduction { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: 2.5rem 0 2rem; }
+.page-introduction h2 { margin: 0; font-size: clamp(2rem, 3.2vw, 3rem); font-weight: 650; line-height: 1.13; letter-spacing: -.055em; }
+.page-introduction h2 span, .home-hero h2 span { color: var(--accent); }
+.page-introduction p:last-child { max-width: 32rem; margin: 1rem 0 0; color: var(--muted); font-size: .95rem; line-height: 1.7; }
+.page-intro-icon { display: grid; place-items: center; flex: 0 0 auto; width: 6rem; height: 6rem; border: 1px solid var(--line); border-radius: 1.3rem; background: var(--accent-soft); color: var(--accent); transform: rotate(-6deg); }
+.page-intro-icon .ui-icon { width: 2.5rem; height: 2.5rem; }
+.feature-icon { display: inline-grid; place-items: center; flex: 0 0 auto; width: 3rem; height: 3rem; border-radius: .85rem; background: var(--accent-soft); color: var(--accent); }
+.feature-icon .ui-icon { width: 1.35rem; height: 1.35rem; }
+.feature-tone-1 { background: #393044; color: #d0b4ec; }
+.feature-tone-2 { background: #3e3525; color: #dfc796; }
+:root[data-theme='light'] .feature-tone-1 { background: #f0e9f7; color: #795898; }
+:root[data-theme='light'] .feature-tone-2 { background: #f5efdf; color: #81672e; }
+.home-page { width: 100%; max-width: 88rem; margin: 0 auto; padding-bottom: 2.5rem; }
+.home-hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(15rem, .8fr); align-items: center; gap: 2rem; padding: clamp(2rem, 5vw, 4.5rem) 0; }
+.home-hero h2 { margin: 0; font-size: clamp(2.5rem, 5vw, 4.25rem); font-weight: 650; letter-spacing: -.065em; line-height: 1.07; }
+.home-hero-copy > p:last-of-type { max-width: 28rem; margin: 1.4rem 0 1.6rem; color: var(--muted); font-size: 1rem; line-height: 1.8; }
+.home-hero-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.home-word-art { position: relative; width: min(100%, 19rem); margin: 1rem auto; padding: 1.8rem 0; }
+.word-art-card { position: relative; padding: 1.8rem; border: 1px solid var(--line); border-radius: 1.15rem; background: var(--surface); transform: rotate(-5deg); box-shadow: 9px 9px 0 var(--accent-soft), 10px 10px 0 var(--line); }
+.word-art-label { color: var(--muted); font-size: .65rem; font-weight: 650; letter-spacing: .15em; }
+.word-art-card > strong { display: block; margin: .7rem 0 .1rem; font: 4.5rem/1.2 Georgia, serif; letter-spacing: -.06em; }
+.word-art-card > strong span { color: var(--accent); }
+.word-art-pos { color: var(--muted); font-size: .8rem; font-style: italic; }
+.word-art-card p { max-width: 12rem; color: var(--soft-text); font-size: .9rem; line-height: 1.6; }
+.word-art-tiles { display: flex; gap: .4rem; padding-top: .7rem; }
+.word-art-tiles > span { display: grid; place-items: center; width: 2.3rem; height: 2.3rem; border: 1px solid color-mix(in srgb, var(--accent) 30%, var(--line)); border-radius: .4rem; background: var(--accent-soft); color: var(--accent); font-size: 1rem; font-weight: 700; }
+.word-art-tiles > span[data-tone='warm'] { background: #3e3525; border-color: #675938; color: #dfc796; }
+:root[data-theme='light'] .word-art-tiles > span[data-tone='warm'] { background: #f5efdf; border-color: #dfc796; color: #81672e; }
+.word-art-note { position: absolute; z-index: 1; right: -1rem; top: .4rem; display: flex; align-items: center; gap: .5rem; padding: .7rem .9rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--accent-soft); color: var(--accent); font-size: .75rem; transform: rotate(6deg); }
+.word-art-caption { display: block; margin-top: 2rem; color: var(--muted); font-size: .8rem; text-align: center; }
+.home-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: .5rem 0 1.4rem; }
+.home-section-heading .page-eyebrow { margin-bottom: .45rem; }
+.home-section-heading h3 { margin: 0; font-size: 1.4rem; font-weight: 650; letter-spacing: -.035em; }
+.home-section-heading > span { color: var(--muted); font-size: .85rem; }
+.learning-cards { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1rem; }
+.learning-cards > button { display: flex; flex-direction: column; min-width: 0; padding: 1.4rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); color: var(--text); text-align: left; cursor: pointer; transition: transform .18s, border-color .18s, box-shadow .18s; }
+.learning-cards > button:hover { transform: translateY(-4px); border-color: var(--accent); box-shadow: 0 8px 24px rgb(0 0 0 / 8%); }
+.learning-card-top { display: flex; align-items: center; justify-content: space-between; width: 100%; }
+.learning-card-number { color: var(--muted); font-size: .75rem; }
+.learning-cards h4 { margin: 1.3rem 0 .6rem; font-size: 1.05rem; font-weight: 650; letter-spacing: -.025em; }
+.learning-cards p { margin: 0 0 1.5rem; color: var(--muted); font-size: .9rem; line-height: 1.7; }
+.learning-card-action { display: flex; justify-content: space-between; align-items: center; width: 100%; padding-top: 1rem; margin-top: auto; border-top: 1px solid var(--line); color: var(--accent); font-size: .82rem; font-weight: 600; }
+.home-note { display: flex; align-items: center; gap: 1rem; padding: 1.4rem 0 0; margin-top: 1.8rem; border-top: 1px solid var(--line); }
+.home-note p { flex: 1; margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.7; }
+.home-note strong { color: var(--text); font-weight: 500; }
+.game-catalog { margin: 0 0 1rem; }
+.game-catalog-card { padding: 1rem 1.2rem; }
+.catalog-icon { display: grid; place-items: center; width: 2.8rem; height: 2.8rem; border-radius: .8rem; background: var(--accent-soft); }
+.catalog-icon .ui-icon { width: 1.4rem; height: 1.4rem; }
+.catalog-copy strong { font-size: 1rem; }
+.catalog-copy > span { font-size: .85rem; }
+.catalog-status { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; }
+.game-card { flex: 0 0 auto; padding: clamp(1rem, 2.5vw, 2rem); margin-bottom: 2rem; box-shadow: none; }
+.welcome-card { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: start; gap: clamp(1.5rem, 3vw, 3rem); min-height: 0; padding: .5rem 0; text-align: left; }
+.practice-story { padding-top: 1rem; }
+.practice-story .sample-grid { grid-template-columns: repeat(5, minmax(0, 2.7rem)); gap: .35rem; margin-bottom: 1.6rem; }
+.sample-tile { border-radius: .45rem; border: 1px solid var(--line); background: var(--accent-soft); color: var(--accent); }
+.practice-story .sample-tile:nth-child(3) { background: var(--surface-soft); color: var(--muted); }
+.welcome-card h2 { font-size: 1.7rem; letter-spacing: -.045em; }
+.game-rules { width: 100%; margin-top: 1.2rem; padding: 0; border: 0; background: transparent; }
+.game-rules h3 { font-size: .95rem; }
+.game-rules p { font-size: .9rem; line-height: 1.75; color: var(--muted); }
+.rule-colors { gap: .65rem; }
+.rule-colors > span { font-size: .78rem; }
+.rule-swatch { width: .85rem; height: .85rem; }
+.practice-setup { min-width: 0; padding-left: clamp(1.25rem, 2.5vw, 2.5rem); border-left: 1px solid var(--line); }
+.practice-setup-heading .page-eyebrow { margin-bottom: .4rem; }
+.practice-setup-heading h3 { margin: 0; font-size: 1.1rem; font-weight: 650; letter-spacing: -.025em; }
+.practice-options { width: 100%; margin-top: 1.5rem; }
+.practice-options .text-action { display: inline-flex; align-items: center; min-height: 2.75rem; padding: .5rem 0; color: var(--accent); font-size: .85rem; text-underline-offset: .2em; }
+.practice-options .cefr-pool-picker { margin-top: 1rem; }
+.length-options legend, .difficulty-options legend { font-size: .9rem; font-weight: 600; }
+.length-segments { grid-template-columns: repeat(7, minmax(0, 1fr)); border-radius: .65rem; }
+.length-segments label { min-height: 2.65rem; border-radius: .45rem; }
+.length-segments label > span { font-size: 1.15rem; }
+.length-segments label.selected > span { color: var(--accent); }
+.difficulty-options { margin-top: 1.25rem; }
+.difficulty-segments label { padding: .8rem .55rem; border-radius: .65rem; }
+.difficulty-segments strong { font-size: .85rem; }
+.difficulty-segments small { font-size: .75rem; line-height: 1.6; }
+.word-pool-option { padding: .85rem; border-radius: .7rem; }
+.word-pool-option strong { font-size: .9rem; }
+.word-pool-option small { font-size: .8rem; }
+.practice-setup > .primary-button { width: 100%; margin-top: 1.25rem; font-size: .95rem; }
+.puzzle { max-width: 64rem; margin: 0 auto; }
+.puzzle-message { border-radius: .75rem; background: var(--surface-soft); }
+.friendly-hint { transition: border-color .18s, background .18s; }
+.friendly-hint:hover:enabled { border-color: var(--accent); background: var(--accent-soft); }
+.statistics-page, .community-page, .settings-page { width: 100%; max-width: 88rem; margin: 0 auto 2rem; }
+.stat-cards article { gap: 1.5rem; padding: 1.3rem; }
+.stat-label { display: flex; justify-content: space-between; align-items: center; gap: .5rem; }
+.stat-label > .ui-icon { color: var(--accent); }
+.stat-cards strong { font-size: clamp(1.6rem, 3vw, 2.5rem); font-weight: 600; letter-spacing: -.05em; }
+.statistics-card { padding: 1.5rem; }
+.statistics-card h3 { font-size: 1.05rem; letter-spacing: -.025em; }
+.statistics-card p, .stat-label, .recent-games li span, .recent-games time { font-size: .85rem; }
+.statistics-empty { padding: 2rem; border-style: dashed; }
+.statistics-empty .account-action { padding: .65rem 1rem; min-height: 2.75rem; border-radius: .6rem; background: var(--accent-soft); border-color: var(--line); color: var(--accent); }
+.statistics-footnote { max-width: 45rem; font-size: .8rem; }
+.settings-page { padding: 0; border: 0; background: transparent; }
+.appearance-panel { max-width: 47rem; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
+.appearance-panel > h3 { margin: 0; font-size: 1.15rem; letter-spacing: -.025em; }
+.settings-page .appearance-panel > p { font-size: .9rem; }
+.theme-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.5rem; }
+.theme-options > button { min-width: 0; padding: .65rem; border: 1px solid var(--line); border-radius: .85rem; background: transparent; color: var(--text); cursor: pointer; transition: background .18s, border-color .18s; }
+.theme-options > button[aria-pressed='true'] { border-color: var(--accent); background: var(--accent-soft); }
+.theme-preview { display: flex; height: 8.5rem; overflow: hidden; border: 1px solid #dce4da; border-radius: .5rem; background: #f6f7f2; }
+.theme-preview-nav { width: 23%; border-right: 1px solid #dce4da; background: #fff; }
+.theme-preview-content { display: flex; flex: 1; flex-direction: column; gap: .65rem; padding: 1rem; }
+.theme-preview-content > i { width: 75%; height: .5rem; border-radius: .2rem; background: #bed0b8; }
+.theme-preview-content > i:nth-child(2) { width: 45%; background: #dce4da; }
+.theme-preview-content > span { display: flex; flex: 1; gap: .5rem; margin-top: .25rem; }
+.theme-preview-content > span > i { flex: 1; border: 1px solid #dce4da; border-radius: .4rem; background: #fff; }
+.theme-preview-dark { border-color: #343c36; background: #141715; }
+.theme-preview-dark .theme-preview-nav { border-color: #343c36; background: #1b1e1c; }
+.theme-preview-dark .theme-preview-content > i { background: #a6cb9c; }
+.theme-preview-dark .theme-preview-content > i:nth-child(2) { background: #343c36; }
+.theme-preview-dark .theme-preview-content > span > i { border-color: #343c36; background: #1b1e1c; }
+.theme-option-label { display: flex; align-items: center; gap: .55rem; padding: .8rem .3rem .25rem; font-size: .85rem; }
+.theme-option-label strong { font-weight: 600; }
+.theme-option-check { display: grid; place-items: center; width: 1.25rem; height: 1.25rem; margin-left: auto; border: 1px solid var(--line); border-radius: 50%; }
+[aria-pressed='true'] .theme-option-check { border-color: var(--accent); background: var(--accent); color: var(--surface); }
+.theme-option-check .ui-icon { width: .9rem; height: .9rem; }
+.settings-page p.appearance-note { margin-top: 1.25rem; color: var(--muted); font-size: .8rem; }
+.community-card { display: flex; align-items: center; flex-direction: column; max-width: 48rem; margin: 0 auto; padding: clamp(2rem, 5vw, 4rem); border: 1px dashed var(--line); border-radius: 1.2rem; background: var(--surface); text-align: center; }
+.community-card .feature-icon { width: 4rem; height: 4rem; border-radius: 1.1rem; }
+.community-card .feature-icon .ui-icon { width: 2rem; height: 2rem; }
+.status-pill { display: inline-flex; padding: .4rem .7rem; margin-top: 1.4rem; border: 1px solid var(--line); border-radius: 99px; color: var(--accent); font-size: .75rem; }
+.community-card h3 { margin: 1.1rem 0 .5rem; font-size: 1.4rem; font-weight: 650; letter-spacing: -.035em; }
+.community-card p { max-width: 29rem; margin: 0 0 1.5rem; color: var(--muted); font-size: .95rem; line-height: 1.8; }
+.account-page { margin-top: 2.5rem; }
+.account-intro { margin-bottom: 2rem; }
+.account-intro h2 { font-size: clamp(2rem, 3.2vw, 3rem); letter-spacing: -.055em; }
+.account-intro .eyebrow { font-size: .72rem; }
+.account-page-card { box-shadow: none; border-radius: 1rem; }
+.account-story { background: var(--accent-soft); border-radius: 1rem; }
+.account-story h3 { font-family: inherit; font-weight: 600; }
+.account-story li, .account-page .account-hint, .account-form-footer > span, .account-page .account-link { font-size: .85rem; }
+.account-page .account-form label { font-size: .9rem; }
+.licenses-page { width: min(100%, 64rem); margin: 2.5rem auto 2rem; padding: 0; border: 0; background: transparent; }
+.licenses-page > .eyebrow { color: var(--accent); font-size: .72rem; font-weight: 750; letter-spacing: .14em; }
+.licenses-page > h2 { max-width: 35rem; font-size: clamp(2rem, 3.2vw, 3rem); font-weight: 650; line-height: 1.13; letter-spacing: -.055em; }
+.licenses-page > p { max-width: 35rem; font-size: .95rem; }
+.licenses-page article { padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
+.licenses-page article h3 { margin: 0; font-size: 1.1rem; letter-spacing: -.025em; }
+.licenses-page article p:last-child { margin-bottom: 0; }
+.workspace-footer { gap: 1rem; min-height: 4.5rem; padding-block: 1rem; font-size: .8rem; }
+.footer-links { display: flex; align-items: center; gap: 1.25rem; }
+.footer-links a { display: inline-flex; align-items: center; gap: .35rem; min-height: 2.75rem; text-decoration: none; }
+.footer-links a:hover { text-decoration: underline; }
+.footer-links .ui-icon { width: .95rem; height: .95rem; }
+@media (prefers-reduced-motion: no-preference) {
+  .home-page, .page-introduction, .account-intro, .library-introduction { animation: page-arrive .35s ease-out; }
+  @keyframes page-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+}
+@media (max-width: 1150px) {
+  .home-hero { grid-template-columns: minmax(0, 1fr) minmax(13rem, .7fr); }
+  .home-hero-actions { flex-direction: column; align-items: flex-start; }
+  .learning-cards { gap: .75rem; }
+  .learning-cards > button { padding: 1.1rem; }
+  .welcome-card { grid-template-columns: 1fr; }
+  .practice-story { display: grid; grid-template-columns: auto 1fr; column-gap: 2rem; align-items: center; padding: 0; }
+  .practice-story .sample-grid { margin: 0; }
+  .practice-story .game-rules { grid-column: 1 / -1; }
+  .practice-setup { padding: 1.5rem 0 0; border-left: 0; border-top: 1px solid var(--line); }
+}
+@media (max-width: 900px) {
+  .app-shell { grid-template-columns: 4.5rem minmax(0, 1fr); }
+  .sidebar { padding-inline: .5rem; align-items: center; }
+  .sidebar .brand { font-size: 0; }
+  .main-navigation button { width: 3.25rem; padding: .4rem; justify-content: center; }
+  .main-navigation .nav-label, .sidebar-bottom { display: none; }
+  .workspace { padding-inline: 1.5rem; }
+  .learning-cards { grid-template-columns: 1fr; }
+  .learning-cards > button { display: grid; grid-template-columns: 3rem minmax(0, 1fr); gap: .5rem 1rem; padding: 1.25rem; }
+  .learning-card-top { grid-row: 1 / 4; align-self: start; }
+  .learning-card-number { display: none; }
+  .learning-cards h4, .learning-cards p { margin: 0; }
+  .learning-card-action { grid-column: 2; margin-top: .5rem; }
+}
+@media (max-width: 650px) {
+  .home-hero { grid-template-columns: 1fr; padding: 2.5rem 0; gap: 1.5rem; }
+  .home-hero h2 { font-size: clamp(2.6rem, 9vw, 3.7rem); }
+  .home-hero-actions { flex-direction: row; align-items: center; }
+  .home-word-art { display: none; }
+  .home-section-heading > span { display: none; }
+  .home-note { flex-wrap: wrap; }
+  .home-note > .quiet-button { margin-left: 4rem; }
+  .page-introduction { padding: 2rem 0; }
+  .page-intro-icon { width: 4rem; height: 4rem; border-radius: 1rem; }
+  .page-intro-icon .ui-icon { width: 1.8rem; height: 1.8rem; }
+  .stat-cards { gap: .75rem; }
+  .stat-cards article { padding: 1rem; }
+  .stat-label { align-items: flex-start; }
+  .stat-label > .ui-icon { width: 1rem; height: 1rem; }
+  .workspace-footer { align-items: flex-start; flex-direction: column; gap: .25rem; }
+}
+@media (max-width: 560px) {
+  .app-shell { display: flex; }
+  .sidebar { padding: .4rem .3rem calc(.4rem + env(safe-area-inset-bottom)); }
+  .main-navigation { gap: .1rem; }
+  .main-navigation button { width: auto; min-height: 3.25rem; font-size: .65rem; }
+  .main-navigation .nav-mobile-label { font-size: .65rem; }
+  .workspace { padding: 0 1rem calc(5rem + env(safe-area-inset-bottom)); }
+  .workspace .topbar { min-height: 6.5rem; gap: .75rem; }
+  .header-search { width: 100%; }
+  .page-introduction { gap: .75rem; }
+  .page-introduction h2 { font-size: 2rem; }
+  .page-intro-icon { display: none; }
+  .game-card { padding: 1rem; }
+  .practice-story { grid-template-columns: 1fr; gap: 1rem; }
+  .practice-story .game-rules { margin-top: 0; }
+  .practice-story .sample-grid { grid-template-columns: repeat(5, 2.5rem); }
+  .practice-setup { padding-top: 1.25rem; }
+  .difficulty-segments label { padding: .75rem .45rem; }
+  .difficulty-segments small { font-size: .75rem; }
+  .game-card .primary-button { font-size: .95rem; }
+  .theme-options { gap: .65rem; }
+  .theme-preview { height: 6.5rem; }
+  .theme-preview-content { padding: .7rem; }
+  .theme-option-label { gap: .35rem; font-size: .8rem; }
+  .account-page, .licenses-page { margin-top: 2rem; }
+  .workspace-footer { padding-block: 1rem; }
+}

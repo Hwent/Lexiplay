@@ -8,7 +8,9 @@ import AccountPage from './AccountPage';
 import AccountStatus from './AccountStatus';
 import useAccount from './useAccount';
 import GameCatalog from './GameCatalog';
-import HomeRelease from './HomeRelease';
+import HomePage from './HomePage';
+import SettingsPage from './SettingsPage';
+import CommunityPage from './CommunityPage';
 import StatisticsPanel from './StatisticsPanel';
 import PronunciationButton from './PronunciationButton';
 import { normalizeTerm, rememberDictionaryDefinition } from './dictionary-cache';
@@ -84,6 +86,7 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
   const [activeSection, setActiveSection] = useState<Section>(currentSection);
   const [quickSearch, setQuickSearch] = useState('');
+  useEffect(() => { document.documentElement.scrollTop = 0; }, [activeSection]);
   const inputRef = useRef<HTMLInputElement>(null);
   const puzzleRef = useRef<HTMLDivElement>(null);
   const submittingGuess = useRef(false);
@@ -365,6 +368,7 @@ export default function App() {
       {wordSelection.notice && <p className="word-selection-notice" role="status">{wordSelection.notice}</p>}
 
       {activeSection === 'play' && <>
+      {!game && <div className="page-introduction"><div><p className="page-eyebrow">A LITTLE CHALLENGE</p><h2>Play with words.<br /><span>Leave with something new.</span></h2><p>A few guesses, a little curiosity, and a word worth remembering.</p></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
       {!game && <GameCatalog selectedId={selectedGameId} onSelect={setSelectedGameId} />}
       {selectedGameId === 'word-puzzle' &&
       <section className="game-card" aria-label="Vocabulary puzzle" onClick={event => {
@@ -374,6 +378,7 @@ export default function App() {
       }}>
         {!game ? (
           <div className="welcome-card">
+            <div className="practice-story">
             <div className="sample-grid" aria-hidden="true">
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
@@ -384,6 +389,9 @@ export default function App() {
               <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />Correct spot</span><span><i className="rule-swatch present" aria-hidden="true" />Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true" />Not in word</span></div>
               <p>Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.</p>
             </section>
+            </div>
+            <div className="practice-setup">
+            <div className="practice-setup-heading"><p className="page-eyebrow">YOUR PRACTICE</p><h3>Make it your kind of puzzle.</h3></div>
             <div className="practice-options">
               <fieldset className="length-options"><legend>Word length</legend>
                 <div className="length-segments">
@@ -403,6 +411,7 @@ export default function App() {
             <button className="primary-button" onClick={startPractice} disabled={busy || progressSaving || restoring}>
               {progressSaving ? 'Saving your progress…' : restoring ? 'Restoring your puzzle…' : busy ? 'Getting a word…' : 'Start practice'} <Icon name="arrow"/>
             </button>
+            </div>
           </div>
         ) : (
           <div ref={puzzleRef} className="puzzle">
@@ -476,15 +485,11 @@ export default function App() {
       {activeSection === 'library' && <section className="library-page">
         <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery={quickSearch} onSignIn={() => navigateTo('account')} />
       </section>}
-      {activeSection === 'home' && <section className="overview-page">
-        <div className="welcome-banner"><p className="eyebrow">A LITTLE PRACTICE GOES A LONG WAY</p><h2>Make room for a new word.</h2><p>Build a habit with a quick puzzle or spend a few minutes organizing your vocabulary.</p><button type="button" className="primary-button" onClick={() => navigateTo('play')}>Start a puzzle <Icon name="arrow"/></button></div>
-        <div className="overview-cards"><button type="button" onClick={() => navigateTo('library')}><span className="overview-icon"><Icon name="library"/></span><strong>Your word list</strong><span>Browse and add words</span><span className="card-arrow"><Icon name="arrow"/></span></button><button type="button" onClick={() => navigateTo('play')}><span className="overview-icon"><Icon name="play"/></span><strong>Quick practice</strong><span>Solve a word puzzle</span><span className="card-arrow"><Icon name="arrow"/></span></button><button type="button" onClick={() => navigateTo('progress')}><span className="overview-icon"><Icon name="progress"/></span><strong>Learning progress</strong><span>Review your activity</span><span className="card-arrow"><Icon name="arrow"/></span></button></div>
-        <HomeRelease />
-      </section>}
+      {activeSection === 'home' && <HomePage onNavigate={navigateTo} />}
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}
-      {activeSection === 'community' && <section className="section-placeholder"><Icon name="community"/><h2>Learn alongside others.</h2><p>Community features are being planned. Your private word lists stay yours.</p></section>}
-      {activeSection === 'settings' && <section className="settings-page"><h2>Appearance</h2><p>Choose the theme that feels comfortable.</p><button className="theme-toggle" type="button" onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}><Icon name={theme === 'dark' ? 'sun' : 'moon'}/> {theme === 'dark' ? 'Light mode' : 'Dark mode'}</button></section>}
+      {activeSection === 'community' && <CommunityPage onExplore={() => navigateTo('library')} />}
+      {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} />}
       {activeSection === 'licenses' && <section className="licenses-page" aria-label="Licenses and attribution">
         <p className="eyebrow">SOURCES & ATTRIBUTION</p><h2>Words with a shared history.</h2><p>Our dictionary combines Simple English Wiktionary with supplementary definitions from Open English WordNet.</p>
         <article><h3>Dictionary definitions</h3><p>Definitions are adapted from <a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">Simple English Wiktionary</a>, under the <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">Creative Commons Attribution-ShareAlike 3.0 license</a>, as described in the project’s <a href="https://simple.wiktionary.org/wiki/Wiktionary:Rules" target="_blank" rel="noreferrer">rules</a> and <a href="https://simple.wiktionary.org/wiki/Wiktionary:Copyrights" target="_blank" rel="noreferrer">copyright notice</a>.</p>
@@ -495,7 +500,7 @@ export default function App() {
         <article><h3>C2 vocabulary selection</h3><p>The expanded C2 selection adapts the <a href="https://github.com/openlanguageprofiles/olp-en-cefrj" target="_blank" rel="noreferrer">Octanove Vocabulary Profile C1/C2 v1.0</a>, created by Octanove Labs and published through Open Language Profiles under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. LexiPlay normalizes spelling alternatives, removes duplicate entries, and admits additions only with a published family match and a matching dictionary definition. Entries requiring review of a particular meaning are held back. The original starter used <a href="https://www.esl-lounge.com/student/reference/c2-cefr-vocabulary-word-list.php" target="_blank" rel="noreferrer">ESL Lounge</a> as one reference.</p><p>This is a learning selection, not an official or exhaustive CEFR inventory. Dictionary definitions retain their own source licences. <a href="/data/lexiplay-c2.json" target="_blank" rel="noreferrer">Download the adapted C2 selection</a> · <a href="/licenses/cefr-data-NOTICE.md" target="_blank" rel="noreferrer">Data attribution and modifications</a></p></article>
         <article><h3>Word-family grouping</h3><p>Family identities are adapted from Paul Nation's BNC/COCA word-family lists v1.0.0, hosted by <a href="https://www.wgtn.ac.nz/lals/resources/paul-nations-resources" target="_blank" rel="noreferrer">Victoria University of Wellington</a>. The adapted mapping is provided under CC BY-SA 4.0, following the university's resource licence statement. Grouping does not assign one CEFR level or shared learning progress to every member. Phrases and entries without a published match remain separate study items. <a href="/data/bnc-coca-families.json" target="_blank" rel="noreferrer">Download the adapted family mapping</a></p></article>
       </section>}
-      <footer className="workspace-footer"><span>Thoughtful practice, one word at a time.</span><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>Licenses</a><span className="footer-seed"><Icon name="explore"/></span></footer>
+      <footer className="workspace-footer"><span>Thoughtful practice, one word at a time.</span><div className="footer-links"><a href="https://github.com/Hwent" target="_blank" rel="noopener noreferrer" aria-label="Visit Hwent on GitHub (opens in a new tab)">Hwent on GitHub <Icon name="arrow" /></a><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>Licenses</a></div></footer>
       </div>
     </main></PendingWordsContext.Provider>
   );
