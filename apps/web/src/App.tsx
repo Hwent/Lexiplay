@@ -16,6 +16,7 @@ import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } fro
 import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
+import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
@@ -92,6 +93,13 @@ export default function App() {
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
   const [activeSection, setActiveSection] = useState<Section>(currentSection);
   const [quickSearch, setQuickSearch] = useState('');
+  useEffect(() => {
+    if (accountLoading) return;
+    const timer = window.setTimeout(() => {
+      void wordStore.requests.get<GameOptions[]>(GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME).catch(() => {});
+    }, 500);
+    return () => window.clearTimeout(timer);
+  }, [accountLoading, wordStore]);
   useEffect(() => {
     savePracticePreferences({ wordLength: selectedWordLength, difficulty, collectionId: selectedPoolId, playWithMyWords });
   }, [selectedWordLength, difficulty, selectedPoolId, playWithMyWords]);

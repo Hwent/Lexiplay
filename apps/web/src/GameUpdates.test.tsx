@@ -14,9 +14,9 @@ describe('saved practice and account updates', () => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: 10, kind: 'guest' });
-      if (path.includes('/collections/game-options?')) return Response.json({ wordLength: 5, totalWords: 100, collections: [
+      if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [
         { id: 'a2', slug: 'cefr-a2', name: 'CEFR A2', wordCount: 12 },
-      ] });
+      ] }]);
       if (path.endsWith('/games') && init?.method === 'POST') {
         starts.push(JSON.parse(String(init.body)));
         return Response.json({ ...emptyGame, id: `game-${starts.length}`, wordLength: 5, difficulty: 'medium', completed: starts.length === 1, status: starts.length === 1 ? 'won' : 'active' });
@@ -85,7 +85,7 @@ describe('saved practice and account updates', () => {
       const url = String(input);
       if (url.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (url.endsWith('/games/wallet')) return wallet;
-      if (url.includes('/collections/game-options?')) return Response.json({ wordLength: 5, totalWords: 100, collections: [] });
+      if (url.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [] }]);
       if (url.endsWith('/collections')) return Response.json([]);
       if (url.endsWith('/library/revision')) return Response.json({});
       if (url.endsWith('/games') && init?.method === 'POST') {
@@ -143,7 +143,7 @@ describe('saved practice and account updates', () => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: balance, kind: 'guest' });
-      if (path.includes('/collections/game-options?')) return Response.json({ wordLength: 5, totalWords: 100, collections: [] });
+      if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [] }]);
       if (path.endsWith('/games/saved-game')) return Response.json(emptyGame);
       if (path.endsWith('/hints')) {
         if (JSON.parse(String(init?.body)).type === 'synonym') return Response.json({ message: 'Synonym lookup is unavailable. No coins were charged.' }, { status: 503 });

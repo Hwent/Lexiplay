@@ -87,6 +87,12 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(options.collections.find((row: { id: string }) => row.id === appleCollection)).toMatchObject({ wordCount: 3 });
     const longer = await (await request('/collections/game-options?wordLength=6')).json();
     expect(longer.collections.find((row: { id: string }) => row.id === appleCollection)).toMatchObject({ wordCount: 0 });
+    const allResponse = await request('/collections/game-options/all');
+    expect(allResponse.status).toBe(200);
+    const all = await allResponse.json();
+    expect(all.map((row: { wordLength: number }) => row.wordLength)).toEqual([3, 4, 5, 6, 7, 8, 9]);
+    expect(all.find((row: { wordLength: number }) => row.wordLength === 5)).toEqual(options);
+    expect(all.find((row: { wordLength: number }) => row.wordLength === 6)).toEqual(longer);
     expect((await request('/collections/game-options?wordLength=10')).status).toBe(400);
     const user = await account();
     const started = await start(user.cookie);

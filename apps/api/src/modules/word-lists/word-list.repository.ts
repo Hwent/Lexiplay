@@ -44,12 +44,12 @@ export class WordListRepository implements OnModuleDestroy {
     return rows.map(row => ({ ...row, partOfSpeech: row.senses.map(sense => sense.partOfSpeech) }));
   }
 
-  async dictionaryGameWords(length: number): Promise<string[]> {
+  async dictionaryGameWords(length: number, maxLength = length): Promise<string[]> {
     const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT e.term FROM dictionary_entries e
-      WHERE char_length(e.term)=$1 AND e.term ~ '^[a-z]+$'
+      WHERE char_length(e.term) BETWEEN $1 AND $2 AND e.term ~ '^[a-z]+$'
       AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
-      ORDER BY term`, [length]);
+      ORDER BY term`, [length, maxLength]);
     return rows.map(row => row.term);
   }
 

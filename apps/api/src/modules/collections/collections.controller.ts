@@ -15,6 +15,7 @@ export class CollectionsController {
   @Get() catalog(@Query() query:CollectionQuery) { return this.collections.catalog(query.category); }
   @Get('categories') categories() { return this.collections.categories(); }
   @Get('game-options') gameOptions(@Query() query: GameCollectionsQuery) { return this.collections.gameOptions(Number(query.wordLength)); }
+  @Get('game-options/all') allGameOptions() { return this.collections.allGameOptions(); }
   @Post(':slug/save') save(@Headers('cookie') cookie:string|undefined,@Param('slug') slug:string) { return this.collections.saveCollection(readSessionCookie(cookie),slug); }
   @Delete(':slug/save') unsave(@Headers('cookie') cookie:string|undefined,@Param('slug') slug:string) { return this.collections.unsaveCollection(readSessionCookie(cookie),slug); }
   @Get(':slug/words') words(@Param('slug') slug:string,@Query() query:CollectionWordsQuery,@Headers('cookie') cookie?:string) { return this.collections.words(slug,query,cookie?.split(';').some(value=>value.trim().startsWith('lexiplay_session='))?readSessionCookie(cookie):undefined); }

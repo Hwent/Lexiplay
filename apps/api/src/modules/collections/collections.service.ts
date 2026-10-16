@@ -233,16 +233,25 @@ export class CollectionsService {
   }
 
   async gameOptions(length: number) {
+    return (await this.gameOptionsForLengths(length, length))[0];
+  }
+
+  allGameOptions() { return this.gameOptionsForLengths(3, 9); }
+
+  private async gameOptionsForLengths(minLength: number, maxLength: number) {
     const [collections, words] = await Promise.all([
       this.db.vocabularyCollection.findMany({ where: { status: 'available', hidden: false }, orderBy: { slug: 'asc' },
         select: { id: true, slug: true, name: true, entries: { select: { entry: { select: { term: true } } } } } }),
-      this.dictionary.dictionaryGameWords(length),
+      this.dictionary.dictionaryGameWords(minLength, maxLength),
     ]);
     const playable = new Set(words);
-    return { wordLength: length, totalWords: defaultAnswerWords(length, words).length, collections: collections.map(collection => ({
-      id: collection.id, slug: collection.slug, name: collection.name,
-      wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => playable.has(term))).size,
-    })) };
+    return Array.from({ length: maxLength - minLength + 1 }, (_, index) => {
+      const length = minLength + index;
+      return { wordLength: length, totalWords: defaultAnswerWords(length, words).length, collections: collections.map(collection => ({
+        id: collection.id, slug: collection.slug, name: collection.name,
+        wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => term.length === length && playable.has(term))).size,
+      })) };
+    });
   }
 
   async wordleGameWords() { return this.collectionGameWords(WORDLE_POOL.slug, 5, true); }

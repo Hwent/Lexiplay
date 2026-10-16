@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import { ApiError } from './services/api-client';
 import usePendingWords from './usePendingWords';
-type GameOptions = { wordLength: number; totalWords: number; collections: { id: string; slug: string; name: string; wordCount: number }[] };
+import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
 
 export default function CollectionPicker({ value, wordLength, disabled, personalAvailable = false, onChange }: {
   value: string; wordLength: number; disabled: boolean; personalAvailable?: boolean; onChange: (id: string) => void;
@@ -13,22 +13,20 @@ export default function CollectionPicker({ value, wordLength, disabled, personal
   useEffect(() => {
     let active = true;
     setError('');
-    const path = `/collections/game-options?wordLength=${wordLength}`;
-    const cached = store.requests.peek<GameOptions>(path);
+    const cached = store.requests.peek<GameOptions[]>(GAME_OPTIONS_PATH)?.find(option => option.wordLength === wordLength);
     if (cached) { setOptions(cached); return; }
-    const timer = window.setTimeout(() => {
-      store.requests.get<GameOptions>(path, 300_000).then(result => {
-        if (result.wordLength !== wordLength || !Array.isArray(result.collections)) {
-          store.requests.invalidate(path);
-          throw new Error('Invalid collection response');
-        }
-        if (active) setOptions(result);
-      }).catch(error => {
-        if (active) setError(error instanceof ApiError && error.status === 429
-          ? 'Word counts are busy. Try again shortly.' : 'Word counts are unavailable. You can still choose a collection.');
-      });
-    }, 150);
-    return () => { active = false; window.clearTimeout(timer); };
+    store.requests.get<GameOptions[]>(GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME).then(rows => {
+      const result = rows.find(option => option.wordLength === wordLength);
+      if (!result || !Array.isArray(result.collections)) {
+        store.requests.invalidate(GAME_OPTIONS_PATH);
+        throw new Error('Invalid collection response');
+      }
+      if (active) setOptions(result);
+    }).catch(error => {
+      if (active) setError(error instanceof ApiError && error.status === 429
+        ? 'Word counts are busy. Try again shortly.' : 'Word counts are unavailable. You can still choose a collection.');
+    });
+    return () => { active = false; };
   }, [wordLength, retry, store]);
   const ready = options?.wordLength === wordLength;
   const selectedCollection = options?.collections.find(collection => collection.slug === value || collection.id === value);
