@@ -1,6 +1,6 @@
 # Database maintenance
 
-Prisma migrations are the only schema-change mechanism. Application startup never creates or alters tables.
+Prisma migrations are the only schema-change mechanism. `pnpm start` runs `prisma migrate deploy` before launching the API; a failed migration prevents the API from starting. The API process never creates or alters tables.
 The schema is [schema.prisma](../apps/api/prisma/schema.prisma); SQL-only constraints and indexes live in its migrations.
 There are 14 application tables, plus Prisma's migration bookkeeping table.
 

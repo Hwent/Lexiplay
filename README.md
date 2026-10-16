@@ -60,6 +60,6 @@ pnpm typecheck
 pnpm build
 ```
 
-Persistence tests need a separate disposable `lexiplay_test_*` database; GitHub CI supplies one. Production serves the built React app and API from one origin using `pnpm build` and `pnpm start` with Render's server settings. Push reviewed feature branches, merge code into `main`, and deploy deliberately. Git does not copy database data.
+Persistence tests need a separate disposable `lexiplay_test_*` database; GitHub CI supplies one. Production serves the built React app and API from one origin using `pnpm build` and `pnpm start` with Render's server settings. `pnpm start` applies pending Prisma migrations before launching the API and stops if a migration fails. Keep Render's start command set to `pnpm start`; building generates the Prisma client but does not migrate the database. Push reviewed feature branches, merge code into `main`, and deploy deliberately. Git does not copy database data.
 
 The repository remote is `https://github.com/Hwent/Lexiplay.git`. Configuration files, mail previews, and local database backups remain private and outside Git.
