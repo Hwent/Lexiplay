@@ -12,6 +12,7 @@ import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
+import { GameWordsCache } from './services/game-words-cache';
 
 const VocabularyLibrary = lazy(() => import('./VocabularyLibrary'));
 const AccountPage = lazy(() => import('./AccountPage'));
@@ -79,6 +80,8 @@ export default function App() {
   const [walletOwner, setWalletOwner] = useState<string | null>(null);
   const startRequest = useRef<{ key: string; id: string } | null>(null);
   const [guess, setGuess] = useState('');
+  const [libraryVersion, setLibraryVersion] = useState<string | null>(null);
+  const [gameWordsCache] = useState(() => new GameWordsCache());
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [rejectedAttempt, setRejectedAttempt] = useState(0);
@@ -248,6 +251,7 @@ export default function App() {
     let active = true;
     wordStore.requests.get<{version:string}>('/library/revision', 60_000).then(value => {
       if (!active || typeof value.version !== 'string') return;
+      setLibraryVersion(value.version);
       let previous: string | null = null;
       try {
         previous = localStorage.getItem('lexiplay-library-revision');
@@ -263,7 +267,13 @@ export default function App() {
       }
     }).catch(() => {});
     return () => { active = false; };
-  }, [activeSection, wordStore]);
+  }, [activeSection, wordStore, game?.id]);
+
+  useEffect(() => {
+    if (activeSection === 'play' && game && libraryVersion) {
+      void gameWordsCache.load(game.wordLength, libraryVersion).catch(() => {});
+    }
+  }, [activeSection, game?.id, game?.wordLength, libraryVersion, gameWordsCache]);
 
   useEffect(() => {
     if (game && !finished && activeSection === 'play') inputRef.current?.focus({ preventScroll: true });
@@ -360,6 +370,11 @@ export default function App() {
 
   async function submitGuess(nextGuess = guess) {
     if (!game || busy || submittingGuess.current || progressSaving || finished || nextGuess.length !== game.wordLength) return;
+    if (libraryVersion && gameWordsCache.allows(nextGuess.trim().toLowerCase(), libraryVersion) === false) {
+      setRejectedAttempt(value => value + 1);
+      setMessage(`${nextGuess.toUpperCase()} is not in the dictionary. Try another word.`);
+      return;
+    }
     submittingGuess.current = true;
     const session = guessSession.current;
     setBusy(true);

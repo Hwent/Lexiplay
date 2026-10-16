@@ -12,6 +12,12 @@ const sensesSql = `SELECT jsonb_agg(jsonb_build_object('id',e.id,'partOfSpeech',
     FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en'
     WHERE e.term=w.term GROUP BY e.id,e.part_of_speech) e`;
 
+const gameWordsSql = `SELECT DISTINCT e.term FROM dictionary_entries e
+  WHERE char_length(e.term) BETWEEN $1 AND $2 AND e.term ~ '^[a-z]+$'
+  AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
+  AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
+  ORDER BY term`;
+
 @Injectable()
 export class WordListRepository implements OnModuleDestroy {
   private readonly pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
@@ -45,12 +51,14 @@ export class WordListRepository implements OnModuleDestroy {
   }
 
   async dictionaryGameWords(length: number, maxLength = length): Promise<string[]> {
-    const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT e.term FROM dictionary_entries e
-      WHERE char_length(e.term) BETWEEN $1 AND $2 AND e.term ~ '^[a-z]+$'
-      AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
-      AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
-      ORDER BY term`, [length, maxLength]);
+    const { rows } = await this.pool.query<{ term: string }>(gameWordsSql, [length, maxLength]);
     return rows.map(row => row.term);
+  }
+
+  async gameWordSnapshot(wordLength: number) {
+    const { rows } = await this.pool.query<{ version: string; words: string[] }>(
+      `SELECT version, ARRAY(${gameWordsSql}) AS words FROM library_state WHERE id=1`, [wordLength, wordLength]);
+    return { ...rows[0]!, wordLength };
   }
 
   async isDictionaryGameWord(term: string): Promise<boolean> {
