@@ -15,6 +15,7 @@ import StatisticsPanel from './StatisticsPanel';
 import PronunciationButton from './PronunciationButton';
 import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 import { ApiError, apiRequest as api } from './services/api-client';
+import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
@@ -69,6 +70,7 @@ const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 const feedbackRank: Record<Feedback, number> = { ABSENT: 1, PRESENT: 2, CORRECT: 3 };
 
 export default function App() {
+  const [preferences] = useState(readPracticePreferences);
   const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount, signedIn, progressSaving, progressError, progressMessage, retryProgress } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
   const [wallet, setWallet] = useState<{ coinBalance: number; kind: string } | null>(null);
@@ -78,19 +80,22 @@ export default function App() {
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [rejectedAttempt, setRejectedAttempt] = useState(0);
-  const [selectedWordLength, setSelectedWordLength] = useState(5);
-  const [selectedGameId, setSelectedGameId] = useState('word-puzzle');
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>('medium');
+  const [selectedWordLength, setSelectedWordLength] = useState(preferences.wordLength);
+  const [selectedGameId, setSelectedGameId] = useState(preferences.gameId);
+  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(preferences.difficulty);
   const [restoring, setRestoring] = useState(false);
   const [accountRevision, setAccountRevision] = useState(0);
-  const [playWithMyWords, setPlayWithMyWords] = useState(false);
-  const [selectedPoolId, setSelectedPoolId] = useState('');
+  const [playWithMyWords, setPlayWithMyWords] = useState(preferences.playWithMyWords);
+  const [selectedPoolId, setSelectedPoolId] = useState(preferences.collectionId);
   const [selectedWordListId, setSelectedWordListId] = useState('');
   const wordStore = useMemo(() => new PendingWords(account?.id ?? 'guest'), [account?.id]);
   const wordSelection = useWordSelection(wordStore);
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
   const [activeSection, setActiveSection] = useState<Section>(currentSection);
   const [quickSearch, setQuickSearch] = useState('');
+  useEffect(() => {
+    savePracticePreferences({ gameId: selectedGameId, wordLength: selectedWordLength, difficulty, collectionId: selectedPoolId, playWithMyWords });
+  }, [selectedGameId, selectedWordLength, difficulty, selectedPoolId, playWithMyWords]);
   useEffect(() => { document.documentElement.scrollTop = 0; }, [activeSection]);
   const inputRef = useRef<HTMLInputElement>(null);
   const puzzleRef = useRef<HTMLDivElement>(null);
@@ -250,7 +255,7 @@ export default function App() {
     setMessage('');
     try {
       const options = { kind: 'word-puzzle', wordLength: selectedWordLength, difficulty, playWithMyWords,
-        ...(selectedPoolId ? { collectionId: selectedPoolId } : {}), ...(playWithMyWords && selectedWordListId ? { wordListId: selectedWordListId } : {}) };
+        ...(!playWithMyWords && selectedPoolId ? { collectionId: selectedPoolId } : {}), ...(playWithMyWords && selectedWordListId ? { wordListId: selectedWordListId } : {}) };
       const key = JSON.stringify([account?.id ?? 'guest', options]);
       if (startRequest.current?.key !== key) {
         try {
@@ -464,7 +469,7 @@ export default function App() {
               <fieldset className="difficulty-options"><legend>Difficulty</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{option.label}</strong></label>)}</div></fieldset>
               <CollectionPicker value={selectedPoolId} wordLength={selectedWordLength} disabled={playWithMyWords} onChange={id => { setSelectedPoolId(id); setPlayWithMyWords(false); }} />
               <label className="word-pool-option"><span className="word-pool-icon"><Icon name="library"/></span><span><strong>Play with my words</strong></span>
-                <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => { setPlayWithMyWords(event.target.checked); if (event.target.checked) setSelectedPoolId(''); }} /><span className="option-switch" aria-hidden="true" />
+                <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => setPlayWithMyWords(event.target.checked)} /><span className="option-switch" aria-hidden="true" />
               </label>
               {playWithMyWords && account && <PersonalListPicker value={selectedWordListId} onChange={setSelectedWordListId} />}
             </div>

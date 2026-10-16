@@ -8,6 +8,28 @@ describe('saved practice and account updates', () => {
   beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
+  it('keeps the chosen collection when switching word sources and reopening the app', async () => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: 10, kind: 'guest' });
+      if (path.includes('/collections/game-options?')) return Response.json({ wordLength: 5, totalWords: 100, collections: [
+        { id: 'a2', slug: 'cefr-a2', name: 'CEFR A2', wordCount: 12 },
+      ] });
+      return Response.json([]);
+    }));
+    const user = userEvent.setup();
+    const view = render(<App />);
+    await screen.findByRole('option', { name: /CEFR A2/ });
+    await user.selectOptions(screen.getByLabelText('Official collection'), 'cefr-a2');
+    await user.click(screen.getByRole('switch', { name: 'Play with my words' }));
+    await user.click(screen.getByRole('switch', { name: 'Play with my words' }));
+    expect(screen.getByLabelText('Official collection')).toHaveValue('cefr-a2');
+    view.unmount();
+    render(<App />);
+    await screen.findByRole('option', { name: /CEFR A2/ });
+    expect(screen.getByLabelText('Official collection')).toHaveValue('cefr-a2');
+  });
   it('waits for the guest wallet, shows prices, and reuses the start request after a network failure', async () => {
     let walletReady!: (response: Response) => void;
     const wallet = new Promise<Response>(resolve => { walletReady = resolve; });
