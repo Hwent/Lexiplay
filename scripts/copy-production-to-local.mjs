@@ -41,7 +41,9 @@ async function main() {
     for (const { tablename } of tables) {
       expected[tablename] = transientTables.has(tablename) ? 0 : Number((await pool.query(`SELECT count(*) AS count FROM public.${quote(tablename)}`)).rows[0].count);
     }
-    if (!expected.dictionary_words) throw new Error('Production snapshot does not contain a populated dictionary.');
+    if (!expected.dictionary_words && !(expected.dictionary_entries && expected.dictionary_definitions)) {
+      throw new CopyConfigurationError('Production needs populated dictionary_entries and dictionary_definitions tables, or a populated legacy dictionary_words table.');
+    }
     await mkdir(folder, { recursive: true });
     const dumpEnv = {
       ...process.env, PGHOST: source.hostname, PGPORT: source.port || '5432',

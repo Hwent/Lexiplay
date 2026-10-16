@@ -38,6 +38,8 @@ Family tools default to `.local-backups/word-families/bnc-coca/basewrd1.txt` thr
 
 Backups and generated reports stay under ignored `.local-backups/`.
 
+Production copying accepts either the current `dictionary_entries`/`dictionary_definitions` schema or the legacy `dictionary_words` schema. It requires a populated dictionary and verifies every copied public-schema table's row count; session/action rows are intentionally empty.
+
 ## Shared script modules
 
 These files are imported by the commands above:
