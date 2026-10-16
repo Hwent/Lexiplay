@@ -462,7 +462,7 @@ export default function App() {
                 </div>
               </fieldset>
               <fieldset className="difficulty-options"><legend>Difficulty</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{option.label}</strong></label>)}</div></fieldset>
-              <CollectionPicker value={selectedPoolId} disabled={playWithMyWords} onChange={id => { setSelectedPoolId(id); setPlayWithMyWords(false); }} onOpenLibrary={() => navigateTo('library')} />
+              <CollectionPicker value={selectedPoolId} wordLength={selectedWordLength} disabled={playWithMyWords} onChange={id => { setSelectedPoolId(id); setPlayWithMyWords(false); }} />
               <label className="word-pool-option"><span className="word-pool-icon"><Icon name="library"/></span><span><strong>Play with my words</strong></span>
                 <input type="checkbox" role="switch" aria-label="Play with my words" checked={playWithMyWords} onChange={event => { setPlayWithMyWords(event.target.checked); if (event.target.checked) setSelectedPoolId(''); }} /><span className="option-switch" aria-hidden="true" />
               </label>

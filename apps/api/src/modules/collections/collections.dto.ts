@@ -2,6 +2,9 @@ import { ArrayMaxSize, ArrayMinSize, ArrayUnique, IsArray, IsDateString, IsIn, I
 export class CollectionQuery {
   @IsOptional() @IsString() @MaxLength(60) category?: string;
 }
+export class GameCollectionsQuery {
+  @Matches(/^[3-9]$/) wordLength!: string;
+}
 export class CollectionWordsQuery {
   @IsOptional() @IsIn(['families']) view?: string;
   @IsOptional() @IsIn(['due']) review?: string;

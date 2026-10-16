@@ -1,6 +1,7 @@
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AccountService } from '../accounts/account.service';
 import { CollectionsStorage } from './collections.storage';
+import { WordListRepository } from '../word-lists/word-list.repository';
 import { AddDictionaryEntries, CollectionWordsQuery, ImportCollection, NewPersonalList, UpdatePersonalEntry } from './collections.dto';
 import { Prisma } from '../../generated/prisma/client';
 
@@ -12,7 +13,8 @@ type Entry = Collection['entries'][number]['entry'];
 @Injectable()
 export class CollectionsService {
   constructor(@Inject(CollectionsStorage) private readonly db: CollectionsStorage,
-    @Inject(AccountService) private readonly accounts: AccountService) {}
+    @Inject(AccountService) private readonly accounts: AccountService,
+    @Inject(WordListRepository) private readonly dictionary: WordListRepository) {}
 
   private summary(collection: Collection) {
     const families = new Map(collection.entries.map(row => [row.entry.familyId ?? 'item:' + row.entry.term, !!row.entry.familyId]));
@@ -228,10 +230,23 @@ export class CollectionsService {
     return words;
   }
 
+  async gameOptions(length: number) {
+    const [collections, words] = await Promise.all([
+      this.db.vocabularyCollection.findMany({ where: { status: 'available' }, orderBy: { slug: 'asc' },
+        select: { id: true, slug: true, name: true, entries: { select: { entry: { select: { term: true } } } } } }),
+      this.dictionary.dictionaryGameWords(length),
+    ]);
+    const playable = new Set(words);
+    return { wordLength: length, totalWords: words.length, collections: collections.map(collection => ({
+      id: collection.id, slug: collection.slug, name: collection.name,
+      wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => playable.has(term))).size,
+    })) };
+  }
+
   async collectionGameWords(slug: string, length: number) {
     const collection = await this.collection(slug);
-    const words = [...new Set(collection.entries.filter(row => this.definition(row.entry).definition)
-      .map(row => row.entry.term.toLowerCase()).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
+    const playable = new Set(await this.dictionary.dictionaryGameWords(length));
+    const words = [...new Set(collection.entries.map(row => row.entry.term).filter(term => playable.has(term)))];
     if (!words.length) throw new BadRequestException('This collection has no playable words at this length.');
     return { words, collection: this.summary(collection) };
   }

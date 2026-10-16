@@ -110,13 +110,13 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
     {!!collections.length && <section aria-label="My collections" className="saved-collections">
       <h2>My collections</h2>
       <div className="saved-collection-grid">{collections.map(collection => <article key={collection.id}>
-        <div><strong>{collection.name}</strong><span>{collection.wordCount.toLocaleString()} words</span></div>
-        <div>{onOpenCollection && <button type="button" disabled={busy} onClick={() => onOpenCollection(collection.slug)}>Open</button>}
-          <button type="button" disabled={busy} onClick={() => void unsave(collection)}>Unsave {collection.name}</button></div>
+        <div className="saved-collection-heading"><span className="saved-collection-mark" aria-hidden="true">{collection.level ?? <Icon name="library"/>}</span><div><h3>{collection.name}</h3><span>{collection.wordCount.toLocaleString()} words</span></div></div>
+        <div className="saved-collection-actions">{onOpenCollection && <button className="saved-collection-open" type="button" aria-label={`Open ${collection.name}`} disabled={busy} onClick={() => onOpenCollection(collection.slug)}>Open collection <Icon name="arrow"/></button>}
+          <button className="saved-collection-remove" type="button" aria-label={`Unsave ${collection.name}`} disabled={busy} onClick={() => void unsave(collection)}>Unsave</button></div>
       </article>)}</div>
     </section>}
-    <div className="library-section-heading"><div><h2>Words worth keeping</h2><p className="collection-intro">Dictionary words, a little practice, your own pace.</p></div>{data && <span className="library-count">{data.total.toLocaleString()} {query ? 'matching' : 'saved'} {data.total === 1 ? 'word' : 'words'}</span>}</div>
-    <div className="library-tools"><span><strong>Grow your vocabulary</strong><small>Find dictionary words or import a text list.</small></span><button type="button" className="text-action" aria-expanded={tools} aria-controls="library-dictionary-tools" onClick={() => setTools(value => !value)}><Icon name="search"/>{tools ? 'Close dictionary tools' : 'Open dictionary tools'}</button></div>
+    <div className="library-section-heading"><h2>Your words</h2>{data && <span className="library-count">{data.total.toLocaleString()} {query ? 'matching' : 'saved'} {data.total === 1 ? 'word' : 'words'}</span>}</div>
+    <div className="library-tools"><strong>Grow your vocabulary</strong><button type="button" className="text-action" aria-expanded={tools} aria-controls="library-dictionary-tools" onClick={() => setTools(value => !value)}><Icon name="search"/>{tools ? 'Close dictionary tools' : 'Open dictionary tools'}</button></div>
     {tools && list && <div id="library-dictionary-tools"><DictionaryTools listId={list.id} searchQuery={searchQuery}/></div>}
     {error && <p role="alert">{error} <button type="button" onClick={() => { setLoading(true); if (list) { store.requests.invalidate(`/word-lists/${list.id}/entries`); setRefresh(value => value + 1); } else { store.requests.invalidate('/word-lists/mine'); setListRetry(value => value + 1); } }}>Retry</button></p>}
     {message && <p role="status">{message}</p>}

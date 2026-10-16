@@ -45,8 +45,9 @@ export class WordListRepository implements OnModuleDestroy {
   }
 
   async dictionaryGameWords(length: number): Promise<string[]> {
-    const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT lower(e.term COLLATE "default") AS term FROM dictionary_entries e
-      WHERE char_length(e.term)=$1 AND lower(e.term COLLATE "default") ~ '^[a-z]+$'
+    const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT e.term FROM dictionary_entries e
+      WHERE char_length(e.term)=$1 AND e.term ~ '^[a-z]+$'
+      AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
       ORDER BY term`, [length]);
     return rows.map(row => row.term);

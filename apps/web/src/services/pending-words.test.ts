@@ -19,6 +19,7 @@ it('adds and cancels dictionary and game selections without any writes, then sav
   const writes = fetchMock.mock.calls.filter(([, init]) => init?.method === 'POST'); expect(writes).toHaveLength(1);
   expect(JSON.parse(String(writes[0]![1]?.body))).toEqual({ terms: ['paper', 'cover'] });
   expect(store.getSnapshot().pending.size).toBe(0); expect(store.getSnapshot().saved.has('cover')).toBe(true);
+  expect(store.getSnapshot().notice).toBe('');
 });
 it('does not write a canceled addition or remove an already saved word', async () => {
   const fetchMock = mockApi(), store = new PendingWords('user-one'); await store.loadSaved();

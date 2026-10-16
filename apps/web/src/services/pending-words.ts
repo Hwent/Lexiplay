@@ -115,7 +115,6 @@ export class PendingWords {
         if (!listId) throw new Error('Your word list is unavailable.');
       }
       const missing: string[] = [];
-      let count = 0;
       while (this.words.size) {
         const terms: string[] = [];
         for (const term of this.words.keys()) {
@@ -127,7 +126,7 @@ export class PendingWords {
         const rejected = new Set(result.missing);
         const saved = new Set(this.state.saved);
         for (const term of terms) { this.words.delete(term); if (!rejected.has(term)) saved.add(term); }
-        missing.push(...result.missing); count += result.added;
+        missing.push(...result.missing);
         const lists = this.requests.peek<{ id: string; wordCount?: number }[]>('/word-lists/mine');
         this.savedRevision++;
         this.requests.invalidate('/word-lists/mine');
@@ -138,7 +137,7 @@ export class PendingWords {
         if (lists) this.requests.prime('/word-lists/mine', lists.map(list => list.id === listId && typeof list.wordCount === 'number' ? { ...list, wordCount: list.wordCount + result.added } : list));
         this.persist(); this.publish({ saved, ready: true });
       }
-      this.publish({ notice: missing.length ? `Dictionary definitions were unavailable for: ${missing.join(', ')}. These words were skipped.` : `${count} dictionary ${count === 1 ? 'entry' : 'entries'} saved.` });
+      this.publish({ notice: missing.length ? `Dictionary definitions were unavailable for: ${missing.join(', ')}. These words were skipped.` : '' });
     })().catch(cause => {
       this.persist(); this.publish({ error: (cause instanceof Error ? cause.message : 'Could not save your words.') + ' Your selections are still pending. Try leaving the page again.' });
       throw cause;

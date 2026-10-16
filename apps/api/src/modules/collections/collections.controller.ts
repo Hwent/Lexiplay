@@ -2,7 +2,7 @@ import { Body, Controller, Delete, Get, Headers, Inject, Param, ParseUUIDPipe, P
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { readSessionCookie } from '../accounts/session-cookie';
 import { CollectionsService } from './collections.service';
-import { AddDictionaryEntries, CollectionQuery, CollectionWordsQuery, ImportCollection, NewPersonalList, UpdatePersonalEntry } from './collections.dto';
+import { AddDictionaryEntries, CollectionQuery, CollectionWordsQuery, GameCollectionsQuery, ImportCollection, NewPersonalList, UpdatePersonalEntry } from './collections.dto';
 @Controller('library')
 export class LibraryController {
   constructor(@Inject(CollectionsService) private readonly collections: CollectionsService) {}
@@ -14,6 +14,7 @@ export class CollectionsController {
   constructor(@Inject(CollectionsService) private readonly collections: CollectionsService) {}
   @Get() catalog(@Query() query:CollectionQuery) { return this.collections.catalog(query.category); }
   @Get('categories') categories() { return this.collections.categories(); }
+  @Get('game-options') gameOptions(@Query() query: GameCollectionsQuery) { return this.collections.gameOptions(Number(query.wordLength)); }
   @Post(':slug/save') save(@Headers('cookie') cookie:string|undefined,@Param('slug') slug:string) { return this.collections.saveCollection(readSessionCookie(cookie),slug); }
   @Delete(':slug/save') unsave(@Headers('cookie') cookie:string|undefined,@Param('slug') slug:string) { return this.collections.unsaveCollection(readSessionCookie(cookie),slug); }
   @Get(':slug/words') words(@Param('slug') slug:string,@Query() query:CollectionWordsQuery,@Headers('cookie') cookie?:string) { return this.collections.words(slug,query,cookie?.split(';').some(value=>value.trim().startsWith('lexiplay_session='))?readSessionCookie(cookie):undefined); }

@@ -77,6 +77,22 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       WHERE u.user_id=$1 AND e.term=$2 ORDER BY e.part_of_speech`, [user.id, term])).rows[0];
   }
 
+  it('counts distinct playable words by length and excludes names while preserving ordinary homographs', async () => {
+    await publishDictionary(pool, [...dictionary, word('Paris'), word('Alice'), word('sally', ['proper noun']), word('China'), word('china')]);
+    await pool.query(`INSERT INTO collection_entries(collection_id,dictionary_entry_id,sort_order)
+      SELECT $1,id,1 FROM dictionary_entries WHERE term IN ('cover','Paris','Alice','sally','China','china') ON CONFLICT DO NOTHING`, [appleCollection]);
+    const options = await (await request('/collections/game-options?wordLength=5')).json();
+    expect(options.totalWords).toBe(5);
+    expect(options.collections.find((row: { id: string }) => row.id === appleCollection)).toMatchObject({ wordCount: 3 });
+    const longer = await (await request('/collections/game-options?wordLength=6')).json();
+    expect(longer.collections.find((row: { id: string }) => row.id === appleCollection)).toMatchObject({ wordCount: 0 });
+    expect((await request('/collections/game-options?wordLength=10')).status).toBe(400);
+    const user = await account();
+    const started = await start(user.cookie);
+    const saved = (await pool.query('SELECT answer FROM practice_games WHERE id=$1', [started.id])).rows[0];
+    expect(['apple','cover','china']).toContain(saved.answer);
+  });
+
   it('uses 14 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
     expect(tables).toHaveLength(14);
@@ -195,18 +211,17 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect((await request('/games/' + game.id + '/guesses', 'POST', { guess: 'paper' }, user.cookie)).status).toBe(400);
   });
 
-  it('resumes a playable normalized answer when its dictionary case identity changes', async () => {
+  it('refunds a game when its answer becomes a capitalized-only dictionary entry', async () => {
     const user = await account(), game = await start(user.cookie);
     const next = dictionary.map(row => row.term === 'apple' ? word('Apple') : row);
     await pool.query("DELETE FROM collection_entries WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='apple')");
-    expect((await publishDictionary(pool, next)).cancelled).toBe(0);
-    expect(await balance(user.cookie)).toBe(99);
+    expect((await publishDictionary(pool, next)).cancelled).toBe(1);
+    expect(await balance(user.cookie)).toBe(100);
     const resumed = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(resumed.status).toBe('active');
+    expect(resumed.status).toBe('cancelled');
     const won = await request('/games/' + game.id + '/guesses', 'POST', { guess: 'apple' }, user.cookie);
-    expect(won.status).toBe(201);
-    expect(await won.json()).toMatchObject({ outcome: 'WON', rewardCoins: 5 });
-    expect(await balance(user.cookie)).toBe(104);
+    expect(won.status).toBe(400);
+    expect(await balance(user.cookie)).toBe(100);
   });
 
   it('preserves progress and exclusions through collection saves and automatic renewal', async () => {

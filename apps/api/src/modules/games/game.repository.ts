@@ -87,7 +87,7 @@ export class GameRepository implements OnModuleDestroy {
 
   private async resolveWord(client: PoolClient, term: string) {
     return (await client.query<{ id: string }>(`SELECT e.id FROM dictionary_entries e
-      WHERE lower(e.term COLLATE "default")=lower($1)
+      WHERE e.term=$1 AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
       ORDER BY (e.term=$1) DESC,e.term,e.part_of_speech LIMIT 1`, [term])).rows[0];
   }

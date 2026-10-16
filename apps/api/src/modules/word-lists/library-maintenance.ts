@@ -143,7 +143,8 @@ export async function publishCollections(client: PoolClient) {
 export async function cancelUnplayableGames(client: PoolClient) {
   const games = (await client.query(`SELECT * FROM practice_games g WHERE status='active'
     AND NOT EXISTS(SELECT 1 FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id
-      WHERE lower(e.term COLLATE "default")=g.answer AND d.language_code='en') ORDER BY g.id FOR UPDATE`)).rows;
+      WHERE e.term=g.answer AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
+      AND d.language_code='en') ORDER BY g.id FOR UPDATE`)).rows;
   for (const game of games) {
     const table = game.coin_user_id ? 'account_users' : 'guest_sessions';
     const refund = game.active_state.coinCost;
