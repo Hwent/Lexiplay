@@ -24,4 +24,14 @@ describe('account coin balance', () => {
     rerender(<AccountStatus {...props} coinBalance={500} error="Unavailable"/>);
     expect(screen.queryByLabelText(/Coin balance:/)).not.toBeInTheDocument();
   });
+  it('animates actual coin changes without treating account changes as earnings', () => {
+    const { rerender } = render(<AccountStatus {...props} coinBalance={10}/>);
+    expect(screen.queryByText('+5')).not.toBeInTheDocument();
+    rerender(<AccountStatus {...props} coinBalance={15}/>);
+    expect(screen.getByText('+5')).toHaveAttribute('aria-hidden', 'true');
+    rerender(<AccountStatus {...props} coinBalance={14}/>);
+    expect(screen.getByText('−1')).toBeInTheDocument();
+    rerender(<AccountStatus {...props} account={null} coinBalance={10}/>);
+    expect(screen.queryByText('−1')).not.toBeInTheDocument();
+  });
 });

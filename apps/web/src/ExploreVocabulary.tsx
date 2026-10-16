@@ -16,7 +16,7 @@ type ExploreVocabularyProps = {
 };
 
 const CEFR_DESCRIPTIONS: Record<string, string> = {
-  A1: 'Everyday English foundations',
+  A1: '',
   A2: 'Build confidence in everyday conversations',
   B1: 'Communicate about familiar topics',
   B2: 'Express ideas with greater confidence',
@@ -321,9 +321,7 @@ export default function ExploreVocabulary({
           <span className="collection-level-mark" aria-hidden="true">
             {collection.level ?? 'Aa'}
           </span>
-          <span className="collection-category-label">
-            {collection.category === 'CEFR' ? 'GENERAL ENGLISH' : 'EXAM PREPARATION'}
-          </span>
+          <span className="collection-card-symbol" aria-hidden="true"><Icon name={collection.category === 'CEFR' ? 'library' : 'progress'}/></span>
         </div>
 
         <div className="collection-card-heading">
@@ -333,7 +331,7 @@ export default function ExploreVocabulary({
           </span>
         </div>
 
-        <p>{getCollectionDescription(collection)}</p>
+        {getCollectionDescription(collection) && <p>{getCollectionDescription(collection)}</p>}
         <small>{isAvailable ? getCollectionSize(collection) : 'Coming soon'}</small>
 
         <button
@@ -362,9 +360,6 @@ export default function ExploreVocabulary({
           <div className="library-section-heading">
             <div>
               <h2>Find your next collection</h2>
-              <p className="collection-intro">
-                Discover word collections for your learning goals.
-              </p>
             </div>
             {!catalogLoading && (
               <span className="library-count">

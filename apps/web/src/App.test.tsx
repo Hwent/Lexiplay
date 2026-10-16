@@ -65,10 +65,12 @@ describe('practice puzzle', () => {
 
     await user.type(guessInput, 'plant');
     expect(await screen.findByText(/you found it/i)).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toHaveAttribute('aria-hidden', 'true');
     expect(cachedDictionaryDefinition('crane')).toBe('A large bird.');
     expect(cachedDictionaryDefinition('plant')).toBe('A living organism.');
     await user.click(screen.getByRole('button', { name: /^return$/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toBeNull();
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     expect(await screen.findByRole('textbox', { name: /five-letter guess/i })).toBeInTheDocument();
     expect(fetchMock).toHaveBeenCalledTimes(6);

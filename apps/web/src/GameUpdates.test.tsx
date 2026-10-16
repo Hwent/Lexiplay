@@ -9,13 +9,14 @@ describe('saved practice and account updates', () => {
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
   it('keeps the chosen collection when switching word sources and reopening the app', async () => {
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: 10, kind: 'guest' });
       if (path.includes('/collections/game-options?')) return Response.json({ wordLength: 5, totalWords: 100, collections: [
         { id: 'a2', slug: 'cefr-a2', name: 'CEFR A2', wordCount: 12 },
       ] });
+      if (path.endsWith('/games') && init?.method === 'POST') return Response.json({ ...emptyGame, completed: true, status: 'won' });
       return Response.json([]);
     }));
     const user = userEvent.setup();
@@ -25,10 +26,26 @@ describe('saved practice and account updates', () => {
     await user.click(screen.getByRole('switch', { name: 'Play with my words' }));
     await user.click(screen.getByRole('switch', { name: 'Play with my words' }));
     expect(screen.getByLabelText('Official collection')).toHaveValue('cefr-a2');
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    await user.click(await screen.findByRole('button', { name: 'Return' }));
+    await screen.findByRole('option', { name: /CEFR A2/ });
+    expect(screen.getByLabelText('Official collection')).toHaveValue('cefr-a2');
     view.unmount();
     render(<App />);
     await screen.findByRole('option', { name: /CEFR A2/ });
     expect(screen.getByLabelText('Official collection')).toHaveValue('cefr-a2');
+  });
+  it('focuses global word-list search with slash without interrupting text entry', async () => {
+    stubFetchWithVocabularyRanges(vi.fn(async () => new Response('{}', { status: 401 })));
+    const user = userEvent.setup(); render(<App/>);
+    await user.keyboard('/');
+    const search = screen.getByRole('searchbox', { name: 'Search your words' });
+    expect(search).toHaveFocus();
+    expect(search).toHaveValue('');
+    await user.type(search, 'apple/');
+    expect(search).toHaveValue('apple/');
+    await user.keyboard('{Escape}');
+    expect(search).not.toHaveFocus();
   });
   it('starts Original Wordle at five letters without overriding the custom puzzle setup', async () => {
     const starts: Record<string, unknown>[] = [];
@@ -76,7 +93,7 @@ describe('saved practice and account updates', () => {
     walletReady(Response.json({ coinBalance: 10, kind: 'guest' }));
     await waitFor(() => expect(screen.getByRole('button', { name: /start practice/i })).toBeEnabled());
     expect(screen.getByLabelText('Coin balance: 10')).toHaveTextContent('10');
-    expect(screen.getByText(/Entry: 1 coin/)).toHaveTextContent('Win: 5 coins');
+    expect(screen.getByLabelText('Entry: 1 coin. Win: 5 coins')).toHaveTextContent('+5 on a win');
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     expect(await screen.findByText('Connection lost')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /start practice/i }));

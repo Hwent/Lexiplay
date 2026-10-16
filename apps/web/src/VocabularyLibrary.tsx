@@ -10,7 +10,7 @@ export default function VocabularyLibrary({signedIn,searchQuery,onSignIn,onUseCo
   useEffect(()=>{if(searchQuery)setTab('mine');},[searchQuery]);
   return <>
     {tab==='explore'&&<header className="library-introduction">
-      <div><p className="library-eyebrow">YOUR LEARNING SPACE</p><h2>A world of words.<br/><span>Make it yours.</span></h2><p>Discover your next collection, keep the words you love, and build a little confidence every day.</p></div>
+      <div><h2>Your vocabulary.<br/><span>Ready to explore.</span></h2></div>
       <div className="library-art" aria-hidden="true"><span>Aa</span><span>words worth keeping</span><i><Icon name="plus"/></i></div>
     </header>}
     <div className="vocabulary-library-tabs" role="tablist" aria-label="Vocabulary library"><button id="library-explore-tab" type="button" role="tab" aria-controls="library-panel" aria-selected={tab==='explore'} onClick={()=>setTab('explore')}><Icon name="explore"/> Explore Vocabulary</button><button id="library-mine-tab" type="button" role="tab" aria-controls="library-panel" aria-selected={tab==='mine'} onClick={()=>setTab('mine')}><Icon name="library"/> My Word List</button></div>

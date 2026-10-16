@@ -5,7 +5,7 @@
 .brand-mark { border-radius: .75rem .75rem .75rem .2rem; background: var(--accent); color: var(--surface); }
 .main-navigation { gap: .4rem; }
 .main-navigation button { min-height: 3rem; border-radius: .7rem; font-size: .9rem; font-weight: 500; }
-.main-navigation button.active { font-weight: 650; }
+.main-navigation button.active { font-weight: 650; box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 55%, transparent), 0 0 18px color-mix(in srgb, var(--accent) 8%, transparent); }
 .main-navigation button.active::before { display: none; }
 .workspace { padding-inline: clamp(1.25rem, 3.5vw, 3.5rem); }
 .workspace .topbar { min-height: 5.5rem; margin-bottom: 0; }
@@ -13,13 +13,16 @@
 .header-actions .theme-toggle { display: grid; place-items: center; width: 2.65rem; height: 2.65rem; padding: .65rem; font-size: 0; }
 .header-search, .account-status-link { min-height: 2.65rem; background: var(--surface); }
 .header-search button { border-left: 0; }
+.header-search kbd { padding: .1rem .4rem; border: 1px solid var(--line); border-radius: .3rem; color: var(--muted); font: inherit; font-size: .85rem; }
 .account-coins { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.65rem; padding: .5rem .75rem; border: 1px solid color-mix(in srgb, #d7ae59 40%, var(--line)); border-radius: .65rem; background: color-mix(in srgb, #d7ae59 10%, var(--surface)); color: #dfbc75; white-space: nowrap; }
 .account-coins strong { font-size: 1rem; font-weight: 650; font-variant-numeric: tabular-nums; }
 .account-coins .ui-icon { width: 1.3rem; height: 1.3rem; }
 :root[data-theme='light'] .account-coins { color: #866014; }
 .account-status-link strong { font-size: .95rem; }
 .difficulty-segments label { align-items: center; justify-content: center; }
-.game-price { margin: 1rem 0; font-size: 1rem; line-height: 1.6; text-align: center; }
+.game-price { display: flex; flex-wrap: wrap; justify-content: space-between; gap: .75rem; margin: 1.25rem 0 0; font-size: .95rem; color: var(--muted); }
+.game-price > span { display: inline-flex; align-items: center; gap: .4rem; }
+.game-price > span:last-child { color: var(--accent); }
 .game-consumables .friendly-hint { padding: 1rem; gap: .75rem; }
 .game-consumables .friendly-hint > strong { flex: 1; font-size: 1rem; }
 .hint-price { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); font-size: 1rem; }
@@ -32,6 +35,8 @@
 .primary-button { background: var(--accent); color: var(--surface); }
 .primary-button span { padding: 0; }
 .primary-button:hover:enabled { filter: none; background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
+.practice-setup > .primary-button { background: var(--accent); color: var(--page); box-shadow: 0 5px 22px color-mix(in srgb, var(--accent) 15%, transparent); }
+.practice-setup > .primary-button:hover:enabled { transform: translateY(-2px); box-shadow: 0 8px 26px color-mix(in srgb, var(--accent) 25%, transparent); }
 .quiet-button { background: transparent; color: var(--accent); }
 .quiet-button:hover:enabled { border-color: var(--line); background: var(--accent-soft); }
 .page-eyebrow { margin: 0 0 .9rem; color: var(--accent); font-size: .72rem; font-weight: 750; letter-spacing: .14em; line-height: 1.5; }
@@ -52,6 +57,7 @@
 .home-hero h2 { margin: 0; font-size: clamp(2.5rem, 5vw, 4.25rem); font-weight: 650; letter-spacing: -.065em; line-height: 1.07; }
 .home-hero-copy > p:last-of-type { max-width: 28rem; margin: 1.4rem 0 1.6rem; color: var(--muted); font-size: 1rem; line-height: 1.8; }
 .home-hero-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
+.home-hero-copy .home-hero-actions { margin-top: 2rem; }
 .home-word-art { position: relative; width: min(100%, 19rem); margin: 1rem auto; padding: 1.8rem 0; }
 .word-art-card { position: relative; padding: 1.8rem; border: 1px solid var(--line); border-radius: 1.15rem; background: var(--surface); transform: rotate(-5deg); box-shadow: 9px 9px 0 var(--accent-soft), 10px 10px 0 var(--line); }
 .word-art-label { color: var(--muted); font-size: .65rem; font-weight: 650; letter-spacing: .15em; }
@@ -65,6 +71,10 @@
 :root[data-theme='light'] .word-art-tiles > span[data-tone='warm'] { background: #f5efdf; border-color: #dfc796; color: #81672e; }
 .word-art-note { position: absolute; z-index: 1; right: -1rem; top: .4rem; display: flex; align-items: center; gap: .5rem; padding: .7rem .9rem; border: 1px solid var(--line); border-radius: .7rem; background: var(--accent-soft); color: var(--accent); font-size: .75rem; transform: rotate(6deg); }
 .word-art-caption { display: block; margin-top: 2rem; color: var(--muted); font-size: .8rem; text-align: center; }
+.word-art-orbit { position: absolute; z-index: -1; inset: -1rem -2rem; width: calc(100% + 4rem); height: calc(100% + 2rem); fill: none; stroke: var(--accent); stroke-width: 1.5; opacity: .5; }
+.word-art-orbit > circle:first-child { stroke-dasharray: 4 12; }
+.word-art-orbit .orbit-dot { fill: var(--accent-soft); }
+.home-word-art { isolation: isolate; }
 .home-section-heading { display: flex; align-items: end; justify-content: space-between; gap: 1rem; margin: .5rem 0 1.4rem; }
 .home-section-heading .page-eyebrow { margin-bottom: .45rem; }
 .home-section-heading h3 { margin: 0; font-size: 1.4rem; font-weight: 650; letter-spacing: -.035em; }
@@ -87,6 +97,21 @@
 .catalog-copy strong { font-size: 1rem; }
 .catalog-copy > span { font-size: .85rem; }
 .catalog-status { display: inline-flex; align-items: center; gap: .35rem; font-size: .75rem; }
+.game-catalog { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; }
+.game-catalog-card[aria-pressed='true'], .library-page .vocabulary-library-tabs button[aria-selected='true'] { border-color: var(--accent); box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--accent) 40%, transparent); background: var(--accent-soft); }
+.collection-card-symbol { display: grid; place-items: center; width: 2.5rem; height: 2.5rem; border-radius: 50%; background: var(--accent-soft); color: var(--accent); }
+.wordle-pool-summary { display: flex; align-items: center; gap: 1rem; padding: 1.25rem; margin-top: 1.25rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--accent-soft); color: var(--accent); }
+.wordle-pool-summary div { display: grid; gap: .35rem; }
+.wordle-pool-summary span { color: var(--muted); }
+.puzzle { position: relative; }
+.puzzle-celebration { position: absolute; z-index: 4; top: 0; left: 0; right: 0; height: 24rem; overflow: hidden; pointer-events: none; }
+.puzzle-celebration svg { width: 100%; height: 100%; overflow: visible; }
+.confetti-piece { fill: var(--accent); opacity: 0; }
+.confetti-piece:nth-child(3n) { fill: #dfbc75; }
+.confetti-piece:nth-child(3n + 1) { fill: #bca1d7; }
+.account-coins { position: relative; }
+.coin-change { position: absolute; top: 100%; left: 50%; padding: .15rem .45rem; border-radius: .4rem; background: var(--surface); color: var(--text); opacity: 0; font-weight: 700; pointer-events: none; }
+.coin-change.earned { color: var(--accent); }
 .game-card { flex: 0 0 auto; padding: clamp(1rem, 2.5vw, 2rem); margin-bottom: 2rem; box-shadow: none; }
 .welcome-card { display: grid; grid-template-columns: minmax(0, .9fr) minmax(0, 1.1fr); align-items: start; gap: clamp(1.5rem, 3vw, 3rem); min-height: 0; padding: .5rem 0; text-align: left; }
 .practice-story { padding-top: 1rem; }
@@ -191,9 +216,20 @@
 .footer-links a:hover { text-decoration: underline; }
 .footer-links .ui-icon { width: .95rem; height: .95rem; }
 @media (prefers-reduced-motion: no-preference) {
+  .home-word-art .word-art-card { animation: word-float 6s ease-in-out infinite; }
+  .confetti-piece { animation: confetti-burst 2.3s ease-out both; transform-origin: 300px 30px; }
+  .puzzle-won .guess-row:has(.correct):not(:has(.absent, .present)) { animation: solved-bounce .6s ease-in-out; }
+  .coins-changed > .ui-icon { animation: coin-flip .6s ease-out; }
+  .coin-change { animation: coin-delta 1.5s ease-out both; }
+  @keyframes word-float { 0%, 100% { transform: rotate(-5deg) translateY(0); } 50% { transform: rotate(-2deg) translateY(-8px); } }
+  @keyframes confetti-burst { 0% { opacity: 0; transform: translate(300px, 30px) scale(.3); } 12% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(300px + var(--x)), var(--y)) rotate(var(--turn)); } }
+  @keyframes solved-bounce { 0%, 100% { transform: translateY(0); } 40% { transform: translateY(-10px); } 70% { transform: translateY(3px); } }
+  @keyframes coin-flip { 0% { transform: rotateY(0); } 50% { transform: rotateY(180deg) scale(1.25); } 100% { transform: rotateY(360deg); } }
+  @keyframes coin-delta { 0% { opacity: 0; transform: translate(-50%, 0); } 20%, 65% { opacity: 1; } 100% { opacity: 0; transform: translate(-50%, 1.5rem); } }
   .home-page, .page-introduction, .account-intro, .library-introduction { animation: page-arrive .35s ease-out; }
   @keyframes page-arrive { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 }
+@media (prefers-reduced-motion: reduce) { .puzzle-celebration, .coin-change { display: none; } }
 @media (min-width: 1200px) {
   html { font-size: 112.5%; }
   .main-navigation button, .header-search input, .account-status-link strong { font-size: 1rem; }
@@ -234,6 +270,7 @@
   .learning-card-action { grid-column: 2; margin-top: .5rem; }
 }
 @media (max-width: 650px) {
+  .game-catalog { grid-template-columns: 1fr; }
   .home-hero { grid-template-columns: 1fr; padding: 2.5rem 0; gap: 1.5rem; }
   .home-hero h2 { font-size: clamp(2.6rem, 9vw, 3.7rem); }
   .home-hero-actions { flex-direction: row; align-items: center; }
