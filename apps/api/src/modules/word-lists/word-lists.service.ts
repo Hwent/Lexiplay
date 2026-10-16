@@ -1,18 +1,131 @@
-import { BadRequestException, Inject, Injectable } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
+import { AccountService } from '../accounts/account.service';
+import { SaveWordDto, UpdateWordDto } from './word-list.dto';
 import { WordListRepository } from './word-list.repository';
+import { ConfirmWordImportDto } from './word-list.dto';
+import { WordListImportService } from './word-list-import';
 
 @Injectable()
 export class WordListsService {
-  constructor(@Inject(WordListRepository) private readonly dictionary: WordListRepository) {}
+  constructor(
+    @Inject(WordListRepository) private readonly lists: WordListRepository,
+    @Inject(AccountService) private readonly accounts: AccountService,
+    @Inject(WordListImportService) private readonly importer: WordListImportService,
+  ) {}
 
-  async searchDictionary(query: string) {
-    const term = query.trim();
-    if (!term || term.length > 100 || /[\u0000-\u001f]/.test(term)) {
-      throw new BadRequestException({ code: 'INVALID_DICTIONARY_QUERY', message: 'Enter a dictionary search of 1 to 100 characters.' });
-    }
-    return this.dictionary.searchDictionary(term);
+  async list(cookie: string | undefined) {
+    const user = await this.accounts.current(cookie);
+    return this.lists.findAll(user.id);
   }
 
-  dictionaryDefinition(term: string) { return this.dictionary.getDictionaryDefinition(term); }
-  dictionaryGameWords(length: number) { return this.dictionary.dictionaryGameWords(length); }
+  async playableWords(cookie: string | undefined, wordLength: number) {
+    const user = await this.accounts.current(cookie);
+    const lists = await this.lists.findAll(user.id);
+    return lists.flatMap(list => list.words.map(word => word.term))
+      .filter(term => term.length === wordLength && /^[a-z]+$/.test(term));
+  }
+
+  dictionaryGameWords(wordLength: number) {
+    return this.lists.dictionaryGameWords(wordLength);
+  }
+
+  async get(cookie: string | undefined, listId: string) {
+    const user = await this.accounts.current(cookie);
+    const list = await this.lists.find(user.id, listId);
+    if (!list) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
+    return list;
+  }
+
+  async addWord(cookie: string | undefined, listId: string, input: SaveWordDto) {
+    const user = await this.accounts.current(cookie);
+    try {
+      const word = await this.lists.addWord(user.id, listId, {
+        term: input.term.trim().toLowerCase(),
+        definition: input.definition?.trim() ?? '',
+        partOfSpeech: input.partOfSpeech?.trim() || null,
+      });
+      if (!word) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
+      return word;
+    } catch (error) {
+      this.throwForDuplicate(error);
+    }
+  }
+
+  async searchDictionary(query: string) {
+    const normalized = query.trim().toLowerCase();
+    if (!normalized || normalized.length > 100 || /[\u0000-\u001f]/.test(normalized)) {
+      throw new BadRequestException({ code: 'INVALID_DICTIONARY_QUERY', message: 'Enter a dictionary search of 1 to 100 characters.' });
+    }
+    return this.lists.searchDictionary(normalized);
+  }
+
+  async dictionaryDefinition(term: string) {
+    try {
+      return await this.lists.getDictionaryDefinition(term);
+    } catch {
+      return '';
+    }
+  }
+
+  async addDictionaryWord(cookie: string | undefined, listId: string, term: string) {
+    const user = await this.accounts.current(cookie);
+    const word = await this.lists.addDictionaryWord(user.id, listId, term.trim());
+    if (!word) throw new NotFoundException({ code: 'DICTIONARY_WORD_NOT_FOUND', message: 'That dictionary word could not be found.' });
+    return word;
+  }
+
+  async updateWord(cookie: string | undefined, listId: string, wordId: string, input: UpdateWordDto) {
+    const user = await this.accounts.current(cookie);
+    if (!Object.keys(input).length) throw new BadRequestException({ code: 'EMPTY_UPDATE', message: 'Change a word before saving.' });
+    try {
+      const word = await this.lists.updateWord(user.id, listId, wordId, {
+        ...(input.term !== undefined ? { term: input.term.trim().toLowerCase() } : {}),
+        ...(input.definition !== undefined ? { definition: input.definition.trim() } : {}),
+        ...(input.partOfSpeech !== undefined ? { partOfSpeech: input.partOfSpeech.trim() || null } : {}),
+        ...(input.status !== undefined ? { status: input.status } : {}),
+      });
+      if (!word) throw new NotFoundException({ code: 'WORD_NOT_FOUND', message: 'This word could not be found.' });
+      return word;
+    } catch (error) {
+      this.throwForDuplicate(error);
+    }
+  }
+
+  async removeWord(cookie: string | undefined, listId: string, wordId: string) {
+    const user = await this.accounts.current(cookie);
+    if (!(await this.lists.removeWord(user.id, listId, wordId))) throw new NotFoundException({ code: 'WORD_NOT_FOUND', message: 'This word could not be found.' });
+  }
+
+  async previewImport(cookie: string | undefined, listId: string, file: { originalname: string; buffer: Buffer } | undefined) {
+    if (!cookie) return this.importer.preview(file, []);
+    const user = await this.accounts.current(cookie);
+    const list = await this.lists.find(user.id, listId);
+    if (!list) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
+    return this.importer.preview(file, list.words.map(word => word.term));
+  }
+
+  async confirmImport(cookie: string | undefined, listId: string, input: ConfirmWordImportDto) {
+    const user = await this.accounts.current(cookie);
+    const list = await this.lists.find(user.id, listId);
+    if (!list) throw new NotFoundException({ code: 'WORD_LIST_NOT_FOUND', message: 'This vocabulary list could not be found.' });
+    const selected = input.rows.filter(row => row.selected).map(row => ({
+      term: row.term.trim().toLowerCase(),
+      definition: row.definition.trim(),
+      partOfSpeech: row.partOfSpeech?.trim() || null,
+    }));
+    const repeated = new Set<string>();
+    for (const word of selected) {
+      if (repeated.has(word.term)) throw new BadRequestException({ code: 'DUPLICATE_IMPORT_ROW', message: `The preview contains ${word.term} more than once.` });
+      repeated.add(word.term);
+    }
+    return this.lists.importWords(user.id, listId, selected);
+  }
+
+  private throwForDuplicate(error: unknown): never {
+    if (error instanceof NotFoundException || error instanceof BadRequestException) throw error;
+    if ((error as { code?: string }).code === '23505') {
+      throw new ConflictException({ code: 'DUPLICATE_WORD', message: 'This word is already in the list.' });
+    }
+    throw error;
+  }
 }

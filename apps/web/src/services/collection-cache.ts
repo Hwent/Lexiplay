@@ -24,14 +24,14 @@ export class CollectionCache {
   private pending=new Map<string,Promise<{data:CollectionPage;stored:boolean}>>();
   constructor(private disk:CollectionStorage=storage(),private fetchSnapshot=(slug:string)=>apiRequest<CollectionPage>(`/collections/${encodeURIComponent(slug)}/snapshot`)){}
   load(collection:VocabularyCollection,refresh=false){
-    const key=collection.slug+'@'+collection.version, active=this.pending.get(key);if(active)return active;
+    const key=collection.slug, active=this.pending.get(key);if(active)return active;
     const request=(async()=>{
-      const cached=await this.disk.read(collection.slug).catch(()=>undefined);
+      const cached=await this.disk.read(key).catch(()=>undefined);
       if(!refresh && cached?.version===collection.version && cached.expiresAt>Date.now() && valid(cached.data,collection))return {data:cached.data,stored:true};
-      const response=await this.fetchSnapshot(collection.slug);
+      const response=await this.fetchSnapshot(key);
       if(!valid(response,collection))throw new Error('Could not load the complete collection.');
       const data:CollectionPage={...response,words:response.words.map(({inMyWordList,...word})=>word)};
-      let stored=true;await this.disk.write(collection.slug,{version:collection.version,expiresAt:Date.now()+lifetime,data}).catch(()=>{stored=false;});
+      let stored=true;await this.disk.write(key,{version:collection.version,expiresAt:Date.now()+lifetime,data}).catch(()=>{stored=false;});
       return {data,stored};
     })().finally(()=>{if(this.pending.get(key)===request)this.pending.delete(key);});
     this.pending.set(key,request);return request;

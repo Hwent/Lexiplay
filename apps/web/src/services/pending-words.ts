@@ -4,7 +4,7 @@ import { LibraryRequests } from './library-requests';
 type PendingWord = { term: string; definition: string; listId?: string };
 export type WordSelection = { saved: ReadonlySet<string>; pending: ReadonlySet<string>; saving: boolean; ready: boolean; error: string; notice: string };
 const LOCAL_WORDS = 'lexiplay-local-word-lists';
-const normalize = (term: string) => term.trim();
+const normalize = (term: string) => term.trim().toLowerCase();
 
 export class PendingWords {
   readonly requests = new LibraryRequests();
@@ -117,11 +117,7 @@ export class PendingWords {
       const missing: string[] = [];
       let count = 0;
       while (this.words.size) {
-        const terms: string[] = [];
-        for (const term of this.words.keys()) {
-          terms.push(term);
-          if (terms.length === 200) break;
-        }
+        const terms = [...this.words.keys()].slice(0, 200);
         const result = await apiRequest<{ added: number; skipped: number; missing: string[] }>(`/word-lists/${listId}/dictionary-entries`, { method: 'POST', body: JSON.stringify({ terms }), keepalive });
         if (!Array.isArray(result.missing)) throw new Error('Could not confirm that your words were saved.');
         const rejected = new Set(result.missing);

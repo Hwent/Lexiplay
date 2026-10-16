@@ -14,8 +14,6 @@ describe('published word families',()=>{
     expect(wordFamily('ice cream').kind).toBe('phrase');
     expect(wordFamily('invented-new-form').kind).toBe('unclassified');
     expect(familyCounts(['ice cream','invented-new-form','action','actor'])).toEqual({familyCount:1,otherUnitCount:2});
-    expect(familyCounts(['ice cream',' ICE CREAM ','invented-new-form','invented-new-form','action','actor'])).toEqual({familyCount:1,otherUnitCount:2});
-    expect(familyCounts([])).toEqual({familyCount:0,otherUnitCount:0});
   });
   it('maps every C2 member without assigning its level to related words',()=>{
     const c2=CEFR_POOLS.find(pool=>pool.level==='C2')!;

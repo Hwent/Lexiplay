@@ -53,6 +53,7 @@ export default function ExploreVocabulary({
   const [saved, setSaved] = useState<Set<string>>(new Set());
 
   const current = data?.collection;
+  const currentLevel = current?.level ?? null;
   const totalPages = data ? Math.max(1, Math.ceil(data.total / data.pageSize)) : 1;
 
   useEffect(() => {
@@ -417,8 +418,6 @@ export default function ExploreVocabulary({
                     void api(`/collections/${current.slug}/save`, { method: 'POST' })
                       .then(() => {
                         store.requests.invalidate('/word-lists/collections');
-                        store.invalidateWords();
-                        void store.loadSaved(true).then(() => setRevision(value => value + 1)).catch(() => {});
                         setSaved((values) => new Set([...values, current.slug]));
                       })
                       .catch((requestError) => {
@@ -482,10 +481,16 @@ export default function ExploreVocabulary({
                   </button>
                 )}
 
-                {onUseCollection && current.status === 'available' && (
+                {onUseCollection && currentLevel && (
                   <button
                     type="button"
-                    onClick={() => onUseCollection(current.slug)}
+                    onClick={() =>
+                      onUseCollection(
+                        currentLevel === 'C2'
+                          ? 'lexiplay-c2'
+                          : `oxford-${currentLevel.toLowerCase()}`,
+                      )
+                    }
                   >
                     <Icon name="play" /> Use collection in game
                   </button>
@@ -639,6 +644,7 @@ export default function ExploreVocabulary({
           signedIn={signedIn}
           onSignIn={onSignIn}
           onAdded={() => {
+            setSaved((values) => new Set([...values, importing.collection.slug]));
             setSelected(new Set());
             setRevision((value) => value + 1);
           }}
@@ -652,3 +658,4 @@ export default function ExploreVocabulary({
     </section>
   );
 }
+

@@ -65,7 +65,7 @@ export default function DictionaryTools({ listId, searchQuery }: { listId: strin
       {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <p>No dictionary matches. Try another spelling.</p>}
       {!searching && searched === normalized && <ul className="dictionary-tool-results">{results.map(entry => {
         const definition = entry.definition || entry.senses?.flatMap(sense => sense.definitions).join('; ');
-        const pending = selection.pending.has(entry.term.trim());
+        const pending = selection.pending.has(normalizeTerm(entry.term));
         return <li key={entry.term}><div><span className="word-with-pronunciation"><strong>{entry.term}</strong><PronunciationButton term={entry.term}/></span><small>{entry.partOfSpeech.join(' · ')}</small><p>{definition || 'Dictionary definition not available.'}</p></div><button type="button" disabled={!listId || saving || saved.has(entry.term) || !definition} aria-pressed={pending} aria-label={saved.has(entry.term) ? `Saved ${entry.term}` : pending ? `Cancel addition of ${entry.term}` : `Add ${entry.term}`} onClick={() => { store.toggle(entry.term, '', listId); setResult(null); }}><Icon name={saved.has(entry.term) || pending ? 'check' : 'plus'}/>{saved.has(entry.term) ? 'Saved' : pending ? 'Cancel addition' : 'Add word'}</button></li>;
       })}</ul>}
     </> : <>

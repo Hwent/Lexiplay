@@ -1,4 +1,4 @@
-import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Inject, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Inject, Post, Res, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
 import { AccountCredentialsDto, RegisterAccountDto, RecoveryDto, ActionTokenDto, ResetPasswordDto, AddEmailDto, DeleteAccountDto } from './account.dto';
 import { AccountService } from './account.service';
@@ -27,12 +27,9 @@ export class AccountController {
   }
 
   @Get('me')
-  async current(@Headers('cookie') cookieHeader: string | undefined, @Res({ passthrough: true }) response: Response) {
-    try { return await this.accounts.current(readSessionCookie(cookieHeader)); }
-    catch (error) {
-      if (error instanceof UnauthorizedException) response.setHeader('Set-Cookie', this.accounts.expiredCookie());
-      throw error;
-    }
+  async current(@Headers('cookie') cookieHeader: string | undefined) {
+    const user = await this.accounts.current(readSessionCookie(cookieHeader));
+    return user;
   }
 
   @Post('logout')

@@ -32,9 +32,7 @@ for (const line of lines) {
 const require = createRequire(resolve('apps/api/package.json'));
 const { Pool } = require('pg'), db = new Pool({ connectionString: url.href });
 try {
-  const words = (await db.query(`SELECT e.term,jsonb_agg(jsonb_build_object('partOfSpeech',e.part_of_speech,'definitions',
-    (SELECT jsonb_agg(d.definition ORDER BY d.sense_order) FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en'))) senses
-    FROM dictionary_entries e WHERE lower(e.term COLLATE "default")=ANY($1::text[]) GROUP BY e.term`, [[...new Set([...candidates.values()].map(row => row.term))]])).rows;
+  const words = (await db.query('SELECT term,senses FROM dictionary_words WHERE lower(term)=ANY($1::text[])', [[...new Set([...candidates.values()].map(row => row.term))]])).rows;
   const matches = new Map();
   for (const word of words) {
     const senses = matches.get(word.term.toLowerCase()) ?? [];

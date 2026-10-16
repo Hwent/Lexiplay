@@ -1,3 +1,0 @@
-# Preserve the exact bytes of the applied canonical migration on every platform.
-apps/api/prisma/migrations/202610150000_canonical_database/migration.sql -text whitespace=cr-at-eol
-apps/api/prisma/migrations/202610150100_simplify_dictionary_and_games/migration.sql -text

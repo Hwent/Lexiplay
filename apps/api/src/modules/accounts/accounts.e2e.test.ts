@@ -15,16 +15,16 @@ class MemoryAccountRepository {
 
   async createUser(email: string | null, passwordHash: string, username: string): Promise<AccountUser | null> {
     if ([...this.users.values()].some(user => (email && user.email === email) || user.username === username)) return null;
-    const user = { id: `user-${this.users.size + 1}`, email, passwordHash, username, emailVerified: false, coinBalance: 100 };
+    const user = { id: `user-${this.users.size + 1}`, email, passwordHash, username, emailVerified: false };
     this.users.set(user.id, user);
-    return { id: user.id, email, username, emailVerified: false, coinBalance: 100 };
+    return { id: user.id, email, username, emailVerified: false };
   }
   async findUser(identifier: string) { return [...this.users.values()].find(user => user.email === identifier || user.username === identifier) ?? null; }
   async createSession(userId: string, tokenHash: string) { this.sessions.set(tokenHash, userId); }
   async findSession(tokenHash: string) {
     const id = this.sessions.get(tokenHash);
     const user = [...this.users.values()].find(candidate => candidate.id === id);
-    return user ? { id: user.id, email: user.email, username: user.username, emailVerified: user.emailVerified, coinBalance: user.coinBalance } : null;
+    return user ? { id: user.id, email: user.email, username: user.username, emailVerified: user.emailVerified } : null;
   }
   async deleteSession(tokenHash: string) { this.sessions.delete(tokenHash); }
   async createAction(userId: string, tokenHash: string, purpose: string, expiresAt: Date) {
@@ -77,7 +77,7 @@ describe('account HTTP endpoints', () => {
 
     const current = await fetch(`${baseUrl}/me`, { headers: { cookie } });
     expect(current.status).toBe(200);
-    expect(await current.json()).toEqual({ id: 'user-1', email, username: 'learner', emailVerified: false, coinBalance: 100 });
+    expect(await current.json()).toEqual({ id: 'user-1', email, username: 'learner', emailVerified: false });
 
     const signOut = await fetch(`${baseUrl}/logout`, { method: 'POST', headers: { cookie } });
     expect(signOut.status).toBe(204);
@@ -89,7 +89,7 @@ describe('account HTTP endpoints', () => {
     });
     expect(login.status).toBe(201);
     const loginCookie = login.headers.get('set-cookie')?.split(';')[0]!;
-    expect(await (await fetch(`${baseUrl}/me`, { headers: { cookie: loginCookie } })).json()).toEqual({ id: 'user-1', email, username: 'learner', emailVerified: false, coinBalance: 100 });
+    expect(await (await fetch(`${baseUrl}/me`, { headers: { cookie: loginCookie } })).json()).toEqual({ id: 'user-1', email, username: 'learner', emailVerified: false });
 
     let finalResponse: Response | undefined;
     for (let request = 0; request < 8; request += 1) {
@@ -113,7 +113,7 @@ describe('account HTTP endpoints', () => {
     const register = (body: object) => fetch(`${url}/register`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify(body) });
     for (const username of ['learner_one', 'learner_two']) {
       const response = await register({ username, password: 'password8' });
-      expect(response.status).toBe(201); expect(await response.json()).toMatchObject({ user: { username, email: null, emailVerified: false, coinBalance: 100 }, verificationSent: false });
+      expect(response.status).toBe(201); expect(await response.json()).toMatchObject({ user: { username, email: null, emailVerified: false }, verificationSent: false });
     }
     const noVerification = await register({ username: 'learner_three', password: 'password8', email: 'unverified@example.test' });
     expect(noVerification.status).toBe(201); expect(sent).toHaveLength(0);

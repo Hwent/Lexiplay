@@ -1,79 +1,62 @@
-# Database maintenance
+# Database redeployment
 
-Prisma migrations are the only schema-change mechanism. Application startup never creates or alters tables.
-The schema is [schema.prisma](../apps/api/prisma/schema.prisma); SQL-only constraints and indexes live in its migrations.
-There are 14 application tables, plus Prisma's migration bookkeeping table.
+Prerequisites: Docker, PostgreSQL 17, matching application/schema versions. Backups stay in ignored `.local-backups/`; keep a secure copy elsewhere.
 
 Add these settings to the private root `.env`:
 
-| Tables | Responsibility |
-| --- | --- |
-| account_users | Account identity, password hash, optional email, integer coin balance (100 initially). |
-| account_sessions, account_actions | Expiring login sessions and single-use verification/reset tokens. |
-| guest_sessions | Hashed guest identity, separate integer coin balance (10 initially), expiry and transfer claim. |
-| progress_transfers | Idempotent account-bound receipts for guest progress transfers. |
-| library_state | One current cache version, changed during maintenance. No revision history. |
-| word_families | Source-backed groups; families do not replace spelling/POS identities. |
-| dictionary_entries | Case-sensitive spelling + part of speech, family and source metadata. |
-| dictionary_definitions | Meanings keyed by entry, language code and order. The product uses English. |
-| vocabulary_collections | Official collection metadata and category; source metadata is stored here. |
-| collection_entries | Unique collection/entry memberships; entries may belong to several collections. |
-| user_vocabulary_collections | Saved official collection links. |
-| user_words | One personal vocabulary per account, entry membership, review progress and explicit exclusions. |
-| practice_games | Owner, original payer, answer spelling, difficulty, outcome, attempt count and actual net coin change. Temporary JSON holds active guesses, hints and promised coin values; settlement clears it. |
+```dotenv
+# Development defaults to DATABASE_URL from .env.
+REDEPLOY_PRODUCTION_URL=postgresql://USER:PASSWORD@HOST/OLD_PRODUCTION
+REDEPLOY_TARGET_URL=postgresql://USER:PASSWORD@HOST/NEW_EMPTY_PRODUCTION
+```
 
-Definitions always come from the current dictionary, including game history. Users cannot edit definitions.
-Saving a collection imports its entries without duplicates. Maintenance automatically imports later members.
-Unsave/source removal keeps personal words and progress; explicit word removal stays excluded until explicitly added again.
+## 1. Fresh production (no accounts/progress)
 
-## Initial local cutover
+```powershell
+pnpm db:redeploy prepare --mode fresh
+# Use the bundle path printed above:
+pnpm db:redeploy publish --bundle .local-backups/lexiplay_redeploy_TIMESTAMP --apply
+```
 
-The approved source is the connected local database with **156,600 dictionary words**.
-Do not supplement it from another database or external dictionary. Stop the local API before cutover.
+## 2. Preserve production users + development vocabulary
 
-From the repository root:
+Prepare a local preview while production remains online (preview bundles cannot be published):
 
-~~~powershell
-pnpm db:restructure --source-env C:/path/to/source/.env --target-name lexiplay_clean_TIMESTAMP --expected-words 156600 --connect
-~~~
+```powershell
+pnpm db:redeploy prepare --mode merge --preview
+```
 
-This takes a complete recovery dump and exact dictionary JSONL snapshot, creates a new database,
-applies Prisma migrations, and verifies every spelling, meaning and source metadata.
-Accounts, personal words and games start empty. The source database stays intact.
-An existing destination is rejected. --connect updates only this checkout's ignored .env after verification.
+Pause all production writers first; keep them paused through cutover.
 
-The canonical migration refuses a populated legacy database. Do not bypass that guard.
-Normal schema changes on an already canonical database use pnpm db:migrate:local (Prisma migrate deploy).
+```powershell
+pnpm db:redeploy prepare --mode merge --writers-paused
+pnpm db:redeploy publish --bundle .local-backups/lexiplay_redeploy_TIMESTAMP --writers-paused
+pnpm db:redeploy publish --bundle .local-backups/lexiplay_redeploy_TIMESTAMP --writers-paused --apply
+```
 
-## Later dictionary maintenance
+`production.dump` is the full backup; `users.dump` holds private-table data. The candidate retains production user IDs, passwords, lists, progress, sessions, games and bookmarks. Development wins matching public vocabulary keys; production-only public rows remain. Development accounts are excluded. Schema/history mismatch stops the merge: upgrade and review a production clone first, then use that clone as `REDEPLOY_PRODUCTION_URL`.
 
-First generate a difference report. This command does not change the database:
+## Cutover / rollback
 
-~~~powershell
-pnpm library:publish --dictionary .local-backups/SELECTED/dictionary.jsonl.gz --expected-words 156600
-~~~
+1. Set the service `DATABASE_URL` to the new target; deploy matching code.
+2. Check login, library and game. Clear browser vocabulary caches after dictionary replacement.
+3. Resume writers. Retain the old database and backups.
 
-Review additions, changed meanings/source metadata, removals and affected personal/collection references.
-Wait for further instruction; do not automatically resolve or delete referenced entries.
-After explicit approval, stop API writers and apply the exact reviewed report:
+Rollback **before resuming writes**: restore the old service `DATABASE_URL` and code. After writes resume, reconcile new user changes before switching back.
 
-~~~powershell
-pnpm library:publish --dictionary .local-backups/SELECTED/dictionary.jsonl.gz --expected-words 156600 --apply .local-backups/REPORT/differences.json --writers-paused
-~~~
+Scripts never clear a populated target. A failed restore is transactional; failed verification leaves the target isolated. Fix the issue and use another empty target. Checksums detect corruption, not malicious edits; treat bundles as private trusted files.
 
-The command rejects stale reports and unresolved removal references, and backs up before changing data. One transaction publishes the dictionary,
-rebuilds official memberships/family links, renews saved collections, and cancels unplayable active games.
-It never adds dictionary entries from collection or family files.
-Playable games resume with current definitions. Cancelled games refund the original payer once and do not count as wins/losses.
-Clients invalidate cached definitions and collections when the single cache version changes.
+## 3. Update an existing database with Prisma; preserve users
 
 Connections in the private root `.env`: source → `DATABASE_URL`; target → `SEED_DATABASE_URL`. Pause the application first.
 
-~~~json
-{"term":"cover","definition":"To place over.","part_of_speech":["verb"],"senses":[{"partOfSpeech":"verb","definitions":["To place over."],"source":"original source"}]}
-~~~
+```powershell
+# Preview on an isolated target clone; the real target stays unchanged.
+pnpm db:redeploy:prisma --source-database lexiplay_dev_20261014011803907 --target-database lexiplay_demo_db --strict-dictionary
+# New backup + clone validation + atomic target update:
+pnpm db:redeploy:prisma --source-database lexiplay_dev_20261014011803907 --target-database lexiplay_demo_db --strict-dictionary --apply
+```
 
-Preserve additional source fields; do not fabricate provenance. Spellings are case-sensitive; search is case-insensitive.
-Gameplay deduplicates eligible lowercase ASCII spellings.
+Prisma executes the schema upgrade and public-data writes in one transaction. `--strict-dictionary` fully replaces public dictionary words, definitions, POS and senses from the development snapshot, then verifies exact content equality. Existing user columns are checked before commit; saved legacy words are additionally imported into the new personal-list models. Development accounts are excluded. Multiple legacy lists per user or unmatched saved words stop the update for review. Omitting the strict flag preserves target-only public words.
 
 Backups: `.local-backups/lexiplay_prisma_TIMESTAMP/target-before.dump`, `users-before.dump`; verification: `preview.json`, `applied.json`. Resume the application with matching code after successful verification. For rollback, restore the full backup into a separate empty database, then switch the service connection.

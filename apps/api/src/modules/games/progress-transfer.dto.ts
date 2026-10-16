@@ -1,10 +1,8 @@
 import { Type } from 'class-transformer';
-import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsString, IsUUID, MaxLength, MinLength, ValidateNested } from 'class-validator';
+import { ArrayMaxSize, IsArray, IsIn, IsOptional, IsUUID, ValidateNested } from 'class-validator';
+import { SaveWordDto } from '../word-lists/word-list.dto';
 
-export class GuestWordDto {
-  @IsString() @MinLength(1) @MaxLength(100) term!: string;
-  @IsOptional() @IsString() @MaxLength(500) definition?: string;
-  @IsOptional() @IsString() @MaxLength(40) partOfSpeech?: string | null;
+export class GuestWordDto extends SaveWordDto {
   @IsIn(['KNOWN', 'UNFAMILIAR']) status!: 'KNOWN' | 'UNFAMILIAR';
 }
 export class ProgressTransferDto {

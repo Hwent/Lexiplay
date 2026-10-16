@@ -29,9 +29,10 @@
   },
   "scripts": {
     "dev": "tsx watch src/main.ts",
+    "dictionary:seed": "tsx src/modules/word-lists/seed-simple-wiktionary.ts",
     "build": "prisma generate && tsc -p tsconfig.build.json",
     "typecheck": "prisma generate && tsc --noEmit",
-    "test": "node ../../scripts/run-api-tests.mjs",
+    "test": "prisma generate && node ../../scripts/prepare-test-database.mjs && vitest run --exclude dist/** --maxWorkers=1",
     "prisma:generate": "prisma generate",
     "db:migrate": "prisma migrate deploy"
   }
