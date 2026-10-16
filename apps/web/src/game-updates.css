@@ -144,15 +144,12 @@
   .keyboard-key { transition: transform 90ms ease-out, background-color 160ms ease-out, filter 90ms ease-out; }
   .letter-tile.filled { animation: puzzle-letter-pop 110ms ease-out; }
   .checking-guess .letter-tile { animation: puzzle-check-pulse 800ms ease-in-out 150ms infinite alternate; }
-  .revealing-guess .letter-tile { animation: puzzle-tile-reveal 260ms ease-in-out var(--tile-delay) both; }
+  .revealing-guess .letter-tile { animation: puzzle-tile-reveal 120ms ease-out; }
   .puzzle, .next-game { animation: puzzle-arrive 180ms ease-out; }
   @keyframes puzzle-letter-pop { 50% { transform: scale(1.08); } }
   @keyframes puzzle-check-pulse { to { opacity: .55; } }
   @keyframes puzzle-tile-reveal {
-    0%, 44% { background: transparent; border-color: var(--filled-border); color: var(--text); }
-    0% { transform: scaleY(1); }
-    45% { transform: scaleY(.05); }
-    100% { transform: scaleY(1); }
+    50% { transform: scale(1.04); }
   }
   @keyframes puzzle-arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
 }

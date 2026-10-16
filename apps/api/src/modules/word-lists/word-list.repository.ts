@@ -53,6 +53,15 @@ export class WordListRepository implements OnModuleDestroy {
     return rows.map(row => row.term);
   }
 
+  async isDictionaryGameWord(term: string): Promise<boolean> {
+    const { rows } = await this.pool.query<{ valid: boolean }>(`SELECT EXISTS(
+      SELECT 1 FROM dictionary_entries e WHERE e.term=$1
+      AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
+      AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
+    ) AS valid`, [term]);
+    return rows[0]!.valid;
+  }
+
   async mergeGuestWords(client: PoolClient, userId: string, words: Omit<WordEntry, 'id'>[]) {
     if (!words.length) return { wordsAdded: 0, wordsAlreadySaved: 0 };
     const matches = await client.query<{ id: string }>(`SELECT DISTINCT e.id FROM jsonb_array_elements($1::jsonb) incoming

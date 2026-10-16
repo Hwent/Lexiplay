@@ -560,7 +560,7 @@ export default function App() {
                   {Array.from({ length: game.wordLength }, (_, column) => {
                     const letter = result?.guess[column] ?? activeGuess[column] ?? '';
                     const state = result?.feedback[column]?.toLowerCase() ?? '';
-                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)`, '--tile-delay': `${column * 45}ms` } as CSSProperties} key={`${column}-${letter}`}>{letter}</span>;
+                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)` }} key={`${column}-${letter}`}>{letter}</span>;
                   })}
                 </div>;
               })}

@@ -12,6 +12,7 @@ import { guestOwner } from './modules/games/guest-cookie';
 import { CEFR_POOLS } from './modules/word-lists/cefr-pools';
 import { WORDLE_POOL } from './modules/word-lists/wordle-pool';
 import { WordListsService } from './modules/word-lists/word-lists.service';
+import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
 
 const database = process.env.TEST_DATABASE_URL;
@@ -98,6 +99,18 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const started = await start(user.cookie);
     const saved = (await pool.query('SELECT answer FROM practice_games WHERE id=$1', [started.id])).rows[0];
     expect(['apple','cover','china']).toContain(saved.answer);
+  });
+
+  it('matches single-word guess validation to the full pool, excluding proper nouns and missing English definitions', async () => {
+    await publishDictionary(pool, [...dictionary, word('paris', ['proper noun']), word('alone')]);
+    await pool.query("UPDATE dictionary_definitions SET language_code='fr' WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='alone')");
+    const repository = app.get(WordListRepository);
+    const allowed = new Set(await repository.dictionaryGameWords(5));
+    for (const term of ['apple', 'cover', 'paper', 'paris', 'alone', 'zzzzz']) {
+      expect(await repository.isDictionaryGameWord(term), term).toBe(allowed.has(term));
+    }
+    expect(allowed.has('apple')).toBe(true);
+    expect(['paris', 'alone', 'zzzzz'].some(term => allowed.has(term))).toBe(false);
   });
 
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {

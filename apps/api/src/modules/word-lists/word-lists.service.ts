@@ -32,4 +32,5 @@ export class WordListsService {
     }
   }
   dictionaryGameWords(length: number) { return this.dictionary.dictionaryGameWords(length); }
+  isDictionaryGameWord(term: string) { return this.dictionary.isDictionaryGameWord(term); }
 }

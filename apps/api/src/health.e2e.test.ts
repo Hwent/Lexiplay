@@ -28,6 +28,7 @@ describe('game HTTP endpoints and rules', () => {
       return result;
     });
     vi.spyOn(WordListRepository.prototype, 'getDictionaryDefinition').mockImplementation(async term => `Definition of ${term}.`);
+    vi.spyOn(WordListRepository.prototype, 'isDictionaryGameWord').mockResolvedValue(false);
     vi.spyOn(WordListsService.prototype, 'dictionarySynonym').mockResolvedValue('fruit');
   });
   afterEach(async () => { await app?.close(); app = undefined; vi.restoreAllMocks(); });
@@ -44,6 +45,7 @@ describe('game HTTP endpoints and rules', () => {
   });
   it('accepts every length from 3–9 through the production validation pipeline and protects saved games', async () => {
     const words = ['cat', 'book', 'apple', 'orange', 'because', 'elephant', 'beautiful'];
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => words.includes(term));
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockImplementation(async length => words.filter(word => word.length === length));
     const url = await startApp();
     for (const word of words) {
@@ -82,6 +84,7 @@ describe('game HTTP endpoints and rules', () => {
     expect(['apple', 'lucid', 'scope']).toContain(stored.get(unrestricted.id)!.answer);
   });
   it('narrows default answers by length while accepting wider dictionary guesses and custom sources', async () => {
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => ['apple', 'xylyl', 'cat', 'qat'].includes(term));
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'xylyl']);
     await startApp(); const games = app!.get(GameService);
     const classic = await games.start(5, undefined, 'medium', 'test');
@@ -96,7 +99,8 @@ describe('game HTTP endpoints and rules', () => {
     dictionary.mockResolvedValue(['xylyl']);
     await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('No 5-letter answers');
   });
-  it('keeps the dictionary pool stable and checks the selected length without consuming invalid guesses', async () => {
+  it('checks individual words without reloading the dictionary pool or consuming invalid guesses', async () => {
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => ['apple', 'paper'].includes(term));
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
     await startApp(); const games = app!.get(GameService);
     const game = await games.start(5, ['apple'], 'medium', 'test');
@@ -105,6 +109,7 @@ describe('game HTTP endpoints and rules', () => {
     dictionary.mockResolvedValue(['apple', 'paper']);
     expect((await games.submit(game.id, 'paper', 'test')).attemptsRemaining).toBe(5);
     expect(await games.submit(game.id, ' APPLE ', 'test')).toMatchObject({ answer: 'apple', outcome: 'WON' });
+    expect(dictionary).toHaveBeenCalledOnce();
     expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(2);
     await expect(games.start(5, ['zzzzz'], 'medium', 'test')).rejects.toThrow('in the game dictionary');
     dictionary.mockResolvedValue(['apple']);
@@ -116,6 +121,7 @@ describe('game HTTP endpoints and rules', () => {
     await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('Load the dictionary');
   });
   it.each([['easy', 7], ['medium', 6], ['hard', 5]] as const)('enforces %s guesses and offers one of each hint', async (difficulty, attempts) => {
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => ['apple', 'paper'].includes(term));
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
     await startApp(); const games = app!.get(GameService);
     const game = await games.start(5, ['apple'], difficulty, 'test');
