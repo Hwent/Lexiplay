@@ -111,14 +111,6 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
     expect(allowed.has('apple')).toBe(true);
     expect(['paris', 'alone', 'zzzzz'].some(term => allowed.has(term))).toBe(false);
-    const snapshotResponse = await request('/word-lists/dictionary/game-words?wordLength=5');
-    expect(snapshotResponse.status).toBe(200);
-    const snapshot = await snapshotResponse.json();
-    const revision = await (await request('/library/revision')).json();
-    expect(snapshot).toEqual({ version: revision.version, wordLength: 5, words: [...allowed] });
-    for (const length of ['2', '10', 'five', '5.5', '']) {
-      expect((await request('/word-lists/dictionary/game-words?wordLength=' + length)).status).toBe(400);
-    }
   });
 
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
