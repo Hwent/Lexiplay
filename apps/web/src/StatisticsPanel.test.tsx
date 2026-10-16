@@ -30,7 +30,6 @@ it('paginates practice with stable totals and saves selected recent words when l
   await waitFor(() => expect(screen.getByRole('button', { name: 'Add apple to word list' })).toBeEnabled());
   await user.click(screen.getByRole('button', { name: 'Add apple to word list' }));
   expect(screen.getByRole('button', { name: 'Cancel addition of apple' })).toHaveAttribute('aria-pressed', 'true');
-  expect(screen.queryByText(/Saved when you leave this page/)).not.toBeInTheDocument();
   expect(screen.getByText('Page 1 of 2')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Next' }));
   expect(screen.getByText('73%')).toBeInTheDocument();

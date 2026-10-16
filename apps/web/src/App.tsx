@@ -497,7 +497,7 @@ export default function App() {
           </button>
         </div>
       </header>
-      {activeSection !== 'progress' && wordSelection.pending.size > 0 && <div className="word-selection-banner" role="status" aria-busy={wordSelection.saving}><span>{`${wordSelection.pending.size} word${wordSelection.pending.size === 1 ? '' : 's'} selected. Saved when you leave this page.`}</span><button type="button" disabled={wordSelection.saving} onClick={() => wordStore.cancelAll()}>Cancel additions</button></div>}
+      {wordSelection.pending.size > 0 && <div className="word-selection-banner" role="status" aria-busy={wordSelection.saving}><span>{`${wordSelection.pending.size} word${wordSelection.pending.size === 1 ? '' : 's'} selected. Saved when you leave this page.`}</span><button type="button" disabled={wordSelection.saving} onClick={() => wordStore.cancelAll()}>Cancel additions</button></div>}
       {wordSelection.error && <p className="word-selection-error" role="alert">{wordSelection.error}</p>}
       {wordSelection.notice && <p className="word-selection-notice" role="status">{wordSelection.notice}</p>}
 
