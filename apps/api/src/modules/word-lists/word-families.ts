@@ -9,9 +9,15 @@ export function wordFamily(term: string): FamilyIdentity {
   return { id: `item:${normalized}`, headword: normalized, kind: /\s/.test(normalized) ? 'phrase' : 'unclassified' };
 }
 export function familyCounts(terms: string[]) {
-  const units = new Map(terms.map(term => { const family = wordFamily(term); return [family.id, family]; }));
-  return { familyCount: [...units.values()].filter(unit => unit.kind === 'family').length,
-    otherUnitCount: [...units.values()].filter(unit => unit.kind !== 'family').length };
+  const units = new Set<string>();
+  let familyCount = 0;
+  for (const term of terms) {
+    const family = wordFamily(term);
+    if (units.has(family.id)) continue;
+    units.add(family.id);
+    if (family.kind === 'family') familyCount++;
+  }
+  return { familyCount, otherUnitCount: units.size - familyCount };
 }
 export function groupFamilies<T>(rows: T[], term: (row: T) => string) {
   const groups = new Map<string, FamilyIdentity & { members: T[] }>();

@@ -2,30 +2,32 @@ import { BadRequestException, Inject, Injectable, ServiceUnavailableException } 
 import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { GameRepository } from './game.repository';
-import { DIFFICULTIES, Difficulty, Feedback, Game, Guess, publicGame } from './game.types';
+import { DIFFICULTIES, Difficulty, Game, Guess, publicGame, WORDLE_COST, score } from './game.types';
 
 @Injectable()
 export class GameService {
   constructor(@Inject(WordListsService) private readonly dictionary: WordListsService, @Inject(GameRepository) private readonly games: GameRepository) {}
 
-  async start(wordLength: number = 5, wordList: string[] | undefined, difficulty: Difficulty = 'medium', owner: string, selectedPool?: { id: string; name: string; author: string }) {
+  async start(wordLength: number = 5, wordList: string[] | undefined, difficulty: Difficulty = 'medium', owner: string, selectedPool?: { id: string; name: string; author: string }, startRequestId: string = randomUUID()) {
     if (!Number.isInteger(wordLength) || wordLength < 3 || wordLength > 9) throw new BadRequestException({ code: 'INVALID_WORD_LENGTH', message: 'Choose a word length from three to nine letters.' });
     if (!Object.hasOwn(DIFFICULTIES, difficulty)) throw new BadRequestException('Choose a valid difficulty.');
     const rules = DIFFICULTIES[difficulty];
     const allowedWords = await this.dictionary.dictionaryGameWords(wordLength);
     if (!allowedWords.length) throw new ServiceUnavailableException({ code: 'DICTIONARY_NOT_READY', message: `The dictionary has no ${wordLength}-letter game words. Load the dictionary before playing.` });
-    const pool = new Set(allowedWords);
-    const candidates = wordList === undefined ? allowedWords : [...new Set(wordList)].filter(word => pool.has(word));
-    const answers = candidates;
+    let answers = allowedWords;
+    if (wordList !== undefined) {
+      const pool = new Set(allowedWords);
+      answers = [...new Set(wordList)].filter(word => pool.has(word));
+    }
     if (!answers.length) throw new BadRequestException({ code: 'NO_PLAYABLE_WORDS', message: `Your word list has no ${wordLength}-letter words in the game dictionary yet.` });
     const game: Game = {
-      id: randomUUID(), kind: 'word-puzzle', owner, ...(selectedPool ? { pool: selectedPool } : {}), answer: answers[randomInt(answers.length)]!, allowedWords,
+      id: randomUUID(), startRequestId, kind: 'word-puzzle', owner, ...(selectedPool ? { pool: selectedPool } : {}), answer: answers[randomInt(answers.length)]!,
       wordLength, difficulty, attemptLimit: rules.attemptLimit, guesses: [], completed: false,
       startedAt: new Date().toISOString(), completedAt: null,
       hints: { unused: rules.hints, present: rules.hints }, revealedAbsent: [], revealedPresent: [],
+      status: 'active', coinCost: WORDLE_COST, winRewardCoins: rules.reward, coinPayer: owner.startsWith('user:') ? 'account' : 'guest',
     };
-    await this.games.create(game);
-    return publicGame(game);
+    return publicGame(await this.games.create(game));
   }
 
   async read(id: string, owner: string) { return publicGame(await this.games.read(id, owner)); }
@@ -58,7 +60,7 @@ export class GameService {
     return this.games.change(id, owner, async game => {
       this.requireActive(game);
       const guess = rawGuess.trim().toLowerCase();
-      if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !game.allowedWords.includes(guess)) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
+      if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !(await this.dictionary.dictionaryGameWords(game.wordLength)).includes(guess)) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
       const attemptsRemaining = game.attemptLimit - game.guesses.length - 1;
       const won = guess === game.answer;
       const completed = won || attemptsRemaining === 0;
@@ -67,12 +69,21 @@ export class GameService {
       if (completed) {
         result.outcome = won ? 'WON' : 'LOST';
         result.answer = game.answer;
-        result.answerDefinition = await this.dictionary.dictionaryDefinition(game.answer) ?? '';
+        result.answerDefinition = won ? result.definition : await this.dictionary.dictionaryDefinition(game.answer) ?? '';
         game.completed = true;
+        game.status = won ? 'won' : 'lost';
+        if (won) result.rewardCoins = game.winRewardCoins;
         game.completedAt = new Date().toISOString();
       }
       game.guesses.push(result);
       return result;
+    });
+  }
+
+  async abandon(id: string, owner: string) {
+    return this.games.change(id,owner,game => {
+      if (!game.completed) { game.completed=true; game.status='cancelled'; game.completedAt=new Date().toISOString(); }
+      return { success:true };
     });
   }
 
@@ -81,17 +92,4 @@ export class GameService {
   }
 }
 
-export function score(answer: string, guess: string): Feedback[] {
-  const feedback: Feedback[] = Array.from({ length: answer.length }, () => 'ABSENT');
-  const remaining = new Map<string, number>();
-  for (let i = 0; i < answer.length; i++) {
-    if (guess[i] === answer[i]) feedback[i] = 'CORRECT';
-    else remaining.set(answer[i]!, (remaining.get(answer[i]!) ?? 0) + 1);
-  }
-  for (let i = 0; i < guess.length; i++) {
-    if (feedback[i] === 'CORRECT') continue;
-    const count = remaining.get(guess[i]!) ?? 0;
-    if (count > 0) { feedback[i] = 'PRESENT'; remaining.set(guess[i]!, count - 1); }
-  }
-  return feedback;
-}
+export { score } from './game.types';

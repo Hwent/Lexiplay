@@ -13,6 +13,13 @@
 .header-actions .theme-toggle { display: grid; place-items: center; width: 2.65rem; height: 2.65rem; padding: .65rem; font-size: 0; }
 .header-search, .account-status-link { min-height: 2.65rem; background: var(--surface); }
 .header-search button { border-left: 0; }
+.account-coins { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.65rem; padding: .5rem .75rem; border: 1px solid color-mix(in srgb, #d7ae59 40%, var(--line)); border-radius: .65rem; background: color-mix(in srgb, #d7ae59 10%, var(--surface)); color: #dfbc75; white-space: nowrap; }
+.account-coins strong { font-size: 1rem; font-weight: 650; font-variant-numeric: tabular-nums; }
+.account-coins .ui-icon { width: 1.3rem; height: 1.3rem; }
+:root[data-theme='light'] .account-coins { color: #866014; }
+.account-status-link strong { font-size: .95rem; }
+.difficulty-segments label { align-items: center; justify-content: center; }
+.game-price { margin: 1rem 0; font-size: 1rem; line-height: 1.6; text-align: center; }
 .primary-button, .quiet-button { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 2.9rem; padding: .75rem 1.1rem; border: 1px solid transparent; border-radius: .65rem; font-size: .88rem; font-weight: 650; cursor: pointer; transition: background .18s, border-color .18s, transform .18s; }
 .primary-button { background: var(--accent); color: var(--surface); }
 .primary-button span { padding: 0; }
