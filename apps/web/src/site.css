@@ -65,12 +65,6 @@
 }
 .primary-button, .quiet-button { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 2.9rem; padding: .75rem 1.1rem; border: 1px solid transparent; border-radius: .65rem; font-size: .95rem; font-weight: 600; cursor: pointer; transition: background .18s, border-color .18s, transform .18s; }
 .primary-button { background: var(--accent); color: var(--surface); text-decoration: none; }
-.letter-tile, .keyboard-key { position: relative; }
-.letter-tile.correct::after, .keyboard-key.correct::after { content: '✓'; }
-.letter-tile.present::after, .keyboard-key.present::after { content: '↔'; }
-.letter-tile.absent::after, .keyboard-key.absent::after { content: '×'; }
-.letter-tile::after, .keyboard-key::after { position: absolute; right: .15rem; bottom: .1rem; font: 700 .65rem/1 system-ui, sans-serif; }
-.keyboard-key::after { right: .1rem; bottom: .15rem; font-size: .6rem; }
 .result-badge { display: inline-flex; padding: .35rem .65rem; border-radius: .5rem; background: var(--surface-soft); color: var(--soft-text); font-size: .9rem; font-weight: 500; }
 .result-badge.won { background: var(--success-soft); color: var(--success-text); }
 .puzzle-message.invalid { border: 0; border-inline-start: 3px solid var(--danger-text); background: var(--danger-soft); color: var(--danger-text); }
@@ -155,10 +149,7 @@
 .game-rules p { font-size: .9rem; line-height: 1.75; color: var(--muted); }
 .rule-colors { gap: .65rem; }
 .rule-colors > span { font-size: .9rem; }
-.rule-swatch { display: inline-grid; place-items: center; width: 1.35rem; height: 1.35rem; border-radius: .3rem; font-size: .9rem; font-style: normal; font-weight: 700; }
-.rule-swatch.correct { color: var(--correct-text); }
-.rule-swatch.present { color: var(--present-text); }
-.rule-swatch.absent { color: var(--absent-text); }
+.rule-swatch { width: 1.35rem; height: 1.35rem; border-radius: .3rem; }
 .practice-setup { min-width: 0; padding-left: clamp(1.25rem, 2.5vw, 2.5rem); border-left: 0; }
 .practice-setup-heading .page-eyebrow { margin-bottom: .4rem; }
 .practice-setup-heading h3 { margin: 0; font-size: 1.1rem; font-weight: 650; letter-spacing: -.025em; }

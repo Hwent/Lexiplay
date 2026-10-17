@@ -519,7 +519,7 @@ export default function App() {
             <details className="game-rules">
               <summary>Wordle rules</summary>
               <p>Find the hidden {selectedWordLength}-letter word in {difficulties.find(option => option.id === difficulty)!.guesses} guesses. Each full word checks automatically.</p>
-              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true">✓</i>Correct spot</span><span><i className="rule-swatch present" aria-hidden="true">↔</i>Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true">×</i>Not in word</span></div>
+              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />Correct spot</span><span><i className="rule-swatch present" aria-hidden="true" />Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true" />Not in word</span></div>
               <p>Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.</p>
             </details>
             </div>
