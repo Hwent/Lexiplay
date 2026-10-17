@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { gameAudio } from './services/game-audio';
 
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 
@@ -35,6 +36,7 @@ export default function PronunciationButton({ term }: { term: string }) {
       return;
     }
     try {
+      gameAudio.stop();
       window.speechSynthesis.cancel();
       const utterance = new SpeechSynthesisUtterance(term);
       utterance.lang = 'en-US';

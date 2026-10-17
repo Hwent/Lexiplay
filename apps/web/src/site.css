@@ -180,6 +180,13 @@
 .settings-page { padding: 0; border: 0; background: transparent; }
 .appearance-panel { max-width: 47rem; padding: clamp(1.25rem, 3vw, 2rem); border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
 .appearance-panel > h3 { margin: 0; font-size: 1.15rem; letter-spacing: -.025em; }
+.sound-panel { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
+.sound-panel h3 { margin: 0; font-size: 1.15rem; }
+.sound-panel p { margin: .5rem 0 0; color: var(--muted); }
+.sound-toggle { display: inline-flex; align-items: center; gap: .65rem; min-height: 2.75rem; padding: .5rem; border: 0; border-radius: .5rem; background: transparent; color: var(--text); cursor: pointer; }
+.sound-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.sound-toggle[aria-checked='true'] .option-switch { background: var(--accent); }
+.sound-toggle[aria-checked='true'] .option-switch::after { transform: translateX(1rem); }
 .settings-page .appearance-panel > p { font-size: .9rem; }
 .theme-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 1rem; margin-top: 1.5rem; }
 .theme-options > button { min-width: 0; padding: .65rem; border: 1px solid var(--line); border-radius: .85rem; background: transparent; color: var(--text); cursor: pointer; transition: background .18s, border-color .18s; }

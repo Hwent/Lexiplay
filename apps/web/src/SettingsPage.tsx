@@ -1,6 +1,6 @@
 import Icon from './Icon';
 
-export default function SettingsPage({ theme, onThemeChange }: { theme: 'light' | 'dark'; onThemeChange: (theme: 'light' | 'dark') => void }) {
+export default function SettingsPage({ theme, onThemeChange, soundEnabled, onSoundChange }: { theme: 'light' | 'dark'; onThemeChange: (theme: 'light' | 'dark') => void; soundEnabled: boolean; onSoundChange: (enabled: boolean) => void }) {
   return <section className="settings-page">
     <div className="page-introduction">
       <div><p className="page-eyebrow">YOUR SPACE, YOUR PACE</p><h2>Make yourself<br /><span>comfortable.</span></h2><p>A little personal touch for your daily practice.</p></div>
@@ -21,6 +21,12 @@ export default function SettingsPage({ theme, onThemeChange }: { theme: 'light' 
         </button>)}
       </div>
       <p className="appearance-note">Your preference is saved on this device.</p>
+    </div>
+    <div className="appearance-panel sound-panel">
+      <div><h3>Sound effects</h3><p>Soft sounds for typing, hints, and rewards.</p></div>
+      <button className="sound-toggle" type="button" role="switch" aria-label="Sound effects" aria-checked={soundEnabled} onClick={() => onSoundChange(!soundEnabled)}>
+        <span>{soundEnabled ? 'On' : 'Off'}</span><span className="option-switch" aria-hidden="true" />
+      </button>
     </div>
   </section>;
 }

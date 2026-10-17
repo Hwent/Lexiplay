@@ -11,6 +11,7 @@ import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } fro
 import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
+import { gameAudio } from './services/game-audio';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
 
 const VocabularyLibrary = lazy(() => import('./VocabularyLibrary'));
@@ -95,6 +96,8 @@ export default function App() {
   const wordStore = useMemo(() => new PendingWords(account?.id ?? 'guest'), [account?.id]);
   const wordSelection = useWordSelection(wordStore);
   const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
+  const [soundEnabled, setSoundEnabled] = useState(() => gameAudio.enabled);
+  useEffect(() => gameAudio.listen(), []);
   const [activeSection, setActiveSection] = useState<Section>(currentSection);
   const [quickSearch, setQuickSearch] = useState('');
   useEffect(() => {
@@ -333,6 +336,7 @@ export default function App() {
       });
       if (session !== guessSession.current) return;
       setGame({ ...game, hints: result.hints, clues: { ...game.clues, [type]: result.text }, hintCoinsSpent: (game.hintCoinsSpent ?? 0) + result.cost });
+      if (activeSectionRef.current === 'play') gameAudio.play('hint');
       setMessage('');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not use this hint.');
@@ -373,6 +377,7 @@ export default function App() {
       });
       if (session !== guessSession.current) return;
       if (result.definition) rememberDictionaryDefinition(result.guess, result.definition);
+      if (activeSectionRef.current === 'play') gameAudio.play(result.completed ? result.outcome === 'WON' ? 'win' : 'complete' : 'guess');
       if (result.answer && result.answerDefinition) rememberDictionaryDefinition(result.answer, result.answerDefinition);
       setRevealingGuess({ gameId: game.id, row: game.guesses.length });
       setGame({ ...game, guesses: [...game.guesses, result], attemptCount: game.guesses.length + 1, completed: result.completed,
@@ -390,6 +395,7 @@ export default function App() {
       if (session !== guessSession.current) return;
       if (error instanceof ApiError && error.status === 400 && (error.code === 'INVALID_GUESS' || (!error.code && /valid.*word|dictionary/i.test(error.message)))) {
         setRejectedAttempt(value => value + 1);
+        if (activeSectionRef.current === 'play') gameAudio.play('invalid');
         setMessage(`${nextGuess.toUpperCase()} is not in the dictionary. Try another word.`);
       } else setMessage(error instanceof Error ? error.message : 'Could not submit your guess. Press Enter to retry.');
     } finally {
@@ -401,6 +407,8 @@ export default function App() {
   function changeGuess(nextGuess: string) {
     if (!game || busy || submittingGuess.current || progressSaving || finished || nextGuess === guess) return;
     const cleaned = nextGuess.toLowerCase().replace(/[^a-z]/g, '').slice(0, game.wordLength);
+    if (cleaned === guess) return;
+    gameAudio.play(cleaned.length < guess.length ? 'delete' : 'type');
     setGuess(cleaned);
     setRejectedAttempt(0);
     setMessage('');
@@ -616,7 +624,7 @@ export default function App() {
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}
       {activeSection === 'community' && <CommunityPage onExplore={() => navigateTo('library')} />}
-      {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} />}
+      {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} soundEnabled={soundEnabled} onSoundChange={enabled => { gameAudio.setEnabled(enabled); setSoundEnabled(enabled); }} />}
       {activeSection === 'licenses' && <section className="licenses-page" aria-label="Licenses and attribution">
         <p className="eyebrow">SOURCES & ATTRIBUTION</p><h2>Words with a shared history.</h2><p>Our dictionary combines Simple English Wiktionary with supplementary definitions from Open English WordNet.</p>
         <article><h3>Dictionary definitions</h3><p>Definitions are adapted from <a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">Simple English Wiktionary</a>, under the <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">Creative Commons Attribution-ShareAlike 3.0 license</a>, as described in the project’s <a href="https://simple.wiktionary.org/wiki/Wiktionary:Rules" target="_blank" rel="noreferrer">rules</a> and <a href="https://simple.wiktionary.org/wiki/Wiktionary:Copyrights" target="_blank" rel="noreferrer">copyright notice</a>.</p>

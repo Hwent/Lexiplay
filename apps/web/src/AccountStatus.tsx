@@ -1,6 +1,7 @@
 import type { Account } from './useAccount';
 import Icon from './Icon';
 import { useEffect, useRef, useState } from 'react';
+import { gameAudio } from './services/game-audio';
 
 export default function AccountStatus({ account, loading, error, onOpen, coinBalance }: { account: Account | null; loading: boolean; error: string; onOpen: () => void; coinBalance?: number | undefined }) {
   const owner = account?.id ?? 'guest';
@@ -14,6 +15,7 @@ export default function AccountStatus({ account, loading, error, onOpen, coinBal
       return;
     }
     setChange(value => ({ amount: coinBalance - last.coinBalance!, sequence: (value?.sequence ?? 0) + 1 }));
+    if (coinBalance > last.coinBalance) gameAudio.play('coin');
     const timer = window.setTimeout(() => setChange(null), 1500);
     return () => window.clearTimeout(timer);
   }, [owner, coinBalance, loading, error]);
