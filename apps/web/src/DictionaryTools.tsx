@@ -4,6 +4,7 @@ import usePendingWords from './usePendingWords';
 import PronunciationButton from './PronunciationButton';
 import Icon from './Icon';
 import { importTerms } from './dictionary-import';
+import EmptyState from './EmptyState';
 
 
 export default function DictionaryTools({ listId, searchQuery, signedIn = !!listId }: { listId: string; searchQuery: string; signedIn?: boolean }) {
@@ -56,14 +57,13 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
     finally { setReading(false); }
   }
   return <section className="dictionary-tools-panel" aria-label="Dictionary tools" aria-busy={searching || saving || reading}>
-    <header><div><h3>Words and meanings</h3><p>Look up a word, hear it pronounced, and add it to My Word List.</p></div><Icon name="dictionary"/></header>
     <div className="dictionary-tool-tabs" role="group" aria-label="Dictionary tool"><button type="button" aria-pressed={mode === 'search'} onClick={() => { setMode('search'); setResult(null); }}><Icon name="search"/>Find a word</button><button type="button" aria-pressed={mode === 'import'} onClick={() => { setMode('import'); setResult(null); }}>Import words</button></div>
     {!signedIn && <p className="dictionary-tool-hint"><a href="/account">Sign in</a> to save or import words.</p>}
     {mode === 'search' ? <>
       <label className="dictionary-search-label" htmlFor="library-dictionary-search">Search the dictionary</label><input id="library-dictionary-search" type="search" value={query} maxLength={100} placeholder="Try a word, like curious" onChange={event => { setQuery(event.target.value); setResult(null); }}/>
-      {normalized.length < 2 && <p className="dictionary-tool-hint">Enter at least two characters to discover words.</p>}
+      {normalized.length < 2 && <EmptyState icon="dictionary" title="A word worth discovering." action={<button className="primary-button" type="button" onClick={() => setQuery('curious')}>Try “curious” <Icon name="arrow"/></button>}><p>Enter at least two characters to discover words.</p></EmptyState>}
       {searching && <p role="status">Searching the dictionary…</p>}
-      {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <p>No dictionary matches. Try another spelling.</p>}
+      {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <EmptyState icon="search" title="No dictionary matches." action={<button className="primary-button" type="button" onClick={() => setQuery('curious')}>Try “curious” <Icon name="arrow"/></button>}><p>Try another spelling or discover a word to get started.</p></EmptyState>}
       {!searching && searched === normalized && <ul className="dictionary-tool-results">{results.map(entry => {
         const definition = entry.definition || entry.senses?.flatMap(sense => sense.definitions).join('; ');
         const pending = selection.pending.has(entry.term.trim());

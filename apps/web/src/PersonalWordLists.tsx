@@ -4,6 +4,7 @@ import { PersonalList, PersonalPage, PersonalWord, VocabularyCollection } from '
 import PronunciationButton from './PronunciationButton';
 import Icon from './Icon';
 import usePendingWords from './usePendingWords';
+import EmptyState from './EmptyState';
 
 export default function PersonalWordLists({ signedIn, searchQuery, initialId, revision, onOpenCollection }: { signedIn: boolean; searchQuery: string; initialId: string; revision: number; onOpenCollection?: (slug:string)=>void }) {
   const { store } = usePendingWords(initialId);
@@ -101,9 +102,9 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
   }
 
   function pagination(position: string) {
-    return data && <nav className="word-pagination" aria-label={`Personal list pages ${position}`}><button type="button" disabled={page <= 1 || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value - 1); }}>Previous</button><span>Page {page} of {Math.max(1, Math.ceil(data.total / data.pageSize))} · {data.total.toLocaleString()} {data.total === 1 ? 'word' : 'words'}</span><button type="button" disabled={page * data.pageSize >= data.total || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value + 1); }}>Next</button></nav>;
+    return data && data.total > data.pageSize && <nav className="word-pagination" aria-label={`Personal list pages ${position}`}><button type="button" disabled={page <= 1 || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value - 1); }}>Previous</button><span>Page {page} of {Math.max(1, Math.ceil(data.total / data.pageSize))} · {data.total.toLocaleString()} {data.total === 1 ? 'word' : 'words'}</span><button type="button" disabled={page * data.pageSize >= data.total || loading || busy} onClick={() => { setLoading(true); setMessage(''); setPage(value => value + 1); }}>Next</button></nav>;
   }
-  if (!signedIn) return <div className="library-empty"><h2>My Word List</h2><p>Sign in to save words and review your vocabulary.</p><a href="/account">Sign in</a></div>;
+  if (!signedIn) return <EmptyState icon="library" title="My Word List" action={<a className="primary-button" href="/account">Sign in <Icon name="arrow"/></a>}><p>Sign in to save words and review your vocabulary.</p></EmptyState>;
   return <section className="personal-word-lists" aria-label="My Word List" aria-busy={loading || busy}>
     {!!collections.length && <section aria-label="My collections" className="saved-collections">
       <h2>My collections</h2>
@@ -113,16 +114,16 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
           <button className="saved-collection-remove" type="button" aria-label={`Unsave ${collection.name}`} disabled={busy} onClick={() => void unsave(collection)}>Unsave</button></div>
       </li>)}</ul>
     </section>}
-    <div className="library-section-heading"><h2>Your words</h2>{data && <span className="library-count">{data.total.toLocaleString()} {query ? 'matching' : 'saved'} {data.total === 1 ? 'word' : 'words'}</span>}</div>
+    <div className="library-section-heading"><h2>Your words</h2>{data && data.total > 0 && <span className="library-count">{data.total.toLocaleString()} {query ? 'matching' : 'saved'} {data.total === 1 ? 'word' : 'words'}</span>}</div>
     {error && <p role="alert">{error} <button type="button" onClick={() => { setLoading(true); if (list) { store.requests.invalidate(`/word-lists/${list.id}/entries`); setRefresh(value => value + 1); } else { store.requests.invalidate('/word-lists/mine'); setListRetry(value => value + 1); } }}>Retry</button></p>}
     {message && <p role="status">{message}</p>}
     {pagination('top')}
-    {showEntries && <><div className="library-table-scroll"><table className="library-data-table personal-entries-table" aria-label="Saved vocabulary"><thead><tr><th scope="col">Word</th><th scope="col">Meaning</th><th scope="col">Review</th></tr></thead><tbody>{data.words.map(word => <tr key={word.id}>
+    {showEntries && <>{data.words.length > 0 && <div className="library-table-scroll"><table className="library-data-table personal-entries-table" aria-label="Saved vocabulary"><thead><tr><th scope="col">Word</th><th scope="col">Meaning</th><th scope="col">Review</th></tr></thead><tbody>{data.words.map(word => <tr key={word.id}>
       <td><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech}</small></td>
       <td><p className="personal-definition">{word.definition ?? 'Dictionary definition not available yet.'}</p></td>
       <td><div className="word-familiarity"><small>Familiarity {word.familiarity}/5</small><span className="familiarity-dots" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <i key={index} data-filled={index < word.familiarity}/>)}</span></div>
       <div className="personal-entry-actions"><button type="button" onClick={() => void review(word)}>Reviewed</button><button type="button" onClick={() => void review(word, true)}>Review again</button><button type="button" onClick={() => void remove(word)}>Remove {word.lemma}</button></div>
-    </td></tr>)}</tbody></table></div>{!data.words.length && <p className="library-empty">{query ? 'No saved words match your search.' : 'Your word list is ready for a fresh start.'} Explore a collection or visit the <a href="/dictionary">Dictionary</a> to add words.</p>}</>}
+    </td></tr>)}</tbody></table></div>}{!data.words.length && <EmptyState icon="library" title={query ? 'No saved words match your search.' : 'Your word list is ready for a fresh start.'} action={<a className="primary-button" href="/dictionary">Find words <Icon name="arrow"/></a>}><p>{query ? 'Try a different word in the search above, or find something new in Dictionary.' : 'Save a word from Dictionary or explore a collection to build your list.'}</p></EmptyState>}</>}
     {showEntries && pagination('bottom')}
   </section>;
 }

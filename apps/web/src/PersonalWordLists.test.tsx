@@ -33,6 +33,14 @@ it('shows dictionary content without definition editing', async () => {
   expect(screen.queryByRole('button', { name: 'Edit definition' })).not.toBeInTheDocument();
   expect(screen.queryByText(/Next review:/)).not.toBeInTheDocument();
 });
+it('gives an empty word list a clear next step without table or pagination controls', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => Response.json(String(input).endsWith('/mine') ? [list] : { ...page, total: 0, words: [] })));
+  render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0}/>);
+  expect(await screen.findByRole('heading', { name: 'Your word list is ready for a fresh start.' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Find words' })).toHaveAttribute('href', '/dictionary');
+  expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: /Personal list pages/ })).not.toBeInTheDocument();
+});
 it('hides previous entries while a new page loads and applies the header search', async () => {
   let finish!: (value: Response) => void;
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {

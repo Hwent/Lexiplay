@@ -4,6 +4,7 @@ import { CollectionPage, VocabularyCollection } from './collection-types';
 import CollectionImportDialog from './CollectionImportDialog';
 import PronunciationButton from './PronunciationButton';
 import Icon from './Icon';
+import EmptyState from './EmptyState';
 import SelectionControl from './SelectionControl';
 import { collectionCache, collectionPage } from './services/collection-cache';
 import usePendingWords from './usePendingWords';
@@ -328,9 +329,10 @@ export default function ExploreVocabulary({
             </div>
           </div>
 
-          <div className="library-table-scroll">
+          {!catalogLoading && !error && !catalog.length && <EmptyState icon="library" title="More words are on the way." action={<a className="primary-button" href="/dictionary">Find words <Icon name="arrow"/></a>}><p>There are no collections to explore yet. Discover a word in Dictionary to get started.</p></EmptyState>}
+          {!!catalog.length && <div className="library-table-scroll">
             <table className="library-data-table collection-catalog-table" aria-label="Vocabulary collections"><thead><tr><th scope="col">Collection</th><th scope="col">Words</th><th scope="col"><span className="sr-only">Explore</span></th></tr></thead><tbody>{catalog.map(renderCollectionCard)}</tbody></table>
-          </div>
+          </div>}
         </>
       ) : (
         <>
@@ -349,7 +351,6 @@ export default function ExploreVocabulary({
                   {current.level ?? 'Aa'}
                 </span>
                 <div>
-                  <p className="library-eyebrow">VOCABULARY COLLECTION</p>
                   <h2>{current.name}</h2>
                 </div>
                 <span className="library-count">{getCollectionSize(current)}</span>

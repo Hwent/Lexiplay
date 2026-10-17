@@ -4,6 +4,7 @@ import App from './App';
 import './styles.css';
 import './game-updates.css';
 import './account.css';
+import './design-tokens.css';
 import './site.css';
 
 const root = document.getElementById('root');

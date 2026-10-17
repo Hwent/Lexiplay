@@ -3,7 +3,7 @@ import Icon from './Icon';
 export default function SettingsPage({ theme, onThemeChange, soundEnabled, onSoundChange }: { theme: 'light' | 'dark'; onThemeChange: (theme: 'light' | 'dark') => void; soundEnabled: boolean; onSoundChange: (enabled: boolean) => void }) {
   return <section className="settings-page">
     <div className="page-introduction">
-      <div><p className="page-eyebrow">YOUR SPACE, YOUR PACE</p><h2>Make yourself<br /><span>comfortable.</span></h2><p>A little personal touch for your daily practice.</p></div>
+      <div><h2>Make yourself <span>comfortable.</span></h2><p>Theme and sound, just how you like them.</p></div>
       <span className="page-intro-icon" aria-hidden="true"><Icon name="settings" /></span>
     </div>
     <div className="appearance-panel">

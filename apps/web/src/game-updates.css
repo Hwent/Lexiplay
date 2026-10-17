@@ -273,7 +273,7 @@
 .cefr-pool-picker select { width: 100%; padding: .75rem; border-radius: .75rem; margin-bottom: .5rem; font: inherit; }
 .vocabulary-library-tabs, .collection-category-tabs { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1.5rem; }
 .vocabulary-library-tabs button, .collection-category-tabs button { padding:.65rem 1rem; border:1px solid var(--line); border-radius:999px; background:var(--control-bg); color:var(--text); font:inherit; cursor:pointer; }
-.vocabulary-library-tabs button[aria-selected=true], .collection-category-tabs button[aria-selected=true] { border-color:var(--correct); background:var(--correct); color:white; }
+.vocabulary-library-tabs button[aria-selected=true], .collection-category-tabs button[aria-selected=true] { border-color:var(--line); background:var(--accent-soft); color:var(--accent); }
 .vocabulary-collection-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; }
 .vocabulary-collection-card { border:1px solid var(--line); border-radius:1rem; padding:1.4rem; display:flex; flex-direction:column; align-items:flex-start; gap:.7rem; }
 .vocabulary-collection-card h3, .vocabulary-collection-card p { margin:0; }
@@ -302,12 +302,12 @@
 /* Collection browsing keeps status badges in a fixed heading row. */
 .collection-intro { color:var(--muted); margin:0 0 1rem; }
 .collection-card-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; width:100%; min-height:2rem; }
-.collection-saved-badge { min-width:3rem; color:var(--correct); font-size:.8rem; text-align:right; }
+.collection-saved-badge { min-width:3rem; color:var(--success-text); font-size:.8rem; text-align:right; }
 .vocabulary-collection-card>p { min-height:3em; line-height:1.5; }
 .collection-detail-heading h2 { margin:.6rem 0 .3rem; }
 .collection-detail-heading p { margin:.3rem 0 .8rem; color:var(--muted); }
 .collection-selection-summary { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; color:var(--muted); font-size:.9rem; }
-.collection-added-badge { display:inline-block; border-radius:999px; padding:.2rem .5rem; font-size:.75rem; color:var(--correct); border:1px solid var(--line); }
+.collection-added-badge { display:inline-block; border-radius:999px; padding:.2rem .5rem; font-size:.75rem; color:var(--success-text); border:1px solid var(--line); }
 .collection-word-rows input:disabled { cursor:default; }
 .personal-word-lists>.collection-word-rows:first-child { margin-top:0; }
 
@@ -315,7 +315,7 @@
 .collection-bulk-actions button:disabled, .collection-modal button:disabled { opacity:.55; cursor:default; }
 .collection-card-heading { min-height:2.5rem; }
 .collection-modal h2 { margin:0 0 .75rem; }
-.collection-modal button:focus-visible, .collection-bulk-actions button:focus-visible { outline:2px solid var(--correct); outline-offset:3px; }
+.collection-modal button:focus-visible, .collection-bulk-actions button:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
 @media(max-width:600px) { .collection-selection-summary { gap:0; } .collection-selection-summary>span { margin-bottom:.8rem; } .collection-bulk-actions button { width:100%; } .collection-modal button { min-height:44px; } }
 
 @media(max-width:600px) {

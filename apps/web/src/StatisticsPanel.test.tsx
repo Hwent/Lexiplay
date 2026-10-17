@@ -7,6 +7,29 @@ import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures'
 beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/progress'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
+it('offers a puzzle instead of empty metrics and pagination before the first game', async () => {
+  stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
+    if (path.includes('/progress/summary')) return Response.json({ total: 0, wins: 0, winRate: 0, streak: 0, recent: [], page: 1, pageSize: 10, totalPages: 1, timezone: 'America/Toronto' });
+    return Response.json([]);
+  }));
+  const user = userEvent.setup(); render(<App/>);
+  const start = await screen.findByRole('button', { name: 'Start a puzzle' });
+  expect(screen.queryByText('Games played')).not.toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: 'Recent practice pages' })).not.toBeInTheDocument();
+  await user.click(start);
+  expect(location.pathname).toBe('/games');
+});
+
+it('takes guests from their progress empty state to sign in', async () => {
+  stubFetchWithVocabularyRanges(vi.fn(async () => new Response('{}', { status: 401 })));
+  const user = userEvent.setup(); render(<App/>);
+  await user.click(await screen.findByRole('button', { name: 'Sign in' }));
+  expect(location.pathname).toBe('/account');
+  expect(await screen.findByRole('textbox', { name: 'Username or email' })).toBeInTheDocument();
+});
+
 it('paginates practice with stable totals and saves selected recent words when leaving', async () => {
   let finishPage!: (response: Response) => void;
   const summary = { total: 11, wins: 8, losses: 3, winRate: 73, streak: 2, timezone: 'America/Toronto', distribution: [], pageSize: 10, totalPages: 2 };

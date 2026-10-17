@@ -515,16 +515,16 @@ export default function App() {
             <div className="sample-grid" aria-hidden="true">
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
-            <h2>Ready to play?</h2>
+            <h2>Word puzzle</h2>
             <details className="game-rules">
               <summary>Wordle rules</summary>
               <p>Find the hidden {selectedWordLength}-letter word in {difficulties.find(option => option.id === difficulty)!.guesses} guesses. Each full word checks automatically.</p>
-              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />Correct spot</span><span><i className="rule-swatch present" aria-hidden="true" />Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true" />Not in word</span></div>
+              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true">✓</i>Correct spot</span><span><i className="rule-swatch present" aria-hidden="true">↔</i>Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true">×</i>Not in word</span></div>
               <p>Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.</p>
             </details>
             </div>
             <div className="practice-setup">
-            <div className="practice-setup-heading"><p className="page-eyebrow">YOUR PRACTICE</p><h3>Make it your kind of puzzle.</h3></div>
+            <div className="practice-setup-heading"><h3>Puzzle options</h3></div>
             <div className="practice-options">
               <fieldset className="length-options"><legend>Word length</legend>
                 <div className="length-segments">
@@ -627,7 +627,7 @@ export default function App() {
       {activeSection === 'feedback' && <FeedbackPage />}
       {activeSection === 'home' && <HomePage onNavigate={navigateTo} />}
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
-      {activeSection === 'progress' && <StatisticsPanel key={accountRevision} />}
+      {activeSection === 'progress' && <StatisticsPanel key={accountRevision} onPlay={() => navigateTo('play')} onSignIn={() => navigateTo('account')} />}
       {activeSection === 'community' && <CommunityPage onExplore={() => navigateTo('library')} />}
       {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} soundEnabled={soundEnabled} onSoundChange={enabled => { gameAudio.setEnabled(enabled); setSoundEnabled(enabled); }} />}
       {activeSection === 'licenses' && <section className="licenses-page" aria-label="Licenses and attribution">
