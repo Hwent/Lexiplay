@@ -69,7 +69,7 @@ it('keeps the sound setting when navigating and reopening the app', async () => 
   await user.click(toggle);
   expect(toggle).not.toBeChecked();
   expect(localStorage.getItem('lexiplay-sound-enabled')).toBe('false');
-  await user.click(screen.getByRole('button', { name: 'Home' }));
+  await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
   await user.click(screen.getByRole('button', { name: 'Settings' }));
   expect(await screen.findByRole('switch', { name: 'Sound effects' })).not.toBeChecked();
   view.unmount();

@@ -132,7 +132,7 @@ describe('saved practice and account updates', () => {
     expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeEnabled();
     expect(screen.getByRole('complementary', { name: 'Synonym or category hint' })).toHaveTextContent('lovely');
     expect(fetchMock).toHaveBeenCalledWith('/api/v1/games/saved-game/hints', expect.objectContaining({ body: JSON.stringify({ type: 'synonym' }) }));
-    await user.click(screen.getByRole('button', { name: /^Home$/i }));
+    await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
     await user.click(screen.getByRole('button', { name: /^Games$/i }));
     expect(screen.getByRole('button', { name: /synonym or category hint.*revealed/i })).toBeDisabled();
   });

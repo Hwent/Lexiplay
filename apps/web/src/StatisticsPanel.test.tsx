@@ -42,7 +42,7 @@ it('paginates practice with stable totals and saves selected recent words when l
   await user.click(screen.getByRole('button', { name: 'Previous' }));
   expect(await screen.findByRole('button', { name: 'Cancel addition of apple' })).toBeInTheDocument();
   expect(fetchMock.mock.calls.filter(([path]) => String(path).includes('/progress/summary'))).toHaveLength(requests);
-  await user.click(screen.getByRole('button', { name: 'Word List' }));
+  await user.click(screen.getByRole('button', { name: 'Words' }));
   await waitFor(() => expect(location.pathname).toBe('/library'));
   expect(fetchMock).toHaveBeenCalledWith('/api/v1/word-lists/learner/dictionary-entries', expect.objectContaining({ body: JSON.stringify({ terms: ['apple'] }) }));
   expect(screen.queryByText(/1 word selected/)).not.toBeInTheDocument();

@@ -38,7 +38,7 @@ describe('guest progress on authentication', () => {
     await user.click(screen.getByRole('button', { name: 'Games' }));
     expect(await screen.findByRole('row', { name: 'paper' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Word List' }));
+    await user.click(screen.getByRole('button', { name: 'Words' }));
     await user.click(await screen.findByRole('tab', { name: 'My Word List' }));
     expect(await screen.findByText('chair')).toBeInTheDocument(); expect(screen.getByText(/Familiarity 5\/5/)).toBeInTheDocument();
   });

@@ -70,7 +70,7 @@ describe('practice puzzle', () => {
     await user.type(guessInput, 'plant');
     expect(await screen.findByText(/you found it/i)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toHaveAttribute('aria-hidden', 'true');
-    await user.click(screen.getByRole('button', { name: 'Home' }));
+    await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
     await user.click(screen.getByRole('button', { name: 'Games' }));
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toBeNull();
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-won')).toBeNull();
@@ -134,7 +134,7 @@ describe('practice puzzle', () => {
     expect(fireEvent.keyDown(input, { key: 'a', isComposing: true })).toBe(true);
     expect(input).toHaveValue('');
     await user.keyboard('cr');
-    await user.click(screen.getByRole('button', { name: 'Home' }));
+    await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
     await user.click(screen.getByRole('button', { name: 'Games' }));
     const resumed = screen.getByRole('textbox', { name: /five-letter guess/i });
     expect(resumed).toHaveFocus();
@@ -273,7 +273,7 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument();
     const navigation = screen.getByRole('navigation', { name: /main navigation/i });
     expect(within(navigation).queryByRole('button', { name: /word sets/i })).toBeNull();
-    expect(within(navigation).getByRole('button', { name: /^word list$/i })).toBeInTheDocument();
+    expect(within(navigation).getAllByRole('button').map(button => button.getAttribute('aria-label'))).toEqual(['Games', 'Words', 'Dictionary', 'Stats', 'Settings']);
     await user.type(screen.getByRole('searchbox', { name: /search your words/i }), 'apple');
     await user.keyboard('{Enter}');
     expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument();
@@ -289,6 +289,33 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/games');
     expect(screen.getByRole('searchbox', { name: /search your words/i })).toHaveValue('');
+  });
+
+  it('groups community and working feedback under Stats while preserving direct links', async () => {
+    stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/feedback') ? Response.json({ id: 'feedback-1' }) : new Response('{}', { status: 401 })));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Stats' }));
+    expect(await screen.findByText('Sign in to see your saved learning progress.')).toBeInTheDocument();
+    const statsNavigation = screen.getByRole('navigation', { name: 'Stats sections' });
+    expect(within(statsNavigation).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+    await user.click(within(statsNavigation).getByRole('link', { name: 'Feedback' }));
+    expect(window.location.pathname).toBe('/feedback');
+    expect(screen.getByRole('heading', { name: 'Stats', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Stats' })).toHaveAttribute('aria-current', 'page');
+    await user.type(await screen.findByRole('textbox', { name: 'Your message' }), 'More word puzzles, please.');
+    await user.click(screen.getByRole('button', { name: 'Send feedback' }));
+    expect(await screen.findByText('Your feedback has been received.')).toBeInTheDocument();
+    await user.click(within(statsNavigation).getByRole('link', { name: 'Community' }));
+    expect(window.location.pathname).toBe('/community');
+    expect(screen.getByRole('button', { name: 'Stats' })).toHaveClass('active');
+    await user.click(await screen.findByRole('button', { name: 'Explore vocabulary' }));
+    expect(window.location.pathname).toBe('/library');
+    expect(screen.getByRole('button', { name: 'Words' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('navigation', { name: 'Stats sections' })).not.toBeInTheDocument();
+    act(() => { history.pushState({}, '', '/feedback'); window.dispatchEvent(new PopStateEvent('popstate')); });
+    expect(screen.getByRole('button', { name: 'Stats' })).toHaveAttribute('aria-current', 'page');
+    expect(await screen.findByRole('link', { name: 'Feedback' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('clears search on page navigation and keeps attribution on the footer licenses page', async () => {

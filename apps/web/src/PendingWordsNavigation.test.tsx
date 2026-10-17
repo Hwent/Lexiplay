@@ -32,7 +32,7 @@ it('lets game additions be canceled and never writes a canceled selection on exi
   const user = userEvent.setup(); render(<App/>);
   const add = await screen.findByRole('button', { name: 'Add cover to word list' }); await waitFor(() => expect(add).toBeEnabled());
   await user.click(add); await user.click(screen.getByRole('button', { name: 'Cancel addition of cover' }));
-  await user.click(screen.getByRole('button', { name: 'Home' }));
+  await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
   expect(window.location.pathname).toBe('/');
   expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary-entries'))).toBe(false);
 });
@@ -43,7 +43,7 @@ it('waits for the exit batch before navigation, then shows the committed Saved s
   const user = userEvent.setup(); render(<App/>);
   const add = await screen.findByRole('button', { name: 'Add cover to word list' }); await waitFor(() => expect(add).toBeEnabled());
   await user.click(add); expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary-entries'))).toBe(false);
-  await user.click(screen.getByRole('button', { name: 'Home' })); await waitFor(() => expect(finish).toBeDefined());
+  await user.click(screen.getByRole('link', { name: 'LexiPlay home' })); await waitFor(() => expect(finish).toBeDefined());
   expect(window.location.pathname).toBe('/games'); expect(screen.getByText(/1 word selected/).closest('[role="status"]')).toHaveAttribute('aria-busy', 'true');
   await act(async () => { finish(Response.json({ added: 1, skipped: 0, missing: [] })); });
   await waitFor(() => expect(window.location.pathname).toBe('/'));
@@ -56,10 +56,10 @@ it('keeps the current page and pending selection when an exit write fails, then 
   const fetchMock = apiFixture(async () => offline ? Response.json({ message: 'Offline' }, { status: 503 }) : Response.json({ added: 1, skipped: 0, missing: [] }));
   const user = userEvent.setup(); render(<App/>);
   const add = await screen.findByRole('button', { name: 'Add cover to word list' }); await waitFor(() => expect(add).toBeEnabled());
-  await user.click(add); await user.click(screen.getByRole('button', { name: 'Home' }));
+  await user.click(add); await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Your selections are still pending');
   expect(window.location.pathname).toBe('/games'); expect(screen.getByRole('button', { name: 'Cancel addition of cover' })).toBeEnabled();
-  offline = false; await user.click(screen.getByRole('button', { name: 'Home' })); await waitFor(() => expect(window.location.pathname).toBe('/'));
+  offline = false; await user.click(screen.getByRole('link', { name: 'LexiPlay home' })); await waitFor(() => expect(window.location.pathname).toBe('/'));
   expect(fetchMock.mock.calls.filter(([path]) => String(path).endsWith('/dictionary-entries'))).toHaveLength(2);
 });
 it('keeps dictionary additions cancellable across modes and saves only when leaving the dictionary', async () => {
@@ -71,7 +71,7 @@ it('keeps dictionary additions cancellable across modes and saves only when leav
   await user.click(screen.getByRole('button', { name: 'Import words' })); await user.click(screen.getByRole('button', { name: 'Find a word' }));
   expect(await screen.findByRole('button', { name: 'Cancel addition of cover' })).toBeEnabled();
   expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary-entries'))).toBe(false);
-  await user.click(screen.getByRole('button', { name: 'Home' })); await waitFor(() => expect(window.location.pathname).toBe('/'));
+  await user.click(screen.getByRole('link', { name: 'LexiPlay home' })); await waitFor(() => expect(window.location.pathname).toBe('/'));
   expect(fetchMock.mock.calls.filter(([path]) => String(path).endsWith('/dictionary-entries'))).toHaveLength(1);
   expect(fetchMock.mock.calls.filter(([path]) => String(path).endsWith('/mine'))).toHaveLength(1);
 });

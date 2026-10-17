@@ -460,26 +460,28 @@ export default function App() {
   }
 
   const sectionTitle: Record<Section, string> = {
-    home: 'Home', play: 'Games', library: 'Word List', dictionary: 'Dictionary',
-    progress: 'Statistics', community: 'Community', settings: 'Settings', licenses: 'Licenses', account: 'Account', feedback: 'Feedback',
+    home: 'Home', play: 'Games', library: 'Words', dictionary: 'Dictionary',
+    progress: 'Stats', community: 'Community', settings: 'Settings', licenses: 'Licenses', account: 'Account', feedback: 'Feedback',
   };
   const navigation: { key: Section; icon: IconName }[] = [
-    { key: 'home', icon: 'home' }, { key: 'play', icon: 'play' }, { key: 'library', icon: 'library' },
+    { key: 'play', icon: 'play' }, { key: 'library', icon: 'library' },
     { key: 'dictionary', icon: 'dictionary' },
-    { key: 'progress', icon: 'progress' }, { key: 'community', icon: 'community' }, { key: 'feedback', icon: 'feedback' }, { key: 'settings', icon: 'settings' },
+    { key: 'progress', icon: 'progress' }, { key: 'settings', icon: 'settings' },
   ];
+  const statsSections = [{ key: 'progress', label: 'Overview' }, { key: 'community', label: 'Community' }, { key: 'feedback', label: 'Feedback' }] as const;
+  const activeNavigationSection = activeSection === 'community' || activeSection === 'feedback' ? 'progress' : activeSection;
 
   return (
     <PendingWordsContext.Provider value={wordStore}><main className="app-shell">
       <aside className="sidebar">
         <a className="brand" href="/" aria-label="LexiPlay home" onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark">L</span> LexiPlay</a>
         <nav aria-label="Main navigation" className="main-navigation">
-          {navigation.map(item => <button type="button" key={item.key} aria-label={sectionTitle[item.key]} className={activeSection === item.key ? 'active' : ''} aria-current={activeSection === item.key ? 'page' : undefined} onClick={() => navigateTo(item.key)}><span className="nav-icon" aria-hidden="true"><Icon name={item.icon}/></span><span className="nav-label">{sectionTitle[item.key]}</span><span className="nav-mobile-label" aria-hidden="true">{item.key === 'library' ? 'Words' : item.key === 'progress' ? 'Stats' : item.key === 'community' ? 'People' : sectionTitle[item.key]}</span></button>)}
+          {navigation.map(item => <button type="button" key={item.key} aria-label={sectionTitle[item.key]} className={activeNavigationSection === item.key ? 'active' : ''} aria-current={activeNavigationSection === item.key ? 'page' : undefined} onClick={() => navigateTo(item.key)}><span className="nav-icon" aria-hidden="true"><Icon name={item.icon}/></span><span className="nav-label">{sectionTitle[item.key]}</span><span className="nav-mobile-label" aria-hidden="true">{sectionTitle[item.key]}</span></button>)}
         </nav>
       </aside>
       <div className="workspace">
       <header className="topbar">
-        <div className="page-title"><h1>{sectionTitle[activeSection]}</h1></div>
+        <div className="page-title"><h1>{sectionTitle[activeNavigationSection]}</h1></div>
         <div className="header-actions">
           <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('library', quickSearch); }}>
             <label className="sr-only" htmlFor="quick-search">Search your words</label>
@@ -496,6 +498,9 @@ export default function App() {
       {wordSelection.pending.size > 0 && <div className="word-selection-banner" role="status" aria-busy={wordSelection.saving}><span>{`${wordSelection.pending.size} word${wordSelection.pending.size === 1 ? '' : 's'} selected. Saved when you leave this page.`}</span><button type="button" disabled={wordSelection.saving} onClick={() => wordStore.cancelAll()}>Cancel additions</button></div>}
       {wordSelection.error && <p className="word-selection-error" role="alert">{wordSelection.error}</p>}
       {wordSelection.notice && <p className="word-selection-notice" role="status">{wordSelection.notice}</p>}
+      {activeNavigationSection === 'progress' && <nav className="stats-navigation" aria-label="Stats sections">
+        {statsSections.map(item => <a key={item.key} href={sectionPaths[item.key]} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{item.label}</a>)}
+      </nav>}
 
       {activeSection === 'play' && <>
       {!game && <div className="page-introduction"><div><h2>Choose your <span>challenge.</span></h2></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
