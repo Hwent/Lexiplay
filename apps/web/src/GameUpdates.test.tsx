@@ -148,7 +148,7 @@ describe('saved practice and account updates', () => {
       if (path.endsWith('/hints')) {
         if (JSON.parse(String(init?.body)).type === 'partOfSpeech') return Response.json({ message: 'Part of speech lookup is unavailable. No coins were charged.' }, { status: 503 });
         balance--;
-        return Response.json({ type: 'definition', text: 'Pleasing to look at.', cost: 1, hints: { partOfSpeech: 1, definition: 0 } });
+        return Response.json({ type: 'definition', text: 'Pleasing to look at. Often admired by others.; Another meaning.', cost: 1, hints: { partOfSpeech: 1, definition: 0 } });
       }
       return Response.json([]);
     }));
@@ -161,17 +161,20 @@ describe('saved practice and account updates', () => {
     await user.click(screen.getByRole('button', { name: /definition hint.*1 coin/i }));
     expect(await screen.findByLabelText('Coin balance: 8')).toBeInTheDocument();
     expect(screen.getByRole('complementary', { name: 'Definition hint' })).toHaveTextContent('Pleasing to look at.');
+    expect(screen.getByRole('complementary', { name: 'Definition hint' })).not.toHaveTextContent('Often admired');
+    expect(screen.getByRole('complementary', { name: 'Definition hint' })).not.toHaveTextContent('Another meaning');
     expect(screen.getByRole('button', { name: /definition hint.*revealed/i })).toBeDisabled();
   });
   it('restores saved guesses, hint counts, and definitions after a remount', async () => {
     window.localStorage.setItem('lexiplay-last-game', 'saved-game');
-    const saved = { ...emptyGame, guesses: [{ guess: 'beautiful', feedback: Array(9).fill('ABSENT'), attemptsRemaining: 4, completed: false, definition: 'Pleasing to look at.' }], hints: { partOfSpeech: 1, definition: 0 }, clues: { definition: 'Having great beauty.' }, hintCoinsSpent: 1 };
+    const saved = { ...emptyGame, guesses: [{ guess: 'beautiful', feedback: Array(9).fill('ABSENT'), attemptsRemaining: 4, completed: false, definition: 'Pleasing to look at.' }], hints: { partOfSpeech: 1, definition: 0 }, clues: { definition: 'Having great beauty.; A second meaning. More explanation.' }, hintCoinsSpent: 1 };
     stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json(saved)));
     render(<App />);
     expect(await screen.findByRole('row', { name: 'beautiful' })).toBeInTheDocument();
     expect(screen.getByText('Pleasing to look at.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: /definition hint.*revealed/i })).toBeDisabled();
     expect(screen.getByRole('complementary', { name: 'Definition hint' })).toHaveTextContent('Having great beauty.');
+    expect(screen.getByRole('complementary', { name: 'Definition hint' })).not.toHaveTextContent('A second meaning');
     expect(screen.getByText('4 guesses left')).toBeInTheDocument();
   });
   it('restores a completed summary without rebuilding discarded guesses', async () => {

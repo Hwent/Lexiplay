@@ -1,6 +1,7 @@
 import { cleanup, render, screen } from '@testing-library/react';
 import { afterEach, describe, expect, it } from 'vitest';
 import AccountStatus from './AccountStatus';
+import coinImage from './assets/lexi-coin.svg';
 
 describe('account coin balance', () => {
   afterEach(cleanup);
@@ -11,6 +12,7 @@ describe('account coin balance', () => {
     const { rerender } = render(<AccountStatus {...props} coinBalance={500}/>);
     const balance = screen.getByLabelText('Coin balance: 500');
     expect(balance).toHaveTextContent('500');
+    expect(balance.querySelector('img.coin-icon')).toHaveAttribute('src', coinImage);
     expect(screen.getByRole('link', { name: 'Account' })).not.toContainElement(balance);
     rerender(<AccountStatus {...props} coinBalance={0}/>);
     expect(screen.getByLabelText('Coin balance: 0')).toHaveTextContent('0');

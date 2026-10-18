@@ -11,6 +11,7 @@ import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } fro
 import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
+import { definitionHintText } from './hint-text';
 import { gameAudio } from './services/game-audio';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
 
@@ -353,7 +354,7 @@ export default function App() {
       <button className="friendly-hint" type="button" aria-label={`${title} hint · ${clue ? 'Revealed' : '1 coin'}`} onClick={() => void useHint(type)} disabled={busy || progressSaving || !!clue || game.hints[type] === 0}>
         <span className="hint-icon" aria-hidden="true"><Icon name={type === 'partOfSpeech' ? 'dictionary' : 'library'}/></span><strong>{title}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
       </button>
-      {clue && <p className="hint-clue">{clue}</p>}
+      {clue && <p className="hint-clue">{type === 'definition' ? definitionHintText(clue) : clue}</p>}
     </aside>;
   }
 

@@ -22,7 +22,7 @@
 .header-search kbd { padding: .1rem .4rem; border: 1px solid var(--line); border-radius: .3rem; color: var(--muted); font: inherit; font-size: .85rem; }
 .account-coins { display: inline-flex; align-items: center; justify-content: center; gap: .45rem; min-height: 2.65rem; padding: .5rem .75rem; border: 1px solid color-mix(in srgb, #d7ae59 40%, var(--line)); border-radius: .65rem; background: color-mix(in srgb, #d7ae59 10%, var(--surface)); color: #dfbc75; white-space: nowrap; }
 .account-coins strong { font-size: 1rem; font-weight: 650; font-variant-numeric: tabular-nums; }
-.account-coins .ui-icon { width: 1.3rem; height: 1.3rem; }
+.account-coins .ui-icon { width: 1.5rem; height: 1.5rem; }
 :root[data-theme='light'] .account-coins { color: #866014; }
 .account-status-link strong { font-size: .95rem; }
 .difficulty-segments label { align-items: center; justify-content: center; }
@@ -33,10 +33,14 @@
 .puzzle-stage { display: grid; width: 100%; align-items: start; gap: 1rem; }
 .puzzle-stage.with-hints { grid-template-columns: minmax(8rem, 1fr) minmax(0, 2.5fr) minmax(8rem, 1fr); }
 .puzzle-hint { min-width: 0; border: 0; border-radius: .8rem; background: var(--surface-soft); }
-.puzzle-hint .friendly-hint { display: flex; align-items: center; flex-wrap: wrap; gap: .65rem; width: 100%; min-height: 4rem; padding: 1rem; border: 0; border-radius: .8rem; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
-.puzzle-hint .friendly-hint strong { flex: 1; font-size: 1rem; }
+.puzzle-hint .friendly-hint { display: grid; grid-template-columns: minmax(0, 1fr) auto; grid-template-areas: 'icon price' 'title title'; align-items: center; gap: .65rem; width: 100%; min-height: 4rem; padding: 1rem; border: 0; border-radius: .8rem; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
+.puzzle-hint .hint-icon { grid-area: icon; display: inline-flex; align-items: center; margin: 0; }
+.puzzle-hint .hint-price { grid-area: price; justify-self: end; white-space: nowrap; }
+.puzzle-hint .friendly-hint strong { grid-area: title; min-width: 0; font-size: 1rem; }
 .puzzle-hint .friendly-hint:disabled { cursor: default; }
 .hint-clue { margin: 0; padding: 0 1rem 1rem; border: 0; color: var(--text); font-size: 1rem; line-height: 1.6; overflow-wrap: anywhere; }
+.hint-definition .friendly-hint strong { font-size: 1.125rem; }
+.hint-definition .hint-clue { font-size: clamp(1.125rem, 1.4vw, 1.25rem); line-height: 1.65; }
 .statistics-columns { grid-template-columns: minmax(0, 1fr); }
 .collection-count-error { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
 .collection-count-error p { flex: 1; margin: 0; color: var(--muted); line-height: 1.5; }

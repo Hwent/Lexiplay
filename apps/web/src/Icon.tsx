@@ -1,3 +1,5 @@
+import coinImage from './assets/lexi-coin.svg';
+
 const paths = {
   home: 'm3 10 9-7 9 7M5 9v12h14V9M9 21v-8h6v8',
   play: 'M3 3h7v7H3zM14 3h7v7h-7zM3 14h7v7H3zM14 14h7v7h-7z',
@@ -15,9 +17,9 @@ const paths = {
   back: 'M20 12H4M10 6l-6 6 6 6',
   plus: 'M12 5v14M5 12h14',
   check: 'm5 12 4 4L19 6',
-  coin: 'M12 3a9 9 0 1 0 0 18 9 9 0 0 0 0-18ZM15 8.5a5 5 0 1 0 0 7M8 10h6M8 14h6',
 } as const;
-export type IconName = keyof typeof paths;
+export type IconName = keyof typeof paths | 'coin';
 export default function Icon({ name }: { name: IconName }) {
+  if (name === 'coin') return <img className="ui-icon coin-icon" src={coinImage} width="20" height="20" alt="" aria-hidden="true" draggable={false}/>;
   return <svg className="ui-icon" viewBox="0 0 24 24" width="20" height="20" fill="none" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" focusable="false"><path d={paths[name]}/></svg>;
 }
