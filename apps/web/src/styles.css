@@ -121,7 +121,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .keyboard-key { min-width: 0; height: clamp(3.25rem, 8vw, 5.45rem); flex: 1; padding: 0; border: 0; border-radius: 4px; background: var(--key); color: var(--key-text); cursor: pointer; font-size: clamp(.8rem, 2vw, 1.1rem); font-weight: 700; text-transform: uppercase; touch-action: manipulation; }
 .keyboard-key:hover:not(:disabled) { filter: brightness(1.12); }
 .keyboard-key:disabled { cursor: default; }
-.keyboard-key.absent { background: var(--absent); color: var(--absent-text); }
+.keyboard-key.absent { background: var(--key-absent); color: var(--key-absent-text); }
 .keyboard-key.present { background: var(--present); color: var(--present-text); }
 .keyboard-key.correct { background: var(--correct); color: var(--correct-text); }
 .special-key { flex: 1.5; font-size: clamp(.65rem, 1.8vw, .85rem); }

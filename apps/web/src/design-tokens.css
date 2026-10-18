@@ -73,6 +73,8 @@
   --filled-border: var(--neutral-400);
   --key: var(--neutral-800);
   --key-text: var(--neutral-50);
+  --key-absent: var(--neutral-950);
+  --key-absent-text: var(--neutral-400);
   --absent: var(--neutral-800);
   --absent-text: var(--neutral-300);
   --correct: var(--success-800);
@@ -110,6 +112,8 @@
   --filled-border: var(--neutral-600);
   --key: var(--neutral-200);
   --key-text: var(--neutral-900);
+  --key-absent: var(--neutral-700);
+  --key-absent-text: var(--neutral-100);
   --absent: var(--neutral-200);
   --absent-text: var(--neutral-700);
   --correct: var(--success-100);
