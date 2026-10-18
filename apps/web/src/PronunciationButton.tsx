@@ -1,9 +1,11 @@
+import { useTranslation } from './i18n';
 import { useEffect, useRef, useState } from 'react';
 import { gameAudio } from './services/game-audio';
 
 let activeUtterance: SpeechSynthesisUtterance | null = null;
 
 export default function PronunciationButton({ term }: { term: string }) {
+  const t = useTranslation();
   const supported = typeof window.speechSynthesis !== 'undefined' && typeof window.SpeechSynthesisUtterance === 'function';
   const [speaking, setSpeaking] = useState(false);
   const [error, setError] = useState('');
@@ -69,9 +71,9 @@ export default function PronunciationButton({ term }: { term: string }) {
   }
 
   return <span className="pronunciation-control">
-    <button type="button" className="pronunciation-button" aria-label={`${speaking ? 'Stop pronouncing' : 'Pronounce'} ${term}`} aria-pressed={speaking} title={supported ? `Hear ${term} pronounced` : 'Pronunciation is unavailable in this browser'} disabled={!supported} onClick={pronounce}>
+    <button type="button" className="pronunciation-button" aria-label={`${t(speaking ? 'Stop pronouncing' : 'Pronounce')} ${term}`} aria-pressed={speaking} title={supported ? t('Hear {0} pronounced', term) : t('Pronunciation is unavailable in this browser')} disabled={!supported} onClick={pronounce}>
       <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M4 9h4l5-4v14l-5-4H4z" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /><path d="M16 8a6 6 0 0 1 0 8m3-11a10 10 0 0 1 0 14" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" /></svg>
     </button>
-    {error && <small className="pronunciation-error" role="status">{error}</small>}
+    {error && <small className="pronunciation-error" role="status">{t(error)}</small>}
   </span>;
 }

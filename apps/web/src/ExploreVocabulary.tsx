@@ -1,3 +1,4 @@
+import { useTranslation } from './i18n';
 import { useEffect, useState } from 'react';
 import { apiRequest as api } from './services/api-client';
 import { CollectionPage, VocabularyCollection } from './collection-types';
@@ -22,6 +23,7 @@ export default function ExploreVocabulary({
   onSignIn,
   onUseCollection,
 }: ExploreVocabularyProps) {
+  const t = useTranslation();
   const { store } = usePendingWords(signedIn ? 'library' : '');
   const [catalog, setCatalog] = useState<VocabularyCollection[]>([]);
   const [slug, setSlug] = useState(
@@ -183,7 +185,7 @@ export default function ExploreVocabulary({
   }, [signedIn, store]);
 
   function getCollectionSize(collection: VocabularyCollection) {
-    return `${collection.wordCount.toLocaleString()} words`;
+    return t('{0} words', collection.wordCount.toLocaleString());
   }
 
   function openCollection(value: string) {
@@ -226,7 +228,7 @@ export default function ExploreVocabulary({
       <tr key={word.id}>
         <td className="word-selection-cell">
         <SelectionControl
-          label={`Select ${word.lemma} (${word.partOfSpeech})`}
+          label={t('Select {0} ({1})', word.lemma, word.partOfSpeech)}
           disabled={loading || !!word.inMyWordList}
           checked={selected.has(word.id) || !!word.inMyWordList}
           onChange={(checked) => selectMembers([word.id], checked)}
@@ -235,42 +237,36 @@ export default function ExploreVocabulary({
           <span className="word-with-pronunciation">
             <strong>{word.lemma}</strong>
             {word.inMyWordList && (
-              <span className="collection-added-badge">In My Word List</span>
+              <span className="collection-added-badge">{t('In My Word List')}</span>
             )}
             <PronunciationButton term={word.lemma} />
           </span>
           <small>{word.partOfSpeech}</small>
-        </td><td><p>{word.definition ?? 'Dictionary definition not available yet.'}</p></td>
+        </td><td><p>{word.definition ?? t('Dictionary definition not available yet.')}</p></td>
       </tr>
     );
   }
 
   function renderWordRows(words: CollectionPage['words']) {
-    return <div className="library-table-scroll"><table className="library-data-table collection-entries-table"><thead className="sr-only"><tr><th scope="col">Select</th><th scope="col">Word</th><th scope="col">Meaning</th></tr></thead><tbody>{words.map(renderWordRow)}</tbody></table></div>;
+    return <div className="library-table-scroll"><table className="library-data-table collection-entries-table"><thead className="sr-only"><tr><th scope="col">{t('Select')}</th><th scope="col">{t('Word')}</th><th scope="col">{t('Meaning')}</th></tr></thead><tbody>{words.map(renderWordRow)}</tbody></table></div>;
   }
 
   function renderPagination(position: string) {
     if (!data) return null;
 
     return (
-      <nav className="word-pagination" aria-label={`Collection pages ${position}`}>
+      <nav className="word-pagination" aria-label={t('Collection pages {0}', t(position))}>
         <button
           type="button"
           disabled={page <= 1 || loading}
           onClick={() => handlePaginationChange(page - 1)}
-        >
-          Previous
-        </button>
-        <span>
-          Page {page} of {totalPages} · {data.total.toLocaleString()} {data.pageUnit === 'family' ? 'study units' : 'words'}
-        </span>
+        >{t('Previous')}</button>
+        <span>{t('Page {0} of {1} · {2} {3}', page, totalPages, data.total.toLocaleString(), (data.pageUnit === 'family' ? t('study units') : t('words')))}</span>
         <button
           type="button"
           disabled={page * data.pageSize >= data.total || loading}
           onClick={() => handlePaginationChange(page + 1)}
-        >
-          Next
-        </button>
+        >{t('Next')}</button>
       </nav>
     );
   }
@@ -286,24 +282,23 @@ export default function ExploreVocabulary({
       >
         <td><div className="collection-identity">
           <span className="collection-level-mark" aria-hidden="true">
-            {collection.level ?? 'Aa'}
+            {collection.level ?? t('Aa')}
           </span>
         <div className="collection-card-heading">
           <h3>{collection.name}</h3>
         </div>
         </div></td>
-        <td className="collection-word-count">{isAvailable ? collection.wordCount.toLocaleString() : 'Coming soon'}</td>
+        <td className="collection-word-count">{isAvailable ? collection.wordCount.toLocaleString() : t('Coming soon')}</td>
         <td className="table-action-cell">
         <button
           type="button"
           className="account-action"
-          aria-label={`Explore ${collection.name}`}
+          aria-label={t('Explore {0}', collection.name)}
           disabled={!isAvailable}
           onClick={() => openCollection(collection.slug)}
         >
           {isAvailable ? (
-            <>
-              Explore <Icon name="arrow" />
+            <>{t('Explore ')}<Icon name="arrow" />
             </>
           ) : (
             'Coming soon'
@@ -315,18 +310,18 @@ export default function ExploreVocabulary({
   }
 
   return (
-    <section className="explore-vocabulary" aria-label="Explore Vocabulary" aria-busy={(slug ? loading : catalogLoading) || saving}>
+    <section className="explore-vocabulary" aria-label={t('Explore Vocabulary')} aria-busy={(slug ? loading : catalogLoading) || saving}>
       {!slug ? (
         <>
           <div className="library-section-heading">
             <div>
-              <h2>Find your next collection</h2>
+              <h2>{t('Find your next collection')}</h2>
             </div>
           </div>
 
-          {!catalogLoading && !error && !catalog.length && <EmptyState icon="library" title="More words are on the way." action={<a className="primary-button" href="/dictionary">Find words <Icon name="arrow"/></a>}><p>There are no collections to explore yet. Discover a word in Dictionary to get started.</p></EmptyState>}
+          {!catalogLoading && !error && !catalog.length && <EmptyState icon="library" title={t('More words are on the way.')} action={<a className="primary-button" href="/dictionary">{t('Find words ')}<Icon name="arrow"/></a>}><p>{t('There are no collections to explore yet. Discover a word in Dictionary to get started.')}</p></EmptyState>}
           {!!catalog.length && <div className="library-table-scroll">
-            <table className="library-data-table collection-catalog-table" aria-label="Vocabulary collections"><thead><tr><th scope="col">Collection</th><th scope="col">Words</th><th scope="col"><span className="sr-only">Explore</span></th></tr></thead><tbody>{catalog.map(renderCollectionCard)}</tbody></table>
+            <table className="library-data-table collection-catalog-table" aria-label={t('Vocabulary collections')}><thead><tr><th scope="col">{t('Collection')}</th><th scope="col">{t('Words')}</th><th scope="col"><span className="sr-only">{t('Explore')}</span></th></tr></thead><tbody>{catalog.map(renderCollectionCard)}</tbody></table>
           </div>}
         </>
       ) : (
@@ -336,14 +331,13 @@ export default function ExploreVocabulary({
             className="text-action library-back"
             onClick={() => openCollection('')}
           >
-            <Icon name="back" /> All collections
-          </button>
+            <Icon name="back" />{t(' All collections')}</button>
 
           {current && (
             <>
               <header className="collection-detail-heading">
                 <span className="collection-level-mark" aria-hidden="true">
-                  {current.level ?? 'Aa'}
+                  {current.level ?? t('Aa')}
                 </span>
                 <div>
                   <h2>{current.name}</h2>
@@ -380,26 +374,20 @@ export default function ExploreVocabulary({
                       .finally(() => setSaving(false));
                   }}
                 >
-                  {saved.has(current.slug)
-                    ? 'Collection saved'
-                    : 'Save collection'}
+                  {saved.has(current.slug) ? t('Collection saved') : t('Save collection')}
                 </button>
 
                 <button
                   type="button"
                   disabled={!selected.size || loading}
                   onClick={() => setImporting({ collection: current, ids: [...selected] })}
-                >
-                  Add to My Word List ({selected.size})
-                </button>
+                >{t('Add to My Word List ({0})', selected.size)}</button>
 
                 <button
                   type="button"
                   disabled={!selected.size}
                   onClick={() => setSelected(new Set())}
-                >
-                  Clear selection
-                </button>
+                >{t('Clear selection')}</button>
               </div>
 
               <div className="collection-local-actions">
@@ -420,9 +408,7 @@ export default function ExploreVocabulary({
                         .catch((requestError) => setError(requestError.message))
                         .finally(() => setLoading(false));
                     }}
-                  >
-                    Refresh local copy
-                  </button>
+                  >{t('Refresh local copy')}</button>
                 )}
 
                 {onUseCollection && current.status === 'available' && (
@@ -430,8 +416,7 @@ export default function ExploreVocabulary({
                     type="button"
                     onClick={() => onUseCollection(current.slug)}
                   >
-                    <Icon name="play" /> Use collection in game
-                  </button>
+                    <Icon name="play" />{t(' Use collection in game')}</button>
                 )}
               </div>
 
@@ -441,7 +426,7 @@ export default function ExploreVocabulary({
                 <>
                   <div className="collection-selection-summary">
                     <SelectionControl
-                      label="Select available words on this page"
+                      label={t('Select available words on this page')}
                       disabled={loading || !data.words.some((word) => !word.inMyWordList)}
                       checked={
                         data.words.length > 0 &&
@@ -457,9 +442,7 @@ export default function ExploreVocabulary({
                           checked,
                         )
                       }
-                    >
-                      Select this page
-                    </SelectionControl>
+                    >{t('Select this page')}</SelectionControl>
                   </div>
 
                   {data.families ? (
@@ -474,7 +457,7 @@ export default function ExploreVocabulary({
                           <article
                             className="collection-family-card"
                             key={family.id}
-                            aria-label={`${family.headword} ${family.kind === 'family' ? 'word family' : 'study item'}`}
+                            aria-label={`${family.headword} ${t(family.kind === 'family' ? 'word family' : 'study item')}`}
                           >
                             <header>
                               <div>
@@ -482,7 +465,7 @@ export default function ExploreVocabulary({
                               </div>
 
                               <SelectionControl
-                                label={`Select ${family.headword} ${family.kind === 'family' ? 'family members' : 'item'}`}
+                                label={t('Select {0} {1}', family.headword, (family.kind === 'family' ? t('family members') : t('item')))}
                                 disabled={!available.length || loading}
                                 checked={
                                   members.length > 0 &&
@@ -497,7 +480,7 @@ export default function ExploreVocabulary({
                                   )
                                 }
                               >
-                                {family.kind === 'family' ? 'Select family' : 'Select item'}
+                                {family.kind === 'family' ? t('Select family') : t('Select item')}
                               </SelectionControl>
                             </header>
 
@@ -505,16 +488,14 @@ export default function ExploreVocabulary({
 
                             {family.relatedMembers.length > 0 && (
                               <details className="family-related">
-                                <summary>
-                                  Related members at other levels ({family.relatedMembers.length})
-                                </summary>
+                                <summary>{t('Related members at other levels ({0})', family.relatedMembers.length)}</summary>
 
                                 <div>
                                   {[...new Set(family.relatedMembers.map((word) => word.level))]
                                     .sort()
                                     .map((level) => (
                                       <section key={level}>
-                                        <h4>{level} collection</h4>
+                                        <h4>{t('{0} collection', level)}</h4>
                                         <ul>
                                           {family.relatedMembers
                                             .filter((word) => word.level === level)
@@ -531,7 +512,7 @@ export default function ExploreVocabulary({
                                     ))}
                                 </div>
 
-                                <p>Each member keeps its own level and learning progress.</p>
+                                <p>{t('Each member keeps its own level and learning progress.')}</p>
                               </details>
                             )}
                           </article>
@@ -542,7 +523,7 @@ export default function ExploreVocabulary({
                     renderWordRows(data.words)
                   )}
 
-                  {!data.words.length && <p>No words in this collection.</p>}
+                  {!data.words.length && <p>{t('No words in this collection.')}</p>}
                 </>
               )}
 
@@ -554,10 +535,8 @@ export default function ExploreVocabulary({
 
       {error && (
         <p role="alert">
-          {error}{' '}
-          <button type="button" onClick={() => setRevision((value) => value + 1)}>
-            Retry
-          </button>
+          {t(error)}{' '}
+          <button type="button" onClick={() => setRevision((value) => value + 1)}>{t('Retry')}</button>
         </p>
       )}
 

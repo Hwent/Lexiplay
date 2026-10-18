@@ -369,3 +369,46 @@
   .workspace-footer { padding-block: 1rem; }
 }
 .page-loading { min-height: 12rem; }
+
+/* Compact utility areas; rem sizing follows the learner's text preference. */
+:root[data-font-size='small'] { font-size: 87.5%; }
+:root[data-font-size='medium'] { font-size: 100%; }
+:root[data-font-size='large'] { font-size: 112.5%; }
+.workspace .topbar { min-height: 4.25rem; gap: .75rem; padding-block: .6rem; }
+.header-actions { gap: .5rem; min-width: 0; }
+.header-search, .account-status-link { min-height: 2.5rem; }
+.header-actions .theme-toggle { width: 2.5rem; height: 2.5rem; padding: .55rem; }
+.account-coins { min-height: 2.5rem; padding: .4rem .6rem; }
+.section-navigation { margin-top: .75rem; }
+.section-navigation a { flex: 1 0 auto; padding: .55rem .75rem; white-space: nowrap; }
+.settings-page.compact-settings { max-width: 42rem; margin: 1rem 0 2rem; padding: 0; border: 0; background: transparent; }
+.settings-group { padding: 0 .95rem; border-radius: 1rem; background: var(--surface); }
+.settings-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; min-height: 4.25rem; padding-block: .7rem; }
+.settings-row + .settings-row { border-top: 1px solid color-mix(in srgb, var(--line) 60%, transparent); }
+.settings-row-label { display: inline-flex; align-items: center; gap: .75rem; color: var(--text); font-size: 1rem; font-weight: 550; }
+.settings-row-label .ui-icon { flex-shrink: 0; width: 1.25rem; height: 1.25rem; color: var(--muted); }
+.settings-segments { display: flex; flex-shrink: 0; gap: .15rem; padding: .2rem; border-radius: 999px; background: var(--surface-soft); }
+.settings-segments button { display: inline-flex; align-items: center; justify-content: center; min-width: 2.1rem; min-height: 2.1rem; padding: .35rem .65rem; border: 0; border-radius: 999px; background: transparent; color: var(--muted); cursor: pointer; font-size: .85rem; white-space: nowrap; }
+.settings-segments button[aria-pressed='true'] { background: var(--page); color: var(--text); box-shadow: 0 1px 4px #0002; }
+.settings-row select { max-width: 55%; min-height: 2.5rem; padding: .4rem 1.75rem .4rem .65rem; border: 0; border-radius: .6rem; color: var(--text); background: var(--surface-soft); cursor: pointer; font: inherit; font-size: .9rem; }
+.settings-switch { display: flex; align-items: center; flex-shrink: 0; width: 2.75rem; height: 1.65rem; padding: .2rem; border: 0; border-radius: 999px; background: var(--line); cursor: pointer; transition: background .18s; }
+.settings-switch-thumb { width: 1.25rem; height: 1.25rem; border-radius: 50%; background: var(--text); transition: transform .18s; }
+.settings-switch[aria-checked='true'] { background: var(--accent); }
+.settings-switch[aria-checked='true'] .settings-switch-thumb { background: var(--page); transform: translateX(1.1rem); }
+@media (max-width: 560px) {
+  .workspace .topbar { min-height: 4.5rem; gap: .5rem; }
+  .section-navigation a { padding-inline: .45rem; font-size: .9rem; }
+  .settings-group { padding-inline: .75rem; }
+  .settings-row { gap: .5rem; }
+  .settings-row-label { gap: .5rem; }
+  .settings-segments button { padding-inline: .45rem; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .settings-switch, .settings-switch-thumb { transition: none; }
+}
+@media (max-width: 380px) {
+  .settings-row { gap: .4rem; }
+  .settings-row-label { gap: .4rem; font-size: .95rem; }
+  .settings-row-label .ui-icon { width: 1.1rem; height: 1.1rem; }
+  .settings-segments button { padding-inline: .35rem; font-size: .8rem; }
+}

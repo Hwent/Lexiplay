@@ -14,6 +14,8 @@ import PuzzleCelebration from './PuzzleCelebration';
 import { definitionHintText } from './hint-text';
 import { gameAudio } from './services/game-audio';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
+import { createTranslator, LanguageContext, useTranslation } from './i18n';
+import { useInterfacePreferences } from './interface-preferences';
 
 const VocabularyLibrary = lazy(() => import('./VocabularyLibrary'));
 const DictionaryPage = lazy(() => import('./DictionaryPage'));
@@ -58,11 +60,12 @@ function BookmarkIcon({ added }: { added: boolean }) {
 }
 
 function DefinitionText({ text }: { text: string }) {
+  const t = useTranslation();
   const [expanded, setExpanded] = useState(false);
   const canExpand = text.length > 150;
   return <>
     <span className={`definition-text${canExpand && !expanded ? ' collapsed' : ''}`}>{text}</span>
-    {canExpand && <button type="button" className="learn-more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? 'Show less' : 'Learn more'}</button>}
+    {canExpand && <button type="button" className="learn-more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? t('Show less') : t('Learn more')}</button>}
   </>;
 }
 
@@ -76,6 +79,8 @@ const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 const feedbackRank: Record<Feedback, number> = { ABSENT: 1, PRESENT: 2, CORRECT: 3 };
 
 export default function App() {
+  const interfacePreferences = useInterfacePreferences();
+  const t = useMemo(() => createTranslator(interfacePreferences.language), [interfacePreferences.language]);
   const [preferences] = useState(readPracticePreferences);
   const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount, signedIn, progressSaving, progressError, progressMessage, retryProgress } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
@@ -350,9 +355,9 @@ export default function App() {
     if (!game || finished) return null;
     const title = type === 'partOfSpeech' ? 'Part of speech' : 'Definition';
     const clue = game.clues?.[type];
-    return <aside className={`puzzle-hint hint-${type}`} aria-label={`${title} hint`}>
-      <button className="friendly-hint" type="button" aria-label={`${title} hint · ${clue ? 'Revealed' : '1 coin'}`} onClick={() => void useHint(type)} disabled={busy || progressSaving || !!clue || game.hints[type] === 0}>
-        <span className="hint-icon" aria-hidden="true"><Icon name={type === 'partOfSpeech' ? 'dictionary' : 'library'}/></span><strong>{title}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
+    return <aside className={`puzzle-hint hint-${type}`} aria-label={t('{0} hint', t(title))}>
+      <button className="friendly-hint" type="button" aria-label={t('{0} hint · {1}', t(title), (clue ? t('Revealed') : t('1 coin')))} onClick={() => void useHint(type)} disabled={busy || progressSaving || !!clue || game.hints[type] === 0}>
+        <span className="hint-icon" aria-hidden="true"><Icon name={type === 'partOfSpeech' ? 'dictionary' : 'library'}/></span><strong>{t(title)}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
       </button>
       {clue && <p className="hint-clue">{type === 'definition' ? definitionHintText(clue) : clue}</p>}
     </aside>;
@@ -362,7 +367,7 @@ export default function App() {
     const normalized = normalizeTerm(term);
     const saved = wordSelection.saved.has(normalized);
     const pending = wordSelection.pending.has(normalized);
-    return <button className="bookmark-button" type="button" aria-label={saved ? 'Already in word list' : pending ? `Cancel addition of ${term}` : `Add ${term} to word list`} aria-pressed={pending} title={saved ? 'Saved in word list' : pending ? 'Cancel addition' : 'Add to word list'} onClick={() => wordStore.toggle(term, savedDefinition(definition))} disabled={saved || wordSelection.saving || accountLoading}><BookmarkIcon added={saved || pending}/><span>{saved ? 'Saved' : pending ? 'Cancel addition' : 'Add'}</span></button>;
+    return <button className="bookmark-button" type="button" aria-label={saved ? t('Already in word list') : pending ? t('Cancel addition of {0}', term) : t('Add {0} to word list', term)} aria-pressed={pending} title={saved ? t('Saved in word list') : pending ? t('Cancel addition') : t('Add to word list')} onClick={() => wordStore.toggle(term, savedDefinition(definition))} disabled={saved || wordSelection.saving || accountLoading}><BookmarkIcon added={saved || pending}/><span>{saved ? t('Saved') : pending ? t('Cancel addition') : t('Add')}</span></button>;
   }
 
   async function submitGuess(nextGuess = guess) {
@@ -461,8 +466,8 @@ export default function App() {
   }
 
   const sectionTitle: Record<Section, string> = {
-    home: 'Home', play: 'Games', library: 'Words', dictionary: 'Dictionary',
-    progress: 'Stats', community: 'Community', settings: 'Settings', licenses: 'Licenses', account: 'Account', feedback: 'Feedback',
+    home: t('Home'), play: t('Games'), library: t('Words'), dictionary: t('Dictionary'),
+    progress: t('Stats'), community: t('Community'), settings: t('Settings'), licenses: t('Licenses'), account: t('Account'), feedback: t('Feedback'),
   };
   const navigation: { key: Section; icon: IconName }[] = [
     { key: 'play', icon: 'play' }, { key: 'library', icon: 'library' },
@@ -475,10 +480,10 @@ export default function App() {
   const sectionNavigation = activeNavigationSection === 'progress' ? statsSections : activeNavigationSection === 'settings' ? settingsSections : null;
 
   return (
-    <PendingWordsContext.Provider value={wordStore}><main className="app-shell">
+    <LanguageContext.Provider value={interfacePreferences.language}><PendingWordsContext.Provider value={wordStore}><main className="app-shell">
       <aside className="sidebar">
-        <a className="brand" href="/" aria-label="LexiPlay home" onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark">L</span> LexiPlay</a>
-        <nav aria-label="Main navigation" className="main-navigation">
+        <a className="brand" href="/" aria-label={t('LexiPlay home')} onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark">L</span>{t(' LexiPlay')}</a>
+        <nav aria-label={t('Main navigation')} className="main-navigation">
           {navigation.map(item => <button type="button" key={item.key} aria-label={sectionTitle[item.key]} className={activeNavigationSection === item.key ? 'active' : ''} aria-current={activeNavigationSection === item.key ? 'page' : undefined} onClick={() => navigateTo(item.key)}><span className="nav-icon" aria-hidden="true"><Icon name={item.icon}/></span><span className="nav-label">{sectionTitle[item.key]}</span><span className="nav-mobile-label" aria-hidden="true">{sectionTitle[item.key]}</span></button>)}
         </nav>
       </aside>
@@ -487,26 +492,26 @@ export default function App() {
         <div className="page-title"><h1>{sectionTitle[activeNavigationSection]}</h1></div>
         <div className="header-actions">
           <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('dictionary', quickSearch); }}>
-            <label className="sr-only" htmlFor="quick-search">Quick dictionary search</label>
-            <input ref={searchRef} id="quick-search" type="search" value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search the dictionary" aria-keyshortcuts="/" onKeyDown={event => { if (event.key === 'Escape') event.currentTarget.blur(); }} />
+            <label className="sr-only" htmlFor="quick-search">{t('Quick dictionary search')}</label>
+            <input ref={searchRef} id="quick-search" type="search" value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder={t('Search the dictionary')} aria-keyshortcuts="/" onKeyDown={event => { if (event.key === 'Escape') event.currentTarget.blur(); }} />
             <kbd aria-hidden="true">/</kbd>
-            <button type="submit" aria-label="Search dictionary"><Icon name="search"/></button>
+            <button type="submit" aria-label={t('Search dictionary')}><Icon name="search"/></button>
           </form>
           <AccountStatus coinBalance={walletOwner === (account?.id ?? 'guest') ? wallet?.coinBalance : account?.coinBalance} account={account} loading={accountLoading} error={accountError} onOpen={() => navigateTo('account')} />
-          <button className="theme-toggle" type="button" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>
-            <Icon name={theme === 'dark' ? 'sun' : 'moon'}/> {theme === 'dark' ? 'Light mode' : 'Dark mode'}
+          <button className="theme-toggle" type="button" aria-label={t('Switch to {0} mode', (theme === 'dark' ? t('light') : t('dark')))} onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>
+            <Icon name={theme === 'dark' ? 'sun' : 'moon'}/> {theme === 'dark' ? t('Light mode') : t('Dark mode')}
           </button>
         </div>
       </header>
-      {wordSelection.error && <p className="word-selection-error" role="alert">{wordSelection.error}</p>}
-      {wordSelection.notice && <p className="word-selection-error" role="alert">{wordSelection.notice}</p>}
-      {sectionNavigation && <nav className="section-navigation" aria-label={activeNavigationSection === 'progress' ? 'Stats sections' : 'Settings sections'}>
-        {sectionNavigation.map(item => <a key={item.key} href={sectionPaths[item.key]} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{item.label}</a>)}
+      {wordSelection.error && <p className="word-selection-error" role="alert">{t(wordSelection.error)}</p>}
+      {wordSelection.notice && <p className="word-selection-error" role="alert">{t(wordSelection.notice)}</p>}
+      {sectionNavigation && <nav className="section-navigation" aria-label={activeNavigationSection === 'progress' ? t('Stats sections') : t('Settings sections')}>
+        {sectionNavigation.map(item => <a key={item.key} href={sectionPaths[item.key]} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{t(item.label)}</a>)}
       </nav>}
 
       {activeSection === 'play' && <>
-      {!game && <div className="page-introduction"><div><h2>Choose your <span>challenge.</span></h2></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
-      <section className="game-card" aria-label="Vocabulary puzzle" aria-busy={busy || progressSaving || restoring} onClick={event => {
+      {!game && <div className="page-introduction"><div><h2>{t('Choose your ')}<span>{t('challenge.')}</span></h2></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
+      <section className="game-card" aria-label={t('Vocabulary puzzle')} aria-busy={busy || progressSaving || restoring} onClick={event => {
         const target = event.target;
         if (target instanceof Element && target.closest('button, input, a, select, textarea')) return;
         focusGameInput();
@@ -517,34 +522,33 @@ export default function App() {
             <div className="sample-grid" aria-hidden="true">
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
-            <h2>Word puzzle</h2>
+            <h2>{t('Word puzzle')}</h2>
             <details className="game-rules">
-              <summary>Wordle rules</summary>
-              <p>Find the hidden {selectedWordLength}-letter word in {difficulties.find(option => option.id === difficulty)!.guesses} guesses. Each full word checks automatically.</p>
-              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />Correct spot</span><span><i className="rule-swatch present" aria-hidden="true" />Wrong spot</span><span><i className="rule-swatch absent" aria-hidden="true" />Not in word</span></div>
-              <p>Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.</p>
+              <summary>{t('Wordle rules')}</summary>
+              <p>{t('Find the hidden {0}-letter word in {1} guesses. Each full word checks automatically.', selectedWordLength, difficulties.find(option => option.id === difficulty)!.guesses)}</p>
+              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />{t('Correct spot')}</span><span><i className="rule-swatch present" aria-hidden="true" />{t('Wrong spot')}</span><span><i className="rule-swatch absent" aria-hidden="true" />{t('Not in word')}</span></div>
+              <p>{t('Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.')}</p>
             </details>
             </div>
             <div className="practice-setup">
-            <div className="practice-setup-heading"><h3>Puzzle options</h3></div>
+            <div className="practice-setup-heading"><h3>{t('Puzzle options')}</h3></div>
             <div className="practice-options">
-              <fieldset className="length-options"><legend>Word length</legend>
+              <fieldset className="length-options"><legend>{t('Word length')}</legend>
                 <div className="length-segments">
                   {[3, 4, 5, 6, 7, 8, 9].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
-                    <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={`${length} letters`} />
+                    <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={t('{0} letters', length)} />
                     <span>{length}</span>
                   </label>)}
                 </div>
               </fieldset>
-              <fieldset className="difficulty-options"><legend>Difficulty</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{option.label}</strong></label>)}</div></fieldset>
+              <fieldset className="difficulty-options"><legend>{t('Difficulty')}</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{t(option.label)}</strong></label>)}</div></fieldset>
               <CollectionPicker value={playWithMyWords ? 'my-words' : selectedPoolId} wordLength={selectedWordLength} disabled={busy} personalAvailable={!!account} onChange={id => {
                 setPlayWithMyWords(id === 'my-words');
                 if (id !== 'my-words') setSelectedPoolId(id);
               }} />
             </div>
-            <div className="game-price" aria-label={`Entry: 1 coin. Win: ${difficulties.find(option => option.id === difficulty)!.reward} coins`}><span><Icon name="coin"/>1 to play</span><span><Icon name="coin"/>+{difficulties.find(option => option.id === difficulty)!.reward} on a win</span></div>
-            <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>
-              Start practice <Icon name="arrow"/>
+            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', difficulties.find(option => option.id === difficulty)!.reward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{difficulties.find(option => option.id === difficulty)!.reward}{t(' on a win')}</span></div>
+            <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Start practice ')}<Icon name="arrow"/>
             </button>
             </div>
           </div>
@@ -552,39 +556,39 @@ export default function App() {
           <div ref={puzzleRef} key={game.id} className={`puzzle${celebrationId === game.id ? ' puzzle-won' : ''}`}>
             {celebrationId === game.id && <PuzzleCelebration key={game.id}/>}
             <div className="puzzle-heading">
-              <div><p className="eyebrow">{game.difficulty ?? difficulty} · {game.wordLength} letters</p>{game.pool && <small>{game.pool.name} · {game.pool.author}</small>}</div>
-              <span className="attempt-counter" aria-live="polite">{attemptsRemaining} {attemptsRemaining === 1 ? 'guess' : 'guesses'} left</span>
+              <div><p className="eyebrow">{t('{0} · {1} letters', t(game.difficulty ?? difficulty), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
+              <span className="attempt-counter" aria-live="polite">{t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
             </div>
-            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>Choose a new puzzle</button></div>}
-            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? game.cancellationReason + ' Your entry cost was returned to the original wallet.' : message || (finished ? `${game.status === 'won' ? 'Solved' : 'Puzzle complete'} in ${game.attemptCount ?? game.guesses.length} guesses.` : `Type ${game.wordLength} letters to check your word automatically.`)}</p>
-            {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label="Revealed letters">
-              {game.revealedPresent.length > 0 && <span>In the word: <strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong> · position unknown</span>}
-              {game.revealedAbsent.length > 0 && <span>Ruled out: <strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
+            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>{t('Choose a new puzzle')}</button></div>}
+            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.') : message ? t(message) : finished ? t('{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length) : t('Type {0} letters to check your word automatically.', game.wordLength)}</p>
+            {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label={t('Revealed letters')}>
+              {game.revealedPresent.length > 0 && <span>{t('In the word: ')}<strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong>{t(' · position unknown')}</span>}
+              {game.revealedAbsent.length > 0 && <span>{t('Ruled out: ')}<strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
             </div>}
             <div className="puzzle-columns">
             <div className={`puzzle-stage${!finished ? ' with-hints' : ''}`}>
             {hintPanel('partOfSpeech')}
             <div className="puzzle-play-column">
-            {(!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
+            {(!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={t('{0}-letter puzzle board', game.wordLength)} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
                 const result = game.guesses[row];
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
                 const rejected = !result && row === game.guesses.length && rejectedAttempt > 0;
                 const revealing = revealingGuess?.gameId === game.id && revealingGuess.row === row;
                 const checking = !result && row === game.guesses.length && busy && submittingGuess.current;
-                return <div className={`guess-row${rejected ? ' invalid-guess' : ''}${revealing ? ' revealing-guess' : ''}${checking ? ' checking-guess' : ''}`} role="row" aria-label={result?.guess ?? `Guess ${row + 1}`} aria-busy={checking || undefined} key={`${game.id}-${row}-${rejected ? rejectedAttempt : 0}`} onAnimationEnd={event => {
+                return <div className={`guess-row${rejected ? ' invalid-guess' : ''}${revealing ? ' revealing-guess' : ''}${checking ? ' checking-guess' : ''}`} role="row" aria-label={result?.guess ?? t('Guess {0}', row + 1)} aria-busy={checking || undefined} key={`${game.id}-${row}-${rejected ? rejectedAttempt : 0}`} onAnimationEnd={event => {
                   if (event.animationName === 'puzzle-tile-reveal' && event.target === event.currentTarget.lastElementChild) setRevealingGuess(null);
                 }} style={{ gridTemplateColumns: `repeat(${game.wordLength}, minmax(0, 1fr))` }}>
                   {Array.from({ length: game.wordLength }, (_, column) => {
                     const letter = result?.guess[column] ?? activeGuess[column] ?? '';
                     const state = result?.feedback[column]?.toLowerCase() ?? '';
-                    return <span role="gridcell" aria-label={letter ? `${letter}, ${state || 'not submitted'}` : 'Empty'} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)` }} key={`${column}-${letter}`}>{letter}</span>;
+                    return <span role="gridcell" aria-label={letter ? `${letter}, ${t(state || 'not submitted')}` : t('Empty')} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)` }} key={`${column}-${letter}`}>{letter}</span>;
                   })}
                 </div>;
               })}
             </div>}
             {!finished && <>
-              <label className="sr-only" htmlFor="guess-input">Type your {lengthName(game.wordLength)} guess one letter at a time</label>
+              <label className="sr-only" htmlFor="guess-input">{t('Type your {0} guess one letter at a time', t(lengthName(game.wordLength)))}</label>
               <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly={busy || progressSaving} onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="text" />
             </>}
             </div>
@@ -592,24 +596,24 @@ export default function App() {
             </div>
 
             {!finished && <div className="keyboard-dock">
-              <div className="game-keyboard" role="group" aria-label="On-screen keyboard">
+              <div className="game-keyboard" role="group" aria-label={t('On-screen keyboard')}>
                 {keyboardRows.map((row, rowIndex) => <div className={`keyboard-row keyboard-row-${rowIndex + 1}`} key={row}>
-                  {rowIndex === 2 && <button className="keyboard-key special-key enter-key" type="button" onMouseDown={event => event.preventDefault()} onClick={() => void submitGuess()} disabled={busy || progressSaving || finished || guess.length !== game.wordLength}>Enter</button>}
+                  {rowIndex === 2 && <button className="keyboard-key special-key enter-key" type="button" onMouseDown={event => event.preventDefault()} onClick={() => void submitGuess()} disabled={busy || progressSaving || finished || guess.length !== game.wordLength}>{t('Enter')}</button>}
                   {row.split('').map(letter => {
                     const state = keyboardFeedback.get(letter.toUpperCase())?.toLowerCase() ?? '';
-                    return <button className={`keyboard-key ${state}`} key={letter} type="button" aria-label={`${letter.toUpperCase()}${state ? `, ${state}` : ''}`} onMouseDown={event => event.preventDefault()} onClick={() => addLetter(letter)} disabled={busy || progressSaving || finished}>{letter}</button>;
+                    return <button className={`keyboard-key ${state}`} key={letter} type="button" aria-label={`${letter.toUpperCase()}${state ? `, ${t(state)}` : ''}`} onMouseDown={event => event.preventDefault()} onClick={() => addLetter(letter)} disabled={busy || progressSaving || finished}>{letter}</button>;
                   })}
-                  {rowIndex === 2 && <button className="keyboard-key special-key delete-key" type="button" aria-label="Delete letter" onMouseDown={event => event.preventDefault()} onClick={deleteLetter} disabled={busy || progressSaving || finished}>⌫</button>}
+                  {rowIndex === 2 && <button className="keyboard-key special-key delete-key" type="button" aria-label={t('Delete letter')} onMouseDown={event => event.preventDefault()} onClick={deleteLetter} disabled={busy || progressSaving || finished}>⌫</button>}
                 </div>)}
               </div>
             </div>}
-            {(game.guesses.length > 0 || (finished && game.status !== 'cancelled')) && <aside className="puzzle-definitions" aria-label="Word definitions">
+            {(game.guesses.length > 0 || (finished && game.status !== 'cancelled')) && <aside className="puzzle-definitions" aria-label={t('Word definitions')}>
             {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
-              <div><div className="word-with-pronunciation"><strong>{result.guess}</strong><PronunciationButton term={result.guess} /></div><DefinitionText text={result.definition || 'Definition unavailable.'} /></div>
+              <div><div className="word-with-pronunciation"><strong>{result.guess}</strong><PronunciationButton term={result.guess} /></div><DefinitionText text={result.definition || t('Definition unavailable.')} /></div>
               {wordBookmark(result.guess, result.definition ?? '')}
             </div>)}
             {finished && game.answer && <div className="answer-definition">
-              <div><p className="eyebrow">THE ANSWER</p><div className="word-with-pronunciation"><strong>{game.answer}</strong><PronunciationButton term={game.answer!} /></div><DefinitionText text={game.answerDefinition || 'Definition unavailable.'} /></div>
+              <div><p className="eyebrow">{t('THE ANSWER')}</p><div className="word-with-pronunciation"><strong>{game.answer}</strong><PronunciationButton term={game.answer!} /></div><DefinitionText text={game.answerDefinition || t('Definition unavailable.')} /></div>
               {wordBookmark(game.answer!, game.answerDefinition ?? '')}
             </div>}
             </aside>}
@@ -617,8 +621,8 @@ export default function App() {
             </div>
           </div>
         )}
-      {!game && message && <p className="notice" role="status">{message}</p>}
-      {finished && <div className="next-game"><button className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>Play again</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>Change settings</button></div>}
+      {!game && message && <p className="notice" role="status">{t(message)}</p>}
+      {finished && <div className="next-game"><button className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Play again')}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>{t('Change settings')}</button></div>}
       </section>
       </>}
       <Suspense fallback={<section className="page-loading" aria-busy="true" />}>
@@ -631,21 +635,21 @@ export default function App() {
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} onPlay={() => navigateTo('play')} onSignIn={() => navigateTo('account')} />}
       {activeSection === 'community' && <CommunityPage onExplore={() => navigateTo('library')} />}
-      {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} soundEnabled={soundEnabled} onSoundChange={enabled => { gameAudio.setEnabled(enabled); setSoundEnabled(enabled); }} />}
-      {activeSection === 'licenses' && <section className="licenses-page" aria-label="Licenses and attribution">
-        <p className="eyebrow">SOURCES & ATTRIBUTION</p><h2>Words with a shared history.</h2><p>Our dictionary combines Simple English Wiktionary with supplementary definitions from Open English WordNet.</p>
-        <article><h3>Dictionary definitions</h3><p>Definitions are adapted from <a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">Simple English Wiktionary</a>, under the <a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">Creative Commons Attribution-ShareAlike 3.0 license</a>, as described in the project’s <a href="https://simple.wiktionary.org/wiki/Wiktionary:Rules" target="_blank" rel="noreferrer">rules</a> and <a href="https://simple.wiktionary.org/wiki/Wiktionary:Copyrights" target="_blank" rel="noreferrer">copyright notice</a>.</p>
-          <p>LexiPlay removes markup, normalizes spacing, and shortens definitions to the first two senses. Community definitions may vary in accuracy.</p>
-          <p>Use <a href="https://simple.wiktionary.org/wiki/Special:Search" target="_blank" rel="noreferrer">Wiktionary’s entry search</a> to find an original word page and its contributors in the revision history. Shared adaptations remain subject to the applicable attribution and ShareAlike terms.</p>
+      {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} soundEnabled={soundEnabled} onSoundChange={enabled => { gameAudio.setEnabled(enabled); setSoundEnabled(enabled); }} fontSize={interfacePreferences.fontSize} onFontSizeChange={interfacePreferences.setFontSize} language={interfacePreferences.languagePreference} onLanguageChange={interfacePreferences.setLanguage} />}
+      {activeSection === 'licenses' && <section className="licenses-page" aria-label={t('Licenses and attribution')}>
+        <p className="eyebrow">{t('SOURCES & ATTRIBUTION')}</p><h2>{t('Words with a shared history.')}</h2><p>{t('Our dictionary combines Simple English Wiktionary with supplementary definitions from Open English WordNet.')}</p>
+        <article><h3>{t('Dictionary definitions')}</h3><p>{t('Definitions are adapted from ')}<a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">{t('Simple English Wiktionary')}</a>{t(', under the ')}<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">{t('Creative Commons Attribution-ShareAlike 3.0 license')}</a>{t(', as described in the project’s ')}<a href="https://simple.wiktionary.org/wiki/Wiktionary:Rules" target="_blank" rel="noreferrer">{t('rules')}</a>{t(' and ')}<a href="https://simple.wiktionary.org/wiki/Wiktionary:Copyrights" target="_blank" rel="noreferrer">{t('copyright notice')}</a>.</p>
+          <p>{t('LexiPlay removes markup, normalizes spacing, and shortens definitions to the first two senses. Community definitions may vary in accuracy.')}</p>
+          <p>{t('Use ')}<a href="https://simple.wiktionary.org/wiki/Special:Search" target="_blank" rel="noreferrer">{t('Wiktionary’s entry search')}</a>{t(' to find an original word page and its contributors in the revision history. Shared adaptations remain subject to the applicable attribution and ShareAlike terms.')}</p>
         </article>
-        <article><h3>Open English WordNet 2025</h3><p>Supplementary definitions come from <a href="https://github.com/globalwordnet/english-wordnet" target="_blank" rel="noreferrer">Open English WordNet 2025 Core</a>, developed by the Open English WordNet team and derived from the Princeton University WordNet database.</p><p>The supplement is licensed under <a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">Creative Commons Attribution 4.0</a>, with the underlying Princeton WordNet notice retained. LexiPlay normalizes whitespace and groups word classes, preserves existing useful definitions, and selects up to two WordNet meanings per word class for display. Full imported meanings and source identifiers remain in the database.</p><p><a href="/licenses/open-english-wordnet-LICENSE.md" target="_blank" rel="noreferrer">Open English WordNet license notice</a> · <a href="/licenses/Princeton-WordNet-LICENSE.txt" target="_blank" rel="noreferrer">Princeton WordNet license notice</a></p></article>
-        <article><h3>C2 vocabulary selection</h3><p>The expanded C2 selection adapts the <a href="https://github.com/openlanguageprofiles/olp-en-cefrj" target="_blank" rel="noreferrer">Octanove Vocabulary Profile C1/C2 v1.0</a>, created by Octanove Labs and published through Open Language Profiles under <a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">CC BY-SA 4.0</a>. LexiPlay normalizes spelling alternatives, removes duplicate entries, and admits additions only with a published family match and a matching dictionary definition. Entries requiring review of a particular meaning are held back. The original starter used <a href="https://www.esl-lounge.com/student/reference/c2-cefr-vocabulary-word-list.php" target="_blank" rel="noreferrer">ESL Lounge</a> as one reference.</p><p>This is a learning selection, not an official or exhaustive CEFR inventory. Dictionary definitions retain their own source licences. <a href="/data/lexiplay-c2.json" target="_blank" rel="noreferrer">Download the adapted C2 selection</a> · <a href="/licenses/cefr-data-NOTICE.md" target="_blank" rel="noreferrer">Data attribution and modifications</a></p></article>
-        <article><h3>Word-family grouping</h3><p>Family identities are adapted from Paul Nation's BNC/COCA word-family lists v1.0.0, hosted by <a href="https://www.wgtn.ac.nz/lals/resources/paul-nations-resources" target="_blank" rel="noreferrer">Victoria University of Wellington</a>. The adapted mapping is provided under CC BY-SA 4.0, following the university's resource licence statement. Grouping does not assign one CEFR level or shared learning progress to every member. Phrases and entries without a published match remain separate study items. <a href="/data/bnc-coca-families.json" target="_blank" rel="noreferrer">Download the adapted family mapping</a></p></article>
-        <article><h3>Original Wordle answers</h3><p>The five-letter answer pool uses the original 2,315-word selection by Josh Wardle, preserved in <a href="https://gist.github.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b" target="_blank" rel="noreferrer">cfreshman’s source extraction</a>. Playable answers have matching English definitions in the LexiPlay dictionary. This selection does not track subsequent New York Times editorial changes.</p></article>
+        <article><h3>{t('Open English WordNet 2025')}</h3><p>{t('Supplementary definitions come from ')}<a href="https://github.com/globalwordnet/english-wordnet" target="_blank" rel="noreferrer">{t('Open English WordNet 2025 Core')}</a>{t(', developed by the Open English WordNet team and derived from the Princeton University WordNet database.')}</p><p>{t('The supplement is licensed under ')}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">{t('Creative Commons Attribution 4.0')}</a>{t(', with the underlying Princeton WordNet notice retained. LexiPlay normalizes whitespace and groups word classes, preserves existing useful definitions, and selects up to two WordNet meanings per word class for display. Full imported meanings and source identifiers remain in the database.')}</p><p><a href="/licenses/open-english-wordnet-LICENSE.md" target="_blank" rel="noreferrer">{t('Open English WordNet license notice')}</a> · <a href="/licenses/Princeton-WordNet-LICENSE.txt" target="_blank" rel="noreferrer">{t('Princeton WordNet license notice')}</a></p></article>
+        <article><h3>{t('C2 vocabulary selection')}</h3><p>{t('The expanded C2 selection adapts the ')}<a href="https://github.com/openlanguageprofiles/olp-en-cefrj" target="_blank" rel="noreferrer">{t('Octanove Vocabulary Profile C1/C2 v1.0')}</a>{t(', created by Octanove Labs and published through Open Language Profiles under ')}<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">{t('CC BY-SA 4.0')}</a>{t('. LexiPlay normalizes spelling alternatives, removes duplicate entries, and admits additions only with a published family match and a matching dictionary definition. Entries requiring review of a particular meaning are held back. The original starter used ')}<a href="https://www.esl-lounge.com/student/reference/c2-cefr-vocabulary-word-list.php" target="_blank" rel="noreferrer">{t('ESL Lounge')}</a>{t(' as one reference.')}</p><p>{t('This is a learning selection, not an official or exhaustive CEFR inventory. Dictionary definitions retain their own source licences. ')}<a href="/data/lexiplay-c2.json" target="_blank" rel="noreferrer">{t('Download the adapted C2 selection')}</a> · <a href="/licenses/cefr-data-NOTICE.md" target="_blank" rel="noreferrer">{t('Data attribution and modifications')}</a></p></article>
+        <article><h3>{t('Word-family grouping')}</h3><p>{t('Family identities are adapted from Paul Nation\'s BNC/COCA word-family lists v1.0.0, hosted by ')}<a href="https://www.wgtn.ac.nz/lals/resources/paul-nations-resources" target="_blank" rel="noreferrer">{t('Victoria University of Wellington')}</a>{t('. The adapted mapping is provided under CC BY-SA 4.0, following the university\'s resource licence statement. Grouping does not assign one CEFR level or shared learning progress to every member. Phrases and entries without a published match remain separate study items. ')}<a href="/data/bnc-coca-families.json" target="_blank" rel="noreferrer">{t('Download the adapted family mapping')}</a></p></article>
+        <article><h3>{t('Original Wordle answers')}</h3><p>{t('The five-letter answer pool uses the original 2,315-word selection by Josh Wardle, preserved in ')}<a href="https://gist.github.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b" target="_blank" rel="noreferrer">{t('cfreshman’s source extraction')}</a>{t('. Playable answers have matching English definitions in the LexiPlay dictionary. This selection does not track subsequent New York Times editorial changes.')}</p></article>
       </section>}
       </Suspense>
-      <footer className="workspace-footer"><div className="footer-links"><a href="https://github.com/Hwent" target="_blank" rel="noopener noreferrer" aria-label="Visit Hwent on GitHub (opens in a new tab)">Hwent on GitHub <Icon name="arrow" /></a><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>Licenses</a></div></footer>
+      <footer className="workspace-footer"><div className="footer-links"><a href="https://github.com/Hwent" target="_blank" rel="noopener noreferrer" aria-label={t('Visit Hwent on GitHub (opens in a new tab)')}>{t('Hwent on GitHub ')}<Icon name="arrow" /></a><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>{t('Licenses')}</a></div></footer>
       </div>
-    </main></PendingWordsContext.Provider>
+    </main></PendingWordsContext.Provider></LanguageContext.Provider>
   );
 }
