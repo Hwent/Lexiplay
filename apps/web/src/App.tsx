@@ -486,11 +486,11 @@ export default function App() {
       <header className="topbar">
         <div className="page-title"><h1>{sectionTitle[activeNavigationSection]}</h1></div>
         <div className="header-actions">
-          <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('library', quickSearch); }}>
-            <label className="sr-only" htmlFor="quick-search">Search your words</label>
-            <input ref={searchRef} id="quick-search" type="search" value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search your word list" aria-keyshortcuts="/" onKeyDown={event => { if (event.key === 'Escape') event.currentTarget.blur(); }} />
+          <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('dictionary', quickSearch); }}>
+            <label className="sr-only" htmlFor="quick-search">Quick dictionary search</label>
+            <input ref={searchRef} id="quick-search" type="search" value={quickSearch} onChange={event => setQuickSearch(event.target.value)} placeholder="Search the dictionary" aria-keyshortcuts="/" onKeyDown={event => { if (event.key === 'Escape') event.currentTarget.blur(); }} />
             <kbd aria-hidden="true">/</kbd>
-            <button type="submit" aria-label="Search words"><Icon name="search"/></button>
+            <button type="submit" aria-label="Search dictionary"><Icon name="search"/></button>
           </form>
           <AccountStatus coinBalance={walletOwner === (account?.id ?? 'guest') ? wallet?.coinBalance : account?.coinBalance} account={account} loading={accountLoading} error={accountError} onOpen={() => navigateTo('account')} />
           <button className="theme-toggle" type="button" aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} mode`} onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>
@@ -623,9 +623,9 @@ export default function App() {
       </>}
       <Suspense fallback={<section className="page-loading" aria-busy="true" />}>
       {activeSection === 'library' && <section className="library-page">
-        <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery={quickSearch} onSignIn={() => navigateTo('account')} />
+        <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery="" onSignIn={() => navigateTo('account')} />
       </section>}
-      {activeSection === 'dictionary' && <DictionaryPage key={accountRevision} signedIn={!!account} accountLoading={accountLoading} />}
+      {activeSection === 'dictionary' && <DictionaryPage key={accountRevision} signedIn={!!account} accountLoading={accountLoading} searchQuery={quickSearch} />}
       {activeSection === 'feedback' && <FeedbackPage />}
       {activeSection === 'home' && <HomePage onNavigate={navigateTo} />}
       {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}

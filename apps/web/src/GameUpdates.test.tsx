@@ -40,11 +40,11 @@ describe('saved practice and account updates', () => {
     await screen.findByRole('option', { name: /CEFR A2/ });
     expect(screen.getByLabelText('Collection')).toHaveValue('cefr-a2');
   });
-  it('focuses global word-list search with slash without interrupting text entry', async () => {
+  it('focuses quick dictionary search with slash without interrupting text entry', async () => {
     stubFetchWithVocabularyRanges(vi.fn(async () => new Response('{}', { status: 401 })));
     const user = userEvent.setup(); render(<App/>);
     await user.keyboard('/');
-    const search = screen.getByRole('searchbox', { name: 'Search your words' });
+    const search = screen.getByRole('searchbox', { name: 'Quick dictionary search' });
     expect(search).toHaveFocus();
     expect(search).toHaveValue('');
     await user.type(search, 'apple/');

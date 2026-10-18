@@ -259,7 +259,7 @@ describe('practice puzzle', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
-      if (path.includes('/word-lists/dictionary?q=')) return Response.json([{ term: 'apple', definition: 'A fruit', partOfSpeech: ['noun'] }]);
+      if (path.includes('/word-lists/dictionary?q=')) return Response.json([{ term: path.includes('q=pear') ? 'pear' : 'apple', definition: 'A fruit', partOfSpeech: ['noun'] }]);
       if (path.endsWith('/word-lists')) return Response.json([{ id: 'list-1', name: 'Classroom', words: [
         { id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' },
         { id: 'word-2', term: 'chair', definition: 'A seat', status: 'UNFAMILIAR' },
@@ -274,21 +274,28 @@ describe('practice puzzle', () => {
     const navigation = screen.getByRole('navigation', { name: /main navigation/i });
     expect(within(navigation).queryByRole('button', { name: /word sets/i })).toBeNull();
     expect(within(navigation).getAllByRole('button').map(button => button.getAttribute('aria-label'))).toEqual(['Games', 'Words', 'Dictionary', 'Stats', 'Settings']);
-    await user.type(screen.getByRole('searchbox', { name: /search your words/i }), 'apple');
+    await user.type(screen.getByRole('searchbox', { name: /quick dictionary search/i }), 'apple');
     await user.keyboard('{Enter}');
     expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument();
-    expect(window.location.pathname).toBe('/library');
-    expect(screen.queryByRole('searchbox', { name: 'Search the dictionary' })).not.toBeInTheDocument();
-    expect(screen.queryByText('chair')).toBeNull();
-    await user.click(screen.getByRole('button', { name: 'Dictionary' }));
     expect(window.location.pathname).toBe('/dictionary');
-    await user.type(await screen.findByRole('searchbox', { name: 'Search the dictionary' }), 'apple');
+    expect(await screen.findByRole('searchbox', { name: 'Search the dictionary' })).toHaveValue('apple');
     expect(await screen.findByText('apple')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Pronounce apple' })).toBeInTheDocument();
+    const quickSearch = screen.getByRole('searchbox', { name: /quick dictionary search/i });
+    await user.clear(quickSearch);
+    await user.type(quickSearch, 'pear');
+    await user.click(screen.getByRole('button', { name: 'Search dictionary' }));
+    expect(await screen.findByText('pear')).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search the dictionary' })).toHaveValue('pear');
+    expect(screen.queryByText('apple')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Words' }));
+    expect(window.location.pathname).toBe('/library');
+    expect(await screen.findByRole('tab', { name: 'Explore Vocabulary' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('searchbox', { name: 'Search the dictionary' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^games$/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/games');
-    expect(screen.getByRole('searchbox', { name: /search your words/i })).toHaveValue('');
+    expect(screen.getByRole('searchbox', { name: /quick dictionary search/i })).toHaveValue('');
   });
 
   it('groups community under Stats and feedback and account under Settings', async () => {
@@ -330,7 +337,7 @@ describe('practice puzzle', () => {
     stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => new Response(String(input).endsWith('/auth/me') ? '{}' : '[]')));
     const user = userEvent.setup();
     render(<App />);
-    const search = screen.getByRole('searchbox', { name: /search your words/i });
+    const search = screen.getByRole('searchbox', { name: /quick dictionary search/i });
     await user.type(search, 'because');
     await user.click(screen.getByRole('link', { name: 'Licenses' }));
     expect(search).toHaveValue('');
