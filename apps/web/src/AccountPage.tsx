@@ -95,8 +95,6 @@ export default function AccountPage({ account, setAccount, loading, accountError
   const titles = { login: 'Welcome back.', register: 'Make yourself at home.', forgot: 'Let’s get you back in.', reset: 'A fresh start for your password.', verify: 'Verify your email address' };
   return <section className={`account-page${profile ? ' profile-page' : ''}`} aria-label={t('Account management')} aria-busy={loading || controlsBusy}>
     <div className="account-intro"><p className="eyebrow">{t('YOUR ACCOUNT')}</p><h2>{profile ? t('Your learning, in one place.') : t(titles[mode])}</h2><p>{profile ? t('A few simple settings. More room to grow.') : mode === 'register' ? t('Start with a username and password. Email is your choice.') : mode === 'forgot' ? t('Use your recovery email to choose a new password.') : mode === 'verify' ? t('Confirm ownership of your email address. This step is optional.') : t('Pick up where you left off, one word at a time.')}</p></div>
-    <div className="account-layout">
-      <aside className="account-story" aria-label={t('Your learning space')}><div className="account-story-mark" aria-hidden="true">L</div><p className="eyebrow">{t('SMALL STEPS, STRONGER WORDS')}</p><h3>{t('Make learning')}<br />{t('your own.')}</h3><p>{t('Your words. Your progress. A little practice that adds up.')}</p><ul><li><span aria-hidden="true">✓</span>{t('A vocabulary list that grows with you')}</li><li><span aria-hidden="true">✓</span>{t('Saved puzzles and learning history')}</li><li><span aria-hidden="true">✓</span>{t('Email and verification, on your terms')}</li></ul><span className="account-story-flower" aria-hidden="true">✳</span></aside>
       <div className="account-page-card">
         {loading ? null : accountError ? <><p role="alert">{t(accountError)}</p><button className="account-action" onClick={onRetry}>{t('Try again')}</button></> : profile && account ? <>
           <div className="account-profile-heading"><span className="profile-avatar" aria-hidden="true">{(account.username ?? account.email ?? 'L')[0]!.toUpperCase()}</span><div><h3>{account.username ?? account.email}</h3><p className="account-status" role="status">{t('Signed in as {0}', account.username ?? account.email)}</p></div><button className="account-secondary" onClick={() => void signOut()} disabled={controlsBusy}>{t('Sign out')}</button></div>
@@ -124,6 +122,5 @@ export default function AccountPage({ account, setAccount, loading, accountError
         {account && <>{!progressSaving && progressError && <div className="account-feedback error" role="alert"><p>{t('You’re signed in, but guest progress has not finished saving. {0}', t(progressError))}</p><button className="account-secondary" onClick={onRetryProgress} disabled={controlsBusy}>{t('Retry saving progress')}</button></div>}{!progressSaving && progressMessage && <p className="account-feedback" role="status">{t(progressMessage)}</p>}</>}
         {message && <p className={`account-feedback${failed ? ' error' : ''}`} role={failed ? 'alert' : 'status'}>{t(message)}</p>}
       </div>
-    </div>
   </section>;
 }

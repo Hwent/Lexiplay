@@ -316,6 +316,7 @@ export const zhCN: Record<string, string> = {
   "Permanently delete account": "永久删除账号",
   "Account access": "账号登录与注册",
   "Sign in": "登录",
+  "Sign in to save your game history.": "登录即可保存你的游戏记录。",
   "Create account": "创建账号",
   "Check your inbox": "请检查邮箱",
   "If there’s an account linked to that email, you’ll receive a reset link. It expires in 30 minutes.": "若该邮箱已绑定账号，你将收到重置链接，30 分钟内有效。",

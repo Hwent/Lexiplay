@@ -129,6 +129,8 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .input-hint { margin: .45rem 0 0; color: var(--muted); font-size: .72rem; text-align: center; }
 .notice { margin: .7rem 0 0; padding: 0 1rem; color: var(--notice); font-size: .88rem; text-align: center; }
 .next-game { margin: .5rem 0 1rem; text-align: center; }
+.guest-save-reminder { margin: 1rem 1rem 0; font-size: 1rem; line-height: 1.5; }
+.guest-save-reminder a { color: var(--accent); text-underline-offset: .2em; }
 footer { min-height: 3.5rem; margin-top: auto; display: flex; align-items: center; justify-content: space-between; border-top: 1px solid var(--line); }
 .game-footer { display: none; }
 .footer-seed { color: #8aaa83; font-size: 1.1rem; }
