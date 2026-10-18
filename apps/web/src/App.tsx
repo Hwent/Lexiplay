@@ -47,7 +47,7 @@ type GuessResult = {
   answerDefinition?: string;
   rewardCoins?: number;
 };
-type HintType = 'synonym' | 'definition';
+type HintType = 'partOfSpeech' | 'definition';
 type Game = { answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: Record<HintType, number>; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
 const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, reward: 6 }] as const;
@@ -312,7 +312,7 @@ export default function App() {
       guessSession.current++;
       setCelebrationId('');
       setRejectedAttempt(0);
-      setGame({ ...newGame, hints: newGame.hints ?? { synonym: 1, definition: 1 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
+      setGame({ ...newGame, hints: newGame.hints ?? { partOfSpeech: 1, definition: 1 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
       try { window.localStorage.setItem(LAST_GAME_KEY, newGame.id); } catch { /* Gameplay remains available without browser storage. */ }
       setGuess('');
       startRequest.current = null;
@@ -347,11 +347,11 @@ export default function App() {
 
   function hintPanel(type: HintType) {
     if (!game || finished) return null;
-    const title = type === 'synonym' ? 'Synonym or category' : 'Definition';
+    const title = type === 'partOfSpeech' ? 'Part of speech' : 'Definition';
     const clue = game.clues?.[type];
     return <aside className={`puzzle-hint hint-${type}`} aria-label={`${title} hint`}>
       <button className="friendly-hint" type="button" aria-label={`${title} hint · ${clue ? 'Revealed' : '1 coin'}`} onClick={() => void useHint(type)} disabled={busy || progressSaving || !!clue || game.hints[type] === 0}>
-        <span className="hint-icon" aria-hidden="true">{type === 'synonym' ? '≈' : <Icon name="library"/>}</span><strong>{title}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
+        <span className="hint-icon" aria-hidden="true"><Icon name={type === 'partOfSpeech' ? 'dictionary' : 'library'}/></span><strong>{title}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
       </button>
       {clue && <p className="hint-clue">{clue}</p>}
     </aside>;
@@ -562,7 +562,7 @@ export default function App() {
             </div>}
             <div className="puzzle-columns">
             <div className={`puzzle-stage${!finished ? ' with-hints' : ''}`}>
-            {hintPanel('synonym')}
+            {hintPanel('partOfSpeech')}
             <div className="puzzle-play-column">
             {(!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={`${game.wordLength}-letter puzzle board`} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {

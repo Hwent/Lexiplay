@@ -8,7 +8,7 @@ import { LAST_GAME_KEY, LOCAL_WORDS_KEY, TRANSFER_KEY } from './services/guest-p
 const account = { id: '00000000-0000-4000-8000-000000000001', username: 'learner', email: null, emailVerified: false };
 const gameId = '00000000-0000-4000-8000-000000000002';
 const word = { id: 'local-1', term: 'chair', definition: 'A seat.', status: 'KNOWN' };
-const game = { id: gameId, wordLength: 5, difficulty: 'medium', attemptLimit: 6, guesses: [{ guess: 'paper', feedback: ['PRESENT', 'ABSENT', 'PRESENT', 'ABSENT', 'ABSENT'], attemptsRemaining: 5, completed: false, definition: 'Writing material.' }], hints: { synonym: 1, definition: 1 }, revealedAbsent: [], revealedPresent: [] };
+const game = { id: gameId, wordLength: 5, difficulty: 'medium', attemptLimit: 6, guesses: [{ guess: 'paper', feedback: ['PRESENT', 'ABSENT', 'PRESENT', 'ABSENT', 'ABSENT'], attemptsRemaining: 5, completed: false, definition: 'Writing material.' }], hints: { partOfSpeech: 1, definition: 1 }, revealedAbsent: [], revealedPresent: [] };
 describe('guest progress on authentication', () => {
   beforeEach(() => {
     window.localStorage.clear(); window.history.replaceState({}, '', '/account');

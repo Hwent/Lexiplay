@@ -29,7 +29,7 @@ describe('game HTTP endpoints and rules', () => {
     });
     vi.spyOn(WordListRepository.prototype, 'getDictionaryDefinition').mockImplementation(async term => `Definition of ${term}.`);
     vi.spyOn(WordListRepository.prototype, 'isDictionaryGameWord').mockResolvedValue(false);
-    vi.spyOn(WordListsService.prototype, 'dictionarySynonym').mockResolvedValue('fruit');
+    vi.spyOn(WordListsService.prototype, 'dictionaryPartOfSpeech').mockResolvedValue('noun');
   });
   afterEach(async () => { await app?.close(); app = undefined; vi.restoreAllMocks(); });
   async function startApp() {
@@ -125,16 +125,38 @@ describe('game HTTP endpoints and rules', () => {
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
     await startApp(); const games = app!.get(GameService);
     const game = await games.start(5, ['apple'], difficulty, 'test');
-    expect(game.hints).toEqual({ synonym: 1, definition: 1 });
-    expect(await games.hint(game.id, 'synonym', 'test')).toMatchObject({ text: 'fruit', cost: 1 });
+    expect(game.hints).toEqual({ partOfSpeech: 1, definition: 1 });
+    expect(await games.hint(game.id, 'partOfSpeech', 'test')).toMatchObject({ text: 'noun', cost: 1 });
     expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({ text: 'Definition of _____.', cost: 1 });
-    expect(await games.hint(game.id, 'synonym', 'test')).toMatchObject({ text: 'fruit', cost: 0 });
+    expect(await games.hint(game.id, 'partOfSpeech', 'test')).toMatchObject({ text: 'noun', cost: 0 });
     expect(stored.get(game.id)!.hintCoinsSpent).toBe(2);
     for (let i = 1; i <= attempts; i++) expect(await games.submit(game.id, 'paper', 'test')).toMatchObject({ attemptsRemaining: attempts - i, completed: i === attempts, definition: 'Definition of paper.', ...(i === attempts ? { outcome: 'LOST', answer: 'apple', answerDefinition: 'Definition of apple.' } : {}) });
     expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(attempts + 2);
     await expect(games.hint(game.id, 'definition', 'test')).rejects.toThrow('already complete');
     await expect(games.submit(game.id, 'apple', 'test')).rejects.toThrow('already complete');
   });
+  it('validates the new hint type through HTTP and restores the purchased word class', async () => {
+    vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple']);
+    const url = await startApp();
+    const response = await fetch(`${url}/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wordLength: 5 }) });
+    const game = await response.json();
+    const headers = { 'content-type': 'application/json', cookie: response.headers.get('set-cookie')!.split(';')[0]! };
+    const hint = await fetch(`${url}/games/${game.id}/hints`, { method: 'POST', headers, body: JSON.stringify({ type: 'partOfSpeech' }) });
+    expect(hint.status).toBe(201);
+    expect(await hint.json()).toMatchObject({ type: 'partOfSpeech', text: 'noun', cost: 1 });
+    expect((await fetch(`${url}/games/${game.id}/hints`, { method: 'POST', headers, body: JSON.stringify({ type: 'synonym' }) })).status).toBe(400);
+    expect(await (await fetch(`${url}/games/${game.id}`, { headers })).json()).toMatchObject({ clues: { partOfSpeech: 'noun' }, hintCoinsSpent: 1 });
+  });
+
+  it('does not consume a hint when the dictionary has no word class', async () => {
+    vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple']);
+    vi.mocked(WordListsService.prototype.dictionaryPartOfSpeech).mockResolvedValueOnce(undefined);
+    await startApp(); const games = app!.get(GameService);
+    const game = await games.start(5, ['apple'], 'medium', 'test');
+    await expect(games.hint(game.id, 'partOfSpeech', 'test')).rejects.toThrow('No part of speech is available');
+    expect(await games.read(game.id, 'test')).toMatchObject({ hints: { partOfSpeech: 1 }, clues: {}, hintCoinsSpent: 0 });
+  });
+
   it('masks the answer in definition hints, including capitals and longer words', async () => {
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple']);
     vi.mocked(WordListRepository.prototype.getDictionaryDefinition).mockResolvedValue('An APPLE, apples, or pineapple; apple-shaped fruit.');

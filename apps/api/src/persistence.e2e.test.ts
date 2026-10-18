@@ -35,7 +35,6 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     vi.stubEnv('DATABASE_URL', database!);
     vi.spyOn(ThrottlerGuard.prototype, 'canActivate').mockResolvedValue(true);
     vi.spyOn(AccountMailService.prototype, 'send').mockResolvedValue(undefined);
-    vi.spyOn(WordListsService.prototype, 'dictionarySynonym').mockResolvedValue('fruit');
     pool = new Pool({ connectionString: database! });
     app = await NestFactory.create(AppModule, { logger: false });
     app.setGlobalPrefix('api/v1');
@@ -388,10 +387,10 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const clues = await Promise.all(replies.map(response => response.json()));
     expect(clues.map(clue => clue.cost).sort()).toEqual([0, 1]);
     expect(await balance(user.cookie)).toBe(98);
-    expect(await (await hint('synonym')).json()).toMatchObject({ text: 'fruit', cost: 1 });
+    expect(await (await hint('partOfSpeech')).json()).toMatchObject({ text: 'noun', cost: 1 });
     expect(await balance(user.cookie)).toBe(97);
     const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(restored).toMatchObject({ hints: { synonym: 0, definition: 0 }, clues: { synonym: 'fruit', definition: 'Definition of _____.' }, hintCoinsSpent: 2 });
+    expect(restored).toMatchObject({ hints: { partOfSpeech: 0, definition: 0 }, clues: { partOfSpeech: 'noun', definition: 'Definition of _____.' }, hintCoinsSpent: 2 });
     expect(restored).not.toHaveProperty('answer');
     await request('/games/' + game.id + '/abandon', 'POST', {}, user.cookie);
     expect(await balance(user.cookie)).toBe(98);
@@ -400,9 +399,9 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
 
   it('does not charge for unavailable hints or commit a hint without enough coins', async () => {
     const user = await account(), game = await start(user.cookie);
-    vi.mocked(WordListsService.prototype.dictionarySynonym).mockResolvedValueOnce(undefined);
+    vi.spyOn(WordListsService.prototype, 'dictionaryPartOfSpeech').mockResolvedValueOnce(undefined);
     const path = '/games/' + game.id + '/hints';
-    const unavailable = await request(path, 'POST', { type: 'synonym' }, user.cookie);
+    const unavailable = await request(path, 'POST', { type: 'partOfSpeech' }, user.cookie);
     expect(unavailable.status).toBe(400);
     expect(await balance(user.cookie)).toBe(99);
     await pool.query('UPDATE account_users SET coin_balance=0 WHERE id=$1', [user.id]);
@@ -411,10 +410,27 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await denied.json()).toMatchObject({ code: 'INSUFFICIENT_COINS' });
     expect(await balance(user.cookie)).toBe(0);
     const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(restored).toMatchObject({ hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0 });
+    expect(restored).toMatchObject({ hints: { partOfSpeech: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0 });
     const other = await account();
     expect((await request(path, 'POST', { type: 'definition' }, other.cookie)).status).toBe(404);
     expect(await balance(other.cookie)).toBe(100);
+  });
+
+  it('offers word classes for legacy games without reusing old synonym clues', async () => {
+    const user = await account();
+    const game = await app.get(GameService).start(5, ['cover'], 'medium', 'user:' + user.id);
+    await pool.query(`UPDATE practice_games SET active_state=active_state ||
+      '{"hints":{"synonym":0,"definition":1},"clues":{"synonym":"conceal"},"hintCoinsSpent":1}'::jsonb,
+      coin_change=coin_change-1 WHERE id=$1`, [game.id]);
+    await pool.query('UPDATE account_users SET coin_balance=coin_balance-1 WHERE id=$1', [user.id]);
+    const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
+    expect(restored).toMatchObject({ hints: { partOfSpeech: 1, definition: 1 }, clues: {}, hintCoinsSpent: 1 });
+    const clue = await request('/games/' + game.id + '/hints', 'POST', { type: 'partOfSpeech' }, user.cookie);
+    expect(await clue.json()).toMatchObject({ type: 'partOfSpeech', text: 'noun · verb', cost: 1 });
+    expect(await balance(user.cookie)).toBe(97);
+    const state = (await pool.query('SELECT active_state FROM practice_games WHERE id=$1', [game.id])).rows[0].active_state;
+    expect(state.clues).toEqual({ partOfSpeech: 'noun · verb' });
+    expect(state.hints).toEqual({ partOfSpeech: 0, definition: 1 });
   });
 
   it('keeps hint fees when replacing a puzzle and upgrades saved letter hints', async () => {

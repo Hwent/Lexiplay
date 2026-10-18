@@ -7,7 +7,7 @@ import App from './App';
 describe('saved practice and account updates', () => {
   beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-  const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
+  const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { partOfSpeech: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
   it('keeps the chosen collection for replay, new setup, and reopening the app', async () => {
     const starts: Record<string, unknown>[] = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
@@ -109,12 +109,12 @@ describe('saved practice and account updates', () => {
     expect(starts[1]).toBe(starts[0]);
     expect(starts[0]).toMatch(/^[0-9a-f-]{36}$/);
   });
-  it('starts a hard game and shows a purchased synonym beside the remaining definition hint', async () => {
+  it('starts a hard game and shows a purchased part-of-speech hint beside the remaining definition hint', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (url.endsWith('/word-lists')) return new Response('[]');
-      if (url.endsWith('/hints')) return Response.json({ type: 'synonym', text: 'lovely', cost: 1, hints: { synonym: 0, definition: 1 } });
+      if (url.endsWith('/hints')) return Response.json({ type: 'partOfSpeech', text: 'adjective', cost: 1, hints: { partOfSpeech: 0, definition: 1 } });
       if (init?.method === 'POST') return Response.json(emptyGame);
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -127,14 +127,14 @@ describe('saved practice and account updates', () => {
     expect(screen.getAllByRole('row')).toHaveLength(5);
     const start = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/games'))!;
     expect(JSON.parse(String(start[1]?.body))).toEqual({ kind: 'word-puzzle', wordLength: 9, difficulty: 'hard', playWithMyWords: false, startRequestId: expect.any(String) });
-    await user.click(screen.getByRole('button', { name: /synonym or category hint.*1 coin/i }));
-    expect(await screen.findByRole('button', { name: /synonym or category hint.*revealed/i })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: /part of speech hint.*1 coin/i }));
+    expect(await screen.findByRole('button', { name: /part of speech hint.*revealed/i })).toBeDisabled();
     expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeEnabled();
-    expect(screen.getByRole('complementary', { name: 'Synonym or category hint' })).toHaveTextContent('lovely');
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/games/saved-game/hints', expect.objectContaining({ body: JSON.stringify({ type: 'synonym' }) }));
+    expect(screen.getByRole('complementary', { name: 'Part of speech hint' })).toHaveTextContent('adjective');
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/games/saved-game/hints', expect.objectContaining({ body: JSON.stringify({ type: 'partOfSpeech' }) }));
     await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
     await user.click(screen.getByRole('button', { name: /^Games$/i }));
-    expect(screen.getByRole('button', { name: /synonym or category hint.*revealed/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /part of speech hint.*revealed/i })).toBeDisabled();
   });
   it('refreshes the coin badge after a purchase and leaves failed hints available', async () => {
     localStorage.setItem('lexiplay-last-game', 'saved-game');
@@ -146,17 +146,17 @@ describe('saved practice and account updates', () => {
       if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [] }]);
       if (path.endsWith('/games/saved-game')) return Response.json(emptyGame);
       if (path.endsWith('/hints')) {
-        if (JSON.parse(String(init?.body)).type === 'synonym') return Response.json({ message: 'Synonym lookup is unavailable. No coins were charged.' }, { status: 503 });
+        if (JSON.parse(String(init?.body)).type === 'partOfSpeech') return Response.json({ message: 'Part of speech lookup is unavailable. No coins were charged.' }, { status: 503 });
         balance--;
-        return Response.json({ type: 'definition', text: 'Pleasing to look at.', cost: 1, hints: { synonym: 1, definition: 0 } });
+        return Response.json({ type: 'definition', text: 'Pleasing to look at.', cost: 1, hints: { partOfSpeech: 1, definition: 0 } });
       }
       return Response.json([]);
     }));
     const user = userEvent.setup(); render(<App/>);
     expect(await screen.findByLabelText('Coin balance: 9')).toBeInTheDocument();
-    await user.click(await screen.findByRole('button', { name: /synonym or category hint.*1 coin/i }));
+    await user.click(await screen.findByRole('button', { name: /part of speech hint.*1 coin/i }));
     expect(await screen.findByText(/No coins were charged/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /synonym or category hint.*1 coin/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /part of speech hint.*1 coin/i })).toBeEnabled();
     expect(screen.getByLabelText('Coin balance: 9')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /definition hint.*1 coin/i }));
     expect(await screen.findByLabelText('Coin balance: 8')).toBeInTheDocument();
@@ -165,7 +165,7 @@ describe('saved practice and account updates', () => {
   });
   it('restores saved guesses, hint counts, and definitions after a remount', async () => {
     window.localStorage.setItem('lexiplay-last-game', 'saved-game');
-    const saved = { ...emptyGame, guesses: [{ guess: 'beautiful', feedback: Array(9).fill('ABSENT'), attemptsRemaining: 4, completed: false, definition: 'Pleasing to look at.' }], hints: { synonym: 1, definition: 0 }, clues: { definition: 'Having great beauty.' }, hintCoinsSpent: 1 };
+    const saved = { ...emptyGame, guesses: [{ guess: 'beautiful', feedback: Array(9).fill('ABSENT'), attemptsRemaining: 4, completed: false, definition: 'Pleasing to look at.' }], hints: { partOfSpeech: 1, definition: 0 }, clues: { definition: 'Having great beauty.' }, hintCoinsSpent: 1 };
     stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json(saved)));
     render(<App />);
     expect(await screen.findByRole('row', { name: 'beautiful' })).toBeInTheDocument();

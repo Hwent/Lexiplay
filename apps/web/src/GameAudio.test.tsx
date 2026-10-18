@@ -12,7 +12,7 @@ it('plays input and result cues once, including rewards, without replaying a res
   const play = vi.spyOn(gameAudio, 'play');
   let guesses = 0;
   let balance = 10;
-  const game = { id: 'sound-game', wordLength: 5, attemptLimit: 6, guesses: [], hints: { synonym: 1, definition: 1 }, revealedAbsent: [], revealedPresent: [] };
+  const game = { id: 'sound-game', wordLength: 5, attemptLimit: 6, guesses: [], hints: { partOfSpeech: 1, definition: 1 }, revealedAbsent: [], revealedPresent: [] };
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
     if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
@@ -24,7 +24,7 @@ it('plays input and result cues once, including rewards, without replaying a res
       balance = 15;
       return Response.json({ guess: 'plant', feedback: Array(5).fill('CORRECT'), completed: true, outcome: 'WON', answer: 'plant', rewardCoins: 5 });
     }
-    if (path.endsWith('/hints')) return Response.json({ type: 'definition', text: 'Something that grows.', hints: { synonym: 1, definition: 0 }, cost: 1 });
+    if (path.endsWith('/hints')) return Response.json({ type: 'definition', text: 'Something that grows.', hints: { partOfSpeech: 1, definition: 0 }, cost: 1 });
     if (path.endsWith('/games') || path.endsWith('/games/sound-game')) return Response.json(guesses === 3 ? { ...game, completed: true, status: 'won', answer: 'plant' } : game);
     return Response.json([]);
   }));
