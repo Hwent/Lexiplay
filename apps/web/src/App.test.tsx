@@ -1,5 +1,5 @@
 import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
-import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
@@ -23,6 +23,10 @@ describe('practice puzzle', () => {
 
     render(<App />);
     await user.click(screen.getByRole('button', { name: /^games$/i }));
+    const rules = screen.getByText('Wordle rules').closest('details')!;
+    expect(rules.open).toBe(false);
+    await user.click(within(rules).getByText('Wordle rules'));
+    expect(rules.open).toBe(true);
     await user.click(screen.getByRole('radio', { name: '4 letters' }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     const guessInput = await screen.findByRole('textbox', { name: /four-letter guess/i });
@@ -66,7 +70,7 @@ describe('practice puzzle', () => {
     await user.type(guessInput, 'plant');
     expect(await screen.findByText(/you found it/i)).toBeInTheDocument();
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toHaveAttribute('aria-hidden', 'true');
-    await user.click(screen.getByRole('button', { name: 'Home' }));
+    await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
     await user.click(screen.getByRole('button', { name: 'Games' }));
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-celebration')).toBeNull();
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' }).querySelector('.puzzle-won')).toBeNull();
@@ -101,12 +105,41 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toHaveAttribute('aria-busy', 'true');
     expect(screen.queryByText('Checking…')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'E' })).toBeDisabled();
+    expect(screen.getByRole('row', { name: 'Guess 1' })).toHaveAttribute('aria-busy', 'true');
     await user.keyboard('{Enter}{Enter}');
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/guesses'))).toHaveLength(1);
     await act(async () => resolveGuess(Response.json({ guess: 'crane', feedback: Array(5).fill('ABSENT'), attemptsRemaining: 5, completed: false })));
     expect(await screen.findByRole('row', { name: 'crane' })).toBeInTheDocument();
     expect(input).toHaveValue('');
+    expect(input).toHaveFocus();
+    await user.keyboard('pl');
+    expect(input).toHaveValue('pl');
+    expect(screen.getByRole('row', { name: 'Guess 2' })).not.toHaveAttribute('aria-busy');
     expect(screen.queryByText('Find the word')).not.toBeInTheDocument();
+  });
+
+  it('resumes typing after navigation and leaves modified keyboard shortcuts alone', async () => {
+    stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      return Response.json({ id: 'game-focus', wordLength: 5, attemptLimit: 6, guesses: [] });
+    }));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Games' }));
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    const input = await screen.findByRole('textbox', { name: /five-letter guess/i });
+    expect(fireEvent.keyDown(input, { key: 'a', ctrlKey: true })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: 'k', metaKey: true })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: 'b', altKey: true })).toBe(true);
+    expect(fireEvent.keyDown(input, { key: 'a', isComposing: true })).toBe(true);
+    expect(input).toHaveValue('');
+    await user.keyboard('cr');
+    await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
+    await user.click(screen.getByRole('button', { name: 'Games' }));
+    const resumed = screen.getByRole('textbox', { name: /five-letter guess/i });
+    expect(resumed).toHaveFocus();
+    await user.keyboard('a');
+    expect(resumed).toHaveValue('cra');
   });
 
   it('keeps a network-failed guess for an explicit retry without resubmitting in a loop', async () => {
@@ -142,7 +175,7 @@ describe('practice puzzle', () => {
     const user = userEvent.setup();
     render(<App />);
     await user.click(screen.getByRole('button', { name: 'Games' }));
-    expect(screen.getByRole('heading', { name: 'Wordle rules' })).toBeInTheDocument();
+    await user.click(screen.getByText('Wordle rules'));
     expect(screen.getByText(/hidden 5-letter word in 6 guesses/i)).toBeInTheDocument();
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
     await user.click(screen.getByRole('radio', { name: /Hard/ }));
@@ -170,7 +203,7 @@ describe('practice puzzle', () => {
     act(() => window.dispatchEvent(new CustomEvent('lexiplay:account-change')));
     await act(async () => resolveGuess(Response.json({ guess: 'crane', feedback: Array(5).fill('ABSENT'), attemptsRemaining: 5, completed: false })));
     expect(screen.queryByRole('grid')).not.toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Wordle rules' })).toBeInTheDocument();
+    expect(screen.getByText('Wordle rules').closest('details')).not.toHaveAttribute('open');
     expect(screen.getByRole('button', { name: /start practice/i })).toBeEnabled();
   });
 
@@ -226,7 +259,7 @@ describe('practice puzzle', () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
-      if (path.includes('/word-lists/dictionary?q=')) return Response.json([{ term: 'apple', definition: 'A fruit', partOfSpeech: ['noun'] }]);
+      if (path.includes('/word-lists/dictionary?q=')) return Response.json([{ term: path.includes('q=pear') ? 'pear' : 'apple', definition: 'A fruit', partOfSpeech: ['noun'] }]);
       if (path.endsWith('/word-lists')) return Response.json([{ id: 'list-1', name: 'Classroom', words: [
         { id: 'word-1', term: 'apple', definition: 'A fruit', status: 'UNFAMILIAR' },
         { id: 'word-2', term: 'chair', definition: 'A seat', status: 'UNFAMILIAR' },
@@ -240,23 +273,71 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('navigation', { name: /main navigation/i })).toBeInTheDocument();
     const navigation = screen.getByRole('navigation', { name: /main navigation/i });
     expect(within(navigation).queryByRole('button', { name: /word sets/i })).toBeNull();
-    expect(within(navigation).getByRole('button', { name: /^word list$/i })).toBeInTheDocument();
-    await user.type(screen.getByRole('searchbox', { name: /search your words/i }), 'apple');
+    expect(within(navigation).getAllByRole('button').map(button => button.getAttribute('aria-label'))).toEqual(['Games', 'Words', 'Dictionary', 'Stats', 'Settings']);
+    await user.type(screen.getByRole('searchbox', { name: /quick dictionary search/i }), 'apple');
     await user.keyboard('{Enter}');
+    expect(await screen.findByRole('link', { name: 'Sign in' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/dictionary');
+    expect(await screen.findByRole('searchbox', { name: 'Search the dictionary' })).toHaveValue('apple');
     expect(await screen.findByText('apple')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Pronounce apple' })).toBeInTheDocument();
+    const quickSearch = screen.getByRole('searchbox', { name: /quick dictionary search/i });
+    await user.clear(quickSearch);
+    await user.type(quickSearch, 'pear');
+    await user.click(screen.getByRole('button', { name: 'Search dictionary' }));
+    expect(await screen.findByText('pear')).toBeInTheDocument();
+    expect(screen.getByRole('searchbox', { name: 'Search the dictionary' })).toHaveValue('pear');
+    expect(screen.queryByText('apple')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Words' }));
     expect(window.location.pathname).toBe('/library');
-    expect(screen.queryByText('chair')).toBeNull();
+    expect(await screen.findByRole('tab', { name: 'Explore Vocabulary' })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.queryByRole('searchbox', { name: 'Search the dictionary' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /^games$/i }));
     expect(screen.getByRole('button', { name: /start practice/i })).toBeInTheDocument();
     expect(window.location.pathname).toBe('/games');
-    expect(screen.getByRole('searchbox', { name: /search your words/i })).toHaveValue('');
+    expect(screen.getByRole('searchbox', { name: /quick dictionary search/i })).toHaveValue('');
+  });
+
+  it('groups community under Stats and feedback and account under Settings', async () => {
+    stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/feedback') ? Response.json({ id: 'feedback-1' }) : new Response('{}', { status: 401 })));
+    const user = userEvent.setup();
+    render(<App />);
+    await user.click(screen.getByRole('button', { name: 'Stats' }));
+    expect(await screen.findByText('Sign in to see your saved learning progress.')).toBeInTheDocument();
+    const statsNavigation = screen.getByRole('navigation', { name: 'Stats sections' });
+    expect(within(statsNavigation).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
+    expect(within(statsNavigation).queryByRole('link', { name: 'Feedback' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    const settingsNavigation = screen.getByRole('navigation', { name: 'Settings sections' });
+    await user.click(within(settingsNavigation).getByRole('link', { name: 'Account' }));
+    expect(window.location.pathname).toBe('/account');
+    expect(await screen.findByRole('textbox', { name: 'Username or email' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    await user.click(within(settingsNavigation).getByRole('link', { name: 'Feedback' }));
+    expect(window.location.pathname).toBe('/feedback');
+    expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    await user.type(await screen.findByRole('textbox', { name: 'Your message' }), 'More word puzzles, please.');
+    await user.click(screen.getByRole('button', { name: 'Send feedback' }));
+    expect(await screen.findByText('Your feedback has been received.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Stats' }));
+    await user.click(within(screen.getByRole('navigation', { name: 'Stats sections' })).getByRole('link', { name: 'Community' }));
+    expect(window.location.pathname).toBe('/community');
+    expect(screen.getByRole('button', { name: 'Stats' })).toHaveClass('active');
+    await user.click(await screen.findByRole('button', { name: 'Explore vocabulary' }));
+    expect(window.location.pathname).toBe('/library');
+    expect(screen.getByRole('button', { name: 'Words' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.queryByRole('navigation', { name: 'Stats sections' })).not.toBeInTheDocument();
+    act(() => { history.pushState({}, '', '/feedback'); window.dispatchEvent(new PopStateEvent('popstate')); });
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    expect(await screen.findByRole('link', { name: 'Feedback' })).toHaveAttribute('aria-current', 'page');
   });
 
   it('clears search on page navigation and keeps attribution on the footer licenses page', async () => {
     stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => new Response(String(input).endsWith('/auth/me') ? '{}' : '[]')));
     const user = userEvent.setup();
     render(<App />);
-    const search = screen.getByRole('searchbox', { name: /search your words/i });
+    const search = screen.getByRole('searchbox', { name: /quick dictionary search/i });
     await user.type(search, 'because');
     await user.click(screen.getByRole('link', { name: 'Licenses' }));
     expect(search).toHaveValue('');

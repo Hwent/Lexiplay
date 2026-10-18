@@ -3,7 +3,7 @@ import { Pool, PoolClient } from 'pg';
 import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, score } from './game.types';
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
-type ActiveState = { guesses: string[]; hints: Game['hints']; revealedAbsent: string[]; revealedPresent: string[];
+type ActiveState = { guesses: string[]; hints: Partial<Game['hints']>; revealedAbsent: string[]; revealedPresent: string[];
   clues?: Game['clues']; hintCoinsSpent?: number;
   coinCost: number; winRewardCoins: number; startedAt: string };
 type GameRow = {
@@ -187,8 +187,9 @@ export class GameRepository implements OnModuleDestroy {
         answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
         wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit:rules.attemptLimit,guesses,completed,status:row.status,
         startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
-        hints: { synonym: completed ? 0 : state?.hints.synonym ?? 1, definition: completed ? 0 : state?.hints.definition ?? 1 },
-        clues: state?.clues ?? {}, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
+        hints: { partOfSpeech: completed ? 0 : state?.hints.partOfSpeech ?? 1, definition: completed ? 0 : state?.hints.definition ?? 1 },
+        clues: { ...(state?.clues?.partOfSpeech ? { partOfSpeech: state.clues.partOfSpeech } : {}),
+          ...(state?.clues?.definition ? { definition: state.clues.definition } : {}) }, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
         revealedAbsent:state?.revealedAbsent ?? [],revealedPresent:state?.revealedPresent ?? [],
         coinCost:state?.coinCost ?? (row.status === 'lost' ? -row.coin_change : 0),
         winRewardCoins:state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',

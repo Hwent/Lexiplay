@@ -1,3 +1,4 @@
+import { useTranslation } from './i18n';
 import { useEffect, useState } from 'react';
 import { ApiError } from './services/api-client';
 import usePendingWords from './usePendingWords';
@@ -6,6 +7,7 @@ import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './service
 export default function CollectionPicker({ value, wordLength, disabled, personalAvailable = false, onChange }: {
   value: string; wordLength: number; disabled: boolean; personalAvailable?: boolean; onChange: (id: string) => void;
 }) {
+  const t = useTranslation();
   const { store } = usePendingWords();
   const [loadedOptions, setLoadedOptions] = useState<GameOptions[]>([]);
   const options = (store.requests.peek<GameOptions[]>(GAME_OPTIONS_PATH) ?? loadedOptions)
@@ -34,14 +36,14 @@ export default function CollectionPicker({ value, wordLength, disabled, personal
   const selectedCollection = options?.collections.find(collection => collection.slug === value || collection.id === value);
   const count = ready ? value ? selectedCollection?.wordCount : options.totalWords : undefined;
   return <div className="game-collection-picker" aria-busy={!ready && !error}>
-    <label htmlFor="game-collection">Collection</label>
+    <label htmlFor="game-collection">{t('Collection')}</label>
     <select id="game-collection" value={value} disabled={disabled} onChange={event => onChange(event.target.value)}>
-      <option value="">{wordLength === 5 ? 'Classic Wordle' : 'Common vocabulary'}</option>
-      <option value="my-words" disabled={!personalAvailable}>My word list{personalAvailable ? '' : ' · Sign in'}</option>
-      {value && value !== 'my-words' && !selectedCollection && <option value={value}>Selected collection</option>}
-      {options?.collections.map(collection => <option value={collection.slug} key={collection.id} disabled={ready && collection.wordCount === 0}>{collection.name}{ready ? ` · ${collection.wordCount.toLocaleString()} words` : ''}</option>)}
+      <option value="">{wordLength === 5 ? t('Classic Wordle') : t('Common vocabulary')}</option>
+      <option value="my-words" disabled={!personalAvailable}>{t('My word list{0}', (personalAvailable ? '' : t(' · Sign in')))}</option>
+      {value && value !== 'my-words' && !selectedCollection && <option value={value}>{t('Selected collection')}</option>}
+      {options?.collections.map(collection => <option value={collection.slug} key={collection.id} disabled={ready && collection.wordCount === 0}>{collection.name}{ready ? t(' · {0} words', collection.wordCount.toLocaleString()) : ''}</option>)}
     </select>
-    {!disabled && <p className="game-collection-count" aria-label={count === undefined ? undefined : 'Playable words'} aria-hidden={count === undefined}>{count !== undefined && <><strong>{count.toLocaleString()}</strong> {count === 1 ? 'word' : 'words'}</>}</p>}
-    {error && <div className="collection-count-error"><p role="status">{error}</p><button type="button" className="quiet-button" disabled={disabled} onClick={() => setRetry(value => value + 1)}>Retry counts</button></div>}
+    {!disabled && <p className="game-collection-count" aria-label={count === undefined ? undefined : t('Playable words')} aria-hidden={count === undefined}>{count !== undefined && <><strong>{count.toLocaleString()}</strong> {count === 1 ? t('word') : t('words')}</>}</p>}
+    {error && <div className="collection-count-error"><p role="status">{t(error)}</p><button type="button" className="quiet-button" disabled={disabled} onClick={() => setRetry(value => value + 1)}>{t('Retry counts')}</button></div>}
   </div>;
 }

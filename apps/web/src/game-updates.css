@@ -129,8 +129,8 @@
 .guess-board { margin-inline: auto; gap: .35rem; container-type: inline-size; }
 .guess-row { gap: .35rem; }
 .letter-tile { border-radius: .4rem; font-size: clamp(1.15rem, 6cqi, 2.25rem); }
-.letter-tile.correct { color: white; }
-.letter-tile.present, .keyboard-key.present { color: #171717; }
+.letter-tile.correct { color: var(--correct-text); }
+.letter-tile.present, .keyboard-key.present { color: var(--present-text); }
 .letter-tile.absent { color: var(--absent-text); }
 .game-consumables { margin: .75rem 0 0; }
 .game-consumables .friendly-hint { min-height: 3.5rem; padding: .75rem; }
@@ -138,7 +138,21 @@
 .game-consumables .friendly-hint small { font-size: .85rem; }
 .hint-count { font-size: .9rem; }
 .game-keyboard { margin-top: 0; }
-.keyboard-key { height: 3.5rem; border-radius: .5rem; font-size: 1.2rem; }
+.keyboard-key { height: 3.5rem; border-radius: .5rem; font-size: 1.2rem; -webkit-tap-highlight-color: transparent; user-select: none; }
+.keyboard-key:active:not(:disabled) { transform: translateY(2px) scale(.96); filter: brightness(1.2); }
+@media (prefers-reduced-motion: no-preference) {
+  .keyboard-key { transition: transform 90ms ease-out, background-color 160ms ease-out, filter 90ms ease-out; }
+  .letter-tile.filled { animation: puzzle-letter-pop 110ms ease-out; }
+  .checking-guess .letter-tile { animation: puzzle-check-pulse 800ms ease-in-out 150ms infinite alternate; }
+  .revealing-guess .letter-tile { animation: puzzle-tile-reveal 120ms ease-out; }
+  .puzzle, .next-game { animation: puzzle-arrive 180ms ease-out; }
+  @keyframes puzzle-letter-pop { 50% { transform: scale(1.08); } }
+  @keyframes puzzle-check-pulse { to { opacity: .55; } }
+  @keyframes puzzle-tile-reveal {
+    50% { transform: scale(1.04); }
+  }
+  @keyframes puzzle-arrive { from { opacity: 0; transform: translateY(5px); } to { opacity: 1; transform: translateY(0); } }
+}
 .special-key { font-size: .95rem; }
 .delete-key { font-size: 1.5rem; }
 .guess-definition, .answer-definition { padding: 1rem; }
@@ -259,7 +273,7 @@
 .cefr-pool-picker select { width: 100%; padding: .75rem; border-radius: .75rem; margin-bottom: .5rem; font: inherit; }
 .vocabulary-library-tabs, .collection-category-tabs { display:flex; gap:.6rem; flex-wrap:wrap; margin-bottom:1.5rem; }
 .vocabulary-library-tabs button, .collection-category-tabs button { padding:.65rem 1rem; border:1px solid var(--line); border-radius:999px; background:var(--control-bg); color:var(--text); font:inherit; cursor:pointer; }
-.vocabulary-library-tabs button[aria-selected=true], .collection-category-tabs button[aria-selected=true] { border-color:var(--correct); background:var(--correct); color:white; }
+.vocabulary-library-tabs button[aria-selected=true], .collection-category-tabs button[aria-selected=true] { border-color:var(--line); background:var(--accent-soft); color:var(--accent); }
 .vocabulary-collection-grid { display:grid; grid-template-columns:repeat(auto-fit,minmax(220px,1fr)); gap:1rem; }
 .vocabulary-collection-card { border:1px solid var(--line); border-radius:1rem; padding:1.4rem; display:flex; flex-direction:column; align-items:flex-start; gap:.7rem; }
 .vocabulary-collection-card h3, .vocabulary-collection-card p { margin:0; }
@@ -288,12 +302,12 @@
 /* Collection browsing keeps status badges in a fixed heading row. */
 .collection-intro { color:var(--muted); margin:0 0 1rem; }
 .collection-card-heading { display:flex; align-items:center; justify-content:space-between; gap:.5rem; width:100%; min-height:2rem; }
-.collection-saved-badge { min-width:3rem; color:var(--correct); font-size:.8rem; text-align:right; }
+.collection-saved-badge { min-width:3rem; color:var(--success-text); font-size:.8rem; text-align:right; }
 .vocabulary-collection-card>p { min-height:3em; line-height:1.5; }
 .collection-detail-heading h2 { margin:.6rem 0 .3rem; }
 .collection-detail-heading p { margin:.3rem 0 .8rem; color:var(--muted); }
 .collection-selection-summary { display:flex; align-items:center; justify-content:space-between; gap:1rem; flex-wrap:wrap; color:var(--muted); font-size:.9rem; }
-.collection-added-badge { display:inline-block; border-radius:999px; padding:.2rem .5rem; font-size:.75rem; color:var(--correct); border:1px solid var(--line); }
+.collection-added-badge { display:inline-block; border-radius:999px; padding:.2rem .5rem; font-size:.75rem; color:var(--success-text); border:1px solid var(--line); }
 .collection-word-rows input:disabled { cursor:default; }
 .personal-word-lists>.collection-word-rows:first-child { margin-top:0; }
 
@@ -301,7 +315,7 @@
 .collection-bulk-actions button:disabled, .collection-modal button:disabled { opacity:.55; cursor:default; }
 .collection-card-heading { min-height:2.5rem; }
 .collection-modal h2 { margin:0 0 .75rem; }
-.collection-modal button:focus-visible, .collection-bulk-actions button:focus-visible { outline:2px solid var(--correct); outline-offset:3px; }
+.collection-modal button:focus-visible, .collection-bulk-actions button:focus-visible { outline:2px solid var(--focus); outline-offset:3px; }
 @media(max-width:600px) { .collection-selection-summary { gap:0; } .collection-selection-summary>span { margin-bottom:.8rem; } .collection-bulk-actions button { width:100%; } .collection-modal button { min-height:44px; } }
 
 @media(max-width:600px) {

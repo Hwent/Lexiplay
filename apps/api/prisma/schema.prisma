@@ -25,6 +25,7 @@ model AccountUser {
   collections UserVocabularyCollection[]
   games PracticeGame[] @relation("GameOwner")
   paidGames PracticeGame[] @relation("GamePayer")
+  messages Message[]
   @@map("account_users")
 }
 
@@ -61,8 +62,23 @@ model GuestSession {
   transfers ProgressTransfer[]
   games PracticeGame[] @relation("GuestGameOwner")
   paidGames PracticeGame[] @relation("GuestGamePayer")
+  messages Message[]
   @@index([claimedByUserId])
   @@map("guest_sessions")
+}
+
+model Message {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  userId String? @db.Uuid @map("user_id")
+  user AccountUser? @relation(fields:[userId], references:[id], onDelete:Cascade)
+  guestSessionId String? @db.Uuid @map("guest_session_id")
+  guest GuestSession? @relation(fields:[guestSessionId], references:[id], onDelete:Cascade)
+  content String @db.VarChar(2000)
+  createdAt DateTime @default(now()) @db.Timestamptz @map("created_at")
+  @@index([userId])
+  @@index([guestSessionId])
+  @@index([createdAt])
+  @@map("message")
 }
 
 model ProgressTransfer {

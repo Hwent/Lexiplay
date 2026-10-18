@@ -22,8 +22,8 @@ it('opens and unsaves collection cards without removing saved words', async () =
   await user.click(within(collections).getByRole('button', { name: 'Open CEFR A2' }));
   expect(onOpenCollection).toHaveBeenCalledWith('cefr-a2');
   await user.click(within(collections).getByRole('button', { name: 'Unsave CEFR A2' }));
-  expect(await screen.findByText('Collection removed. Your words and progress are kept.')).toBeInTheDocument();
-  expect(screen.queryByRole('region', { name: 'My collections' })).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'My collections' })).not.toBeInTheDocument());
+  expect(screen.queryByText(/Collection removed/)).not.toBeInTheDocument();
   expect(await screen.findByText('To examine carefully.')).toBeInTheDocument();
 });
 it('shows dictionary content without definition editing', async () => {
@@ -32,6 +32,14 @@ it('shows dictionary content without definition editing', async () => {
   await screen.findByText('To examine carefully.');
   expect(screen.queryByRole('button', { name: 'Edit definition' })).not.toBeInTheDocument();
   expect(screen.queryByText(/Next review:/)).not.toBeInTheDocument();
+});
+it('gives an empty word list a clear next step without table or pagination controls', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => Response.json(String(input).endsWith('/mine') ? [list] : { ...page, total: 0, words: [] })));
+  render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0}/>);
+  expect(await screen.findByRole('heading', { name: 'Your word list is ready for a fresh start.' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Find words' })).toHaveAttribute('href', '/dictionary');
+  expect(screen.queryByRole('table')).not.toBeInTheDocument();
+  expect(screen.queryByRole('navigation', { name: /Personal list pages/ })).not.toBeInTheDocument();
 });
 it('hides previous entries while a new page loads and applies the header search', async () => {
   let finish!: (value: Response) => void;
@@ -68,5 +76,6 @@ it('hides entries during a review write and never sends custom definition fields
   const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
   expect(JSON.parse(String(patch[1]?.body))).toMatchObject({ familiarity: 5, nextReviewAt: expect.any(String) });
   finish(Response.json({ success: true }));
-  await screen.findByText('Your review was saved.');
+  await screen.findByText('To examine carefully.');
+  expect(screen.queryByText('Your review was saved.')).not.toBeInTheDocument();
 });

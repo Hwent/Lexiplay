@@ -28,7 +28,8 @@ describe('game HTTP endpoints and rules', () => {
       return result;
     });
     vi.spyOn(WordListRepository.prototype, 'getDictionaryDefinition').mockImplementation(async term => `Definition of ${term}.`);
-    vi.spyOn(WordListsService.prototype, 'dictionarySynonym').mockResolvedValue('fruit');
+    vi.spyOn(WordListRepository.prototype, 'isDictionaryGameWord').mockResolvedValue(false);
+    vi.spyOn(WordListsService.prototype, 'dictionaryPartOfSpeech').mockResolvedValue('noun');
   });
   afterEach(async () => { await app?.close(); app = undefined; vi.restoreAllMocks(); });
   async function startApp() {
@@ -44,6 +45,7 @@ describe('game HTTP endpoints and rules', () => {
   });
   it('accepts every length from 3–9 through the production validation pipeline and protects saved games', async () => {
     const words = ['cat', 'book', 'apple', 'orange', 'because', 'elephant', 'beautiful'];
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => words.includes(term));
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockImplementation(async length => words.filter(word => word.length === length));
     const url = await startApp();
     for (const word of words) {
@@ -82,6 +84,7 @@ describe('game HTTP endpoints and rules', () => {
     expect(['apple', 'lucid', 'scope']).toContain(stored.get(unrestricted.id)!.answer);
   });
   it('narrows default answers by length while accepting wider dictionary guesses and custom sources', async () => {
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => ['apple', 'xylyl', 'cat', 'qat'].includes(term));
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'xylyl']);
     await startApp(); const games = app!.get(GameService);
     const classic = await games.start(5, undefined, 'medium', 'test');
@@ -96,7 +99,8 @@ describe('game HTTP endpoints and rules', () => {
     dictionary.mockResolvedValue(['xylyl']);
     await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('No 5-letter answers');
   });
-  it('keeps the dictionary pool stable and checks the selected length without consuming invalid guesses', async () => {
+  it('checks individual words without reloading the dictionary pool or consuming invalid guesses', async () => {
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => ['apple', 'paper'].includes(term));
     const dictionary = vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
     await startApp(); const games = app!.get(GameService);
     const game = await games.start(5, ['apple'], 'medium', 'test');
@@ -105,6 +109,7 @@ describe('game HTTP endpoints and rules', () => {
     dictionary.mockResolvedValue(['apple', 'paper']);
     expect((await games.submit(game.id, 'paper', 'test')).attemptsRemaining).toBe(5);
     expect(await games.submit(game.id, ' APPLE ', 'test')).toMatchObject({ answer: 'apple', outcome: 'WON' });
+    expect(dictionary).toHaveBeenCalledOnce();
     expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(2);
     await expect(games.start(5, ['zzzzz'], 'medium', 'test')).rejects.toThrow('in the game dictionary');
     dictionary.mockResolvedValue(['apple']);
@@ -116,18 +121,54 @@ describe('game HTTP endpoints and rules', () => {
     await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('Load the dictionary');
   });
   it.each([['easy', 7], ['medium', 6], ['hard', 5]] as const)('enforces %s guesses and offers one of each hint', async (difficulty, attempts) => {
+    vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => ['apple', 'paper'].includes(term));
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
     await startApp(); const games = app!.get(GameService);
     const game = await games.start(5, ['apple'], difficulty, 'test');
-    expect(game.hints).toEqual({ synonym: 1, definition: 1 });
-    expect(await games.hint(game.id, 'synonym', 'test')).toMatchObject({ text: 'fruit', cost: 1 });
+    expect(game.hints).toEqual({ partOfSpeech: 1, definition: 1 });
+    expect(await games.hint(game.id, 'partOfSpeech', 'test')).toMatchObject({ text: 'noun', cost: 1 });
     expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({ text: 'Definition of _____.', cost: 1 });
-    expect(await games.hint(game.id, 'synonym', 'test')).toMatchObject({ text: 'fruit', cost: 0 });
+    expect(await games.hint(game.id, 'partOfSpeech', 'test')).toMatchObject({ text: 'noun', cost: 0 });
     expect(stored.get(game.id)!.hintCoinsSpent).toBe(2);
     for (let i = 1; i <= attempts; i++) expect(await games.submit(game.id, 'paper', 'test')).toMatchObject({ attemptsRemaining: attempts - i, completed: i === attempts, definition: 'Definition of paper.', ...(i === attempts ? { outcome: 'LOST', answer: 'apple', answerDefinition: 'Definition of apple.' } : {}) });
     expect(WordListRepository.prototype.getDictionaryDefinition).toHaveBeenCalledTimes(attempts + 2);
     await expect(games.hint(game.id, 'definition', 'test')).rejects.toThrow('already complete');
     await expect(games.submit(game.id, 'apple', 'test')).rejects.toThrow('already complete');
+  });
+  it('validates the new hint type through HTTP and restores the purchased word class', async () => {
+    vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple']);
+    const url = await startApp();
+    const response = await fetch(`${url}/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wordLength: 5 }) });
+    const game = await response.json();
+    const headers = { 'content-type': 'application/json', cookie: response.headers.get('set-cookie')!.split(';')[0]! };
+    const hint = await fetch(`${url}/games/${game.id}/hints`, { method: 'POST', headers, body: JSON.stringify({ type: 'partOfSpeech' }) });
+    expect(hint.status).toBe(201);
+    expect(await hint.json()).toMatchObject({ type: 'partOfSpeech', text: 'noun', cost: 1 });
+    expect((await fetch(`${url}/games/${game.id}/hints`, { method: 'POST', headers, body: JSON.stringify({ type: 'synonym' }) })).status).toBe(400);
+    expect(await (await fetch(`${url}/games/${game.id}`, { headers })).json()).toMatchObject({ clues: { partOfSpeech: 'noun' }, hintCoinsSpent: 1 });
+  });
+
+  it('does not consume a hint when the dictionary has no word class', async () => {
+    vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple']);
+    vi.mocked(WordListsService.prototype.dictionaryPartOfSpeech).mockResolvedValueOnce(undefined);
+    await startApp(); const games = app!.get(GameService);
+    const game = await games.start(5, ['apple'], 'medium', 'test');
+    await expect(games.hint(game.id, 'partOfSpeech', 'test')).rejects.toThrow('No part of speech is available');
+    expect(await games.read(game.id, 'test')).toMatchObject({ hints: { partOfSpeech: 1 }, clues: {}, hintCoinsSpent: 0 });
+  });
+
+  it('masks the answer in definition hints, including capitals and longer words', async () => {
+    vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple']);
+    vi.mocked(WordListRepository.prototype.getDictionaryDefinition).mockResolvedValue('An APPLE, apples, or pineapple; apple-shaped fruit.');
+    await startApp();
+    const games = app!.get(GameService);
+    const game = await games.start(5, ['apple'], 'medium', 'test');
+    expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({
+      text: 'An _____, _____s, or pine_____; _____-shaped fruit.', cost: 1,
+    });
+    expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({
+      text: 'An _____, _____s, or pine_____; _____-shaped fruit.', cost: 0,
+    });
   });
   it('scores duplicate letters without overcounting', () => {
     expect(score('apple', 'paper')).toEqual(['PRESENT', 'PRESENT', 'CORRECT', 'PRESENT', 'ABSENT']);

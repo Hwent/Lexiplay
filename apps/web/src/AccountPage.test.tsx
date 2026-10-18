@@ -29,7 +29,7 @@ describe('dedicated account page', () => {
     await user.click(within(page).getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByText('Signed in as learner')).toBeInTheDocument();
     expect(screen.getByText('Email not verified · optional')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Home' }));
+    await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
     expect(screen.getByRole('link', { name: 'Account' })).toHaveTextContent('learnerSigned in');
     expect(screen.queryByRole('button', { name: 'Sign out' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Send verification link' })).not.toBeInTheDocument();

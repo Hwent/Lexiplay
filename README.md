@@ -27,7 +27,11 @@ For a fresh local database, publish a reviewed dictionary using `pnpm library:pu
 
 Dictionary publication preserves referenced entries and updates the library revision so clients refresh cached vocabulary. License notices are shipped under `apps/web/public/licenses/`.
 
-Each puzzle offers a synonym-or-category hint and a definition hint for 1 coin each. Synonyms and category fallbacks use the [Datamuse API](https://www.datamuse.com/api/); definitions use the local dictionary. Failed or unavailable hints cost nothing. Purchased hints stay visible while the puzzle is active, and their fees are not refunded when leaving a puzzle.
+Each puzzle offers a part-of-speech hint (for example, `noun · verb`) and a definition hint for 1 coin each. Both use the local dictionary. Failed or unavailable hints cost nothing. Purchased hints stay visible while the puzzle is active, and their fees are not refunded when leaving a puzzle.
+
+Settings provides compact controls for appearance, three text sizes, interface language and sound. The interface follows the browser's English or Chinese preference by default; learners can choose English or Simplified Chinese manually. These preferences stay on the device. Learning words, parts of speech and dictionary definitions stay in English.
+
+The Feedback page accepts messages from accounts and guests without requiring a game first. `POST /api/v1/feedback` accepts `{ "content": "Your feedback" }` (1–2,000 characters). The server identifies the sender from cookies and stores the message in `message` with exactly one account or guest-session reference and a creation timestamp. Messages are not publicly readable. Deleting a sender’s account or guest session also deletes its messages.
 
 Game pools use lowercase alphabetic entries and exclude entries tagged as proper nouns or names. The collection picker counts distinct playable words at the selected length using the same rules.
 
@@ -60,6 +64,6 @@ pnpm typecheck
 pnpm build
 ```
 
-Persistence tests need a separate disposable `lexiplay_test_*` database; GitHub CI supplies one. Production serves the built React app and API from one origin using `pnpm build` and `pnpm start` with Render's server settings. Push reviewed feature branches, merge code into `main`, and deploy deliberately. Git does not copy database data.
+Persistence tests need a separate disposable `lexiplay_test_*` database; GitHub CI supplies one. Production serves the built React app and API from one origin using `pnpm build` and `pnpm start` with Render's server settings. `pnpm start` applies pending Prisma migrations before launching the API and stops if a migration fails. Keep Render's start command set to `pnpm start`; building generates the Prisma client but does not migrate the database. Push reviewed feature branches, merge code into `main`, and deploy deliberately. Git does not copy database data.
 
 The repository remote is `https://github.com/Hwent/Lexiplay.git`. Configuration files, mail previews, and local database backups remain private and outside Git.

@@ -28,7 +28,7 @@ export class GameService {
       id: randomUUID(), startRequestId, kind: 'word-puzzle', owner, ...(selectedPool ? { pool: selectedPool } : {}), answer: answers[randomInt(answers.length)]!,
       wordLength, difficulty, attemptLimit: rules.attemptLimit, guesses: [], completed: false,
       startedAt: new Date().toISOString(), completedAt: null,
-      hints: { synonym: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [],
+      hints: { partOfSpeech: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [],
       status: 'active', coinCost: WORDLE_COST, winRewardCoins: rules.reward, coinPayer: owner.startsWith('user:') ? 'account' : 'guest',
     };
     return publicGame(await this.games.create(game));
@@ -39,12 +39,12 @@ export class GameService {
   async hint(id: string, type: HintType, owner: string) {
     const current = await this.games.read(id, owner);
     this.requireActive(current);
-    // Resolve online clues before taking wallet and game locks.
-    const text = current.clues[type] ?? (type === 'synonym'
-      ? await this.dictionary.dictionarySynonym(current.answer)
+    // Resolve dictionary clues before taking wallet and game locks.
+    const text = current.clues[type] ?? (type === 'partOfSpeech'
+      ? await this.dictionary.dictionaryPartOfSpeech(current.answer)
       : current.answerDefinition || await this.dictionary.dictionaryDefinition(current.answer));
-    if (!text) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: `No ${type} is available for this word. No coins were charged.` });
-    const clue = text.replace(new RegExp(`\\b${current.answer}\\b`, 'gi'), '_____');
+    if (!text) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: `No ${type === 'partOfSpeech' ? 'part of speech' : 'definition'} is available for this word. No coins were charged.` });
+    const clue = type === 'definition' ? text.replace(new RegExp(current.answer, 'gi'), '_____') : text;
     return this.games.change(id, owner, game => {
       this.requireActive(game);
       const purchased = !!game.clues[type];
@@ -61,7 +61,7 @@ export class GameService {
     return this.games.change(id, owner, async game => {
       this.requireActive(game);
       const guess = rawGuess.trim().toLowerCase();
-      if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !(await this.dictionary.dictionaryGameWords(game.wordLength)).includes(guess)) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
+      if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !(await this.dictionary.isDictionaryGameWord(guess))) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
       const attemptsRemaining = game.attemptLimit - game.guesses.length - 1;
       const won = guess === game.answer;
       const completed = won || attemptsRemaining === 0;

@@ -3,7 +3,7 @@ export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameStatus = 'active' | 'won' | 'lost' | 'cancelled';
 export const WORDLE_COST = 1;
 export const HINT_COST = 1;
-export type HintType = 'synonym' | 'definition';
+export type HintType = 'partOfSpeech' | 'definition';
 export const DIFFICULTIES = {
   easy: { attemptLimit: 7, reward: 4 },
   medium: { attemptLimit: 6, reward: 5 },

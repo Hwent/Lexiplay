@@ -45,7 +45,7 @@ it('limits revision checks during navigation and checks again after the throttle
   const user = userEvent.setup();
   render(<App />);
   await waitFor(() => expect(localStorage.getItem('lexiplay-library-revision')).toBe('first'));
-  for (const name of ['Games', 'Home', 'Games', 'Home']) await user.click(screen.getByRole('button', { name }));
+  for (const name of ['Games', 'Home', 'Games', 'Home']) await user.click(name === 'Home' ? screen.getByRole('link', { name: 'LexiPlay home' }) : screen.getByRole('button', { name }));
   expect(revisions).toHaveBeenCalledOnce();
   vi.spyOn(Date, 'now').mockReturnValue(Date.now() + 60_001);
   await user.click(screen.getByRole('button', { name: 'Games' }));

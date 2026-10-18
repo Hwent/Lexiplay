@@ -12,6 +12,13 @@ afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 function renderTools(store: PendingWords, query = '') {
   return render(<PendingWordsContext.Provider value={store}><DictionaryTools listId="my-list" searchQuery={query}/></PendingWordsContext.Provider>);
 }
+it('starts a real dictionary lookup from the empty-state example', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ terms: [] })));
+  const user = userEvent.setup(); renderTools(new PendingWords('user'));
+  await user.click(screen.getByRole('button', { name: 'Try “curious”' }));
+  expect(screen.getByRole('searchbox', { name: 'Search the dictionary' })).toHaveValue('curious');
+  await waitFor(() => expect(searchDictionary).toHaveBeenCalledWith('curious'));
+});
 it('debounces rapid typing and cancels a queued search when switching to imports', async () => {
   vi.useFakeTimers();
   vi.stubGlobal('fetch', vi.fn(async () => Response.json({ terms: [] })));
@@ -65,7 +72,8 @@ it('stages word imports and reports missing dictionary matches only when committ
   await user.click(screen.getByRole('button', { name: 'Import words' }));
   await user.type(screen.getByLabelText('Words to import'), 'cover\ncover\nzzunknown');
   await user.click(screen.getByRole('button', { name: 'Select dictionary matches' }));
-  expect(screen.getByText(/2 new words selected/)).toBeInTheDocument();
+  expect(screen.queryByText(/new words selected|saved when you leave/)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Cancel additions' })).toBeEnabled();
   expect(store.getSnapshot().pending.size).toBe(2);
   await act(() => store.flush()); expect(store.getSnapshot().notice).toContain('zzunknown');
   expect(fetchMock).toHaveBeenCalledWith('/api/v1/word-lists/my-list/dictionary-entries', expect.objectContaining({ body: JSON.stringify({ terms: ['cover', 'zzunknown'] }) }));

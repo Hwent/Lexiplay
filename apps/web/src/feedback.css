@@ -1,0 +1,18 @@
+.feedback-card { max-width: 38rem; padding: clamp(1.25rem, 3vw, 2rem); border: 0; border-radius: 1rem; background: var(--surface); }
+.feedback-form-heading { display: flex; flex-wrap: wrap; align-items: baseline; justify-content: space-between; gap: .75rem; margin-bottom: 1.75rem; }
+.feedback-form-heading h3 { margin: 0; font-size: 1.4rem; letter-spacing: -.03em; }
+.feedback-form-heading > span { color: var(--muted); font-size: .9rem; }
+.feedback-card label { display: block; margin-bottom: .75rem; font-weight: 600; }
+.feedback-card textarea { display: block; width: 100%; resize: vertical; min-height: 10rem; padding: 1rem; border: 1px solid var(--control-border); border-radius: .75rem; background: var(--control-bg); color: var(--text); font: inherit; line-height: 1.7; }
+.feedback-card textarea:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; }
+.feedback-form-footer { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: 1rem; }
+.feedback-form-footer > span { color: var(--muted); font-size: .9rem; font-variant-numeric: tabular-nums; }
+.feedback-form-footer button:disabled { opacity: .5; cursor: default; }
+.feedback-success { padding: 1rem 0; }
+.feedback-success h3 { margin: 1.25rem 0 .75rem; font-size: 1.7rem; letter-spacing: -.04em; }
+.feedback-success p { color: var(--muted); line-height: 1.7; }
+.feedback-success .quiet-button { margin-top: .75rem; }
+.feedback-error { padding: 1rem; border-inline-start: 3px solid var(--danger-text); border-radius: .5rem; background: var(--danger-soft); color: var(--danger-text); line-height: 1.6; }
+@media (max-width: 420px) { .feedback-form-footer { flex-wrap: wrap; } .feedback-form-footer button { width: 100%; } }
+
+.feedback-page { width: min(100%, 42rem); margin-bottom: 2rem; }
