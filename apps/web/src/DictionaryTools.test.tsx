@@ -72,7 +72,8 @@ it('stages word imports and reports missing dictionary matches only when committ
   await user.click(screen.getByRole('button', { name: 'Import words' }));
   await user.type(screen.getByLabelText('Words to import'), 'cover\ncover\nzzunknown');
   await user.click(screen.getByRole('button', { name: 'Select dictionary matches' }));
-  expect(screen.getByText(/2 new words selected/)).toBeInTheDocument();
+  expect(screen.queryByText(/new words selected|saved when you leave/)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Cancel additions' })).toBeEnabled();
   expect(store.getSnapshot().pending.size).toBe(2);
   await act(() => store.flush()); expect(store.getSnapshot().notice).toContain('zzunknown');
   expect(fetchMock).toHaveBeenCalledWith('/api/v1/word-lists/my-list/dictionary-entries', expect.objectContaining({ body: JSON.stringify({ terms: ['cover', 'zzunknown'] }) }));

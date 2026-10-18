@@ -468,8 +468,10 @@ export default function App() {
     { key: 'dictionary', icon: 'dictionary' },
     { key: 'progress', icon: 'progress' }, { key: 'settings', icon: 'settings' },
   ];
-  const statsSections = [{ key: 'progress', label: 'Overview' }, { key: 'community', label: 'Community' }, { key: 'feedback', label: 'Feedback' }] as const;
-  const activeNavigationSection = activeSection === 'community' || activeSection === 'feedback' ? 'progress' : activeSection;
+  const statsSections = [{ key: 'progress', label: 'Overview' }, { key: 'community', label: 'Community' }] as const;
+  const settingsSections = [{ key: 'settings', label: 'Preferences' }, { key: 'account', label: 'Account' }, { key: 'feedback', label: 'Feedback' }] as const;
+  const activeNavigationSection = activeSection === 'community' ? 'progress' : activeSection === 'feedback' || activeSection === 'account' ? 'settings' : activeSection;
+  const sectionNavigation = activeNavigationSection === 'progress' ? statsSections : activeNavigationSection === 'settings' ? settingsSections : null;
 
   return (
     <PendingWordsContext.Provider value={wordStore}><main className="app-shell">
@@ -495,11 +497,10 @@ export default function App() {
           </button>
         </div>
       </header>
-      {wordSelection.pending.size > 0 && <div className="word-selection-banner" role="status" aria-busy={wordSelection.saving}><span>{`${wordSelection.pending.size} word${wordSelection.pending.size === 1 ? '' : 's'} selected. Saved when you leave this page.`}</span><button type="button" disabled={wordSelection.saving} onClick={() => wordStore.cancelAll()}>Cancel additions</button></div>}
       {wordSelection.error && <p className="word-selection-error" role="alert">{wordSelection.error}</p>}
-      {wordSelection.notice && <p className="word-selection-notice" role="status">{wordSelection.notice}</p>}
-      {activeNavigationSection === 'progress' && <nav className="stats-navigation" aria-label="Stats sections">
-        {statsSections.map(item => <a key={item.key} href={sectionPaths[item.key]} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{item.label}</a>)}
+      {wordSelection.notice && <p className="word-selection-error" role="alert">{wordSelection.notice}</p>}
+      {sectionNavigation && <nav className="section-navigation" aria-label={activeNavigationSection === 'progress' ? 'Stats sections' : 'Settings sections'}>
+        {sectionNavigation.map(item => <a key={item.key} href={sectionPaths[item.key]} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{item.label}</a>)}
       </nav>}
 
       {activeSection === 'play' && <>

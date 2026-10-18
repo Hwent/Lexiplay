@@ -69,8 +69,9 @@
   --accent-soft: var(--sage-950);
   --control-bg: var(--neutral-950);
   --control-border: var(--neutral-500);
-  --tile-border: var(--neutral-700);
-  --filled-border: var(--neutral-400);
+  --tile-background: var(--neutral-700);
+  --tile-border: var(--neutral-400);
+  --filled-border: var(--neutral-200);
   --key: var(--neutral-800);
   --key-text: var(--neutral-50);
   --key-absent: var(--neutral-950);
@@ -79,8 +80,8 @@
   --absent-text: var(--neutral-300);
   --correct: var(--success-800);
   --correct-text: var(--success-100);
-  --present: var(--warning-800);
-  --present-text: var(--warning-100);
+  --present: var(--warning-300);
+  --present-text: var(--neutral-950);
   --success-soft: var(--success-950);
   --success-text: var(--success-200);
   --warning-soft: var(--warning-950);
@@ -108,8 +109,9 @@
   --accent-soft: var(--sage-100);
   --control-bg: var(--neutral-0);
   --control-border: var(--neutral-500);
-  --tile-border: var(--neutral-300);
-  --filled-border: var(--neutral-600);
+  --tile-background: var(--neutral-200);
+  --tile-border: var(--neutral-500);
+  --filled-border: var(--neutral-700);
   --key: var(--neutral-200);
   --key-text: var(--neutral-900);
   --key-absent: var(--neutral-700);
@@ -118,8 +120,8 @@
   --absent-text: var(--neutral-700);
   --correct: var(--success-100);
   --correct-text: var(--success-800);
-  --present: var(--warning-100);
-  --present-text: var(--warning-900);
+  --present: var(--warning-300);
+  --present-text: var(--neutral-950);
   --success-soft: var(--success-100);
   --success-text: var(--success-800);
   --warning-soft: var(--warning-100);

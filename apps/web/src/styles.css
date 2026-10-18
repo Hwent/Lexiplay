@@ -108,7 +108,7 @@ button:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-
 .attempt-counter { padding: .45rem .65rem; border: 1px solid var(--counter-border); border-radius: 4px; color: var(--counter-text); font-size: .75rem; white-space: nowrap; }
 .guess-board { width: 100%; max-width: 100%; display: flex; flex-direction: column; gap: .45rem; }
 .guess-row { width: 100%; }
-.letter-tile { width: 100%; min-width: 0; height: auto; border-width: 2px; font-size: clamp(1.25rem, 5vw, 2rem); }
+.letter-tile { width: 100%; min-width: 0; height: auto; border-width: 2px; background: var(--tile-background); font-size: clamp(1.25rem, 5vw, 2rem); }
 .letter-tile.filled { border-color: var(--filled-border); animation: pop-in .08s ease-out; }
 .letter-tile.correct { border-color: var(--correct); background: var(--correct); color: var(--correct-text); }
 .letter-tile.present { border-color: var(--present); background: var(--present); color: var(--present-text); }

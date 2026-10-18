@@ -44,7 +44,9 @@ it('waits for the exit batch before navigation, then shows the committed Saved s
   const add = await screen.findByRole('button', { name: 'Add cover to word list' }); await waitFor(() => expect(add).toBeEnabled());
   await user.click(add); expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary-entries'))).toBe(false);
   await user.click(screen.getByRole('link', { name: 'LexiPlay home' })); await waitFor(() => expect(finish).toBeDefined());
-  expect(window.location.pathname).toBe('/games'); expect(screen.getByText(/1 word selected/).closest('[role="status"]')).toHaveAttribute('aria-busy', 'true');
+  expect(window.location.pathname).toBe('/games');
+  expect(screen.queryByText(/word selected|Saved when you leave/)).not.toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Cancel addition of cover' })).toBeDisabled();
   await act(async () => { finish(Response.json({ added: 1, skipped: 0, missing: [] })); });
   await waitFor(() => expect(window.location.pathname).toBe('/'));
   await user.click(screen.getByRole('button', { name: 'Games' }));

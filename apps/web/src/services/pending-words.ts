@@ -105,7 +105,7 @@ export class PendingWords {
           saved.add(word.term);
         }
         localStorage.setItem(LOCAL_WORDS, JSON.stringify([list]));
-        this.words.clear(); this.persist(); this.publish({ saved, notice: 'Selected words saved on this device.' });
+        this.words.clear(); this.persist(); this.publish({ saved });
         return;
       }
       let listId = [...this.words.values()].find(word => word.listId)?.listId;

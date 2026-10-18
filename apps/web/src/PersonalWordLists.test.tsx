@@ -22,8 +22,8 @@ it('opens and unsaves collection cards without removing saved words', async () =
   await user.click(within(collections).getByRole('button', { name: 'Open CEFR A2' }));
   expect(onOpenCollection).toHaveBeenCalledWith('cefr-a2');
   await user.click(within(collections).getByRole('button', { name: 'Unsave CEFR A2' }));
-  expect(await screen.findByText('Collection removed. Your words and progress are kept.')).toBeInTheDocument();
-  expect(screen.queryByRole('region', { name: 'My collections' })).not.toBeInTheDocument();
+  await waitFor(() => expect(screen.queryByRole('region', { name: 'My collections' })).not.toBeInTheDocument());
+  expect(screen.queryByText(/Collection removed/)).not.toBeInTheDocument();
   expect(await screen.findByText('To examine carefully.')).toBeInTheDocument();
 });
 it('shows dictionary content without definition editing', async () => {
@@ -76,5 +76,6 @@ it('hides entries during a review write and never sends custom definition fields
   const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
   expect(JSON.parse(String(patch[1]?.body))).toMatchObject({ familiarity: 5, nextReviewAt: expect.any(String) });
   finish(Response.json({ success: true }));
-  await screen.findByText('Your review was saved.');
+  await screen.findByText('To examine carefully.');
+  expect(screen.queryByText('Your review was saved.')).not.toBeInTheDocument();
 });

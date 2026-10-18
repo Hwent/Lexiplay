@@ -129,8 +129,8 @@
 .guess-board { margin-inline: auto; gap: .35rem; container-type: inline-size; }
 .guess-row { gap: .35rem; }
 .letter-tile { border-radius: .4rem; font-size: clamp(1.15rem, 6cqi, 2.25rem); }
-.letter-tile.correct { color: white; }
-.letter-tile.present, .keyboard-key.present { color: #171717; }
+.letter-tile.correct { color: var(--correct-text); }
+.letter-tile.present, .keyboard-key.present { color: var(--present-text); }
 .letter-tile.absent { color: var(--absent-text); }
 .game-consumables { margin: .75rem 0 0; }
 .game-consumables .friendly-hint { min-height: 3.5rem; padding: .75rem; }

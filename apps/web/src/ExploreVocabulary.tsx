@@ -39,7 +39,6 @@ export default function ExploreVocabulary({
     collection: VocabularyCollection;
     ids: string[] | undefined;
   } | null>(null);
-  const [localStatus, setLocalStatus] = useState('');
   const [snapshot, setSnapshot] = useState<CollectionPage | null>(null);
   const [savedIds, setSavedIds] = useState<Set<string>>(new Set());
   const [saved, setSaved] = useState<Set<string>>(new Set());
@@ -94,9 +93,6 @@ export default function ExploreVocabulary({
       .then((value) => {
         if (!active) return;
         setSnapshot(value.data);
-        setLocalStatus(
-          value.stored ? 'Saved on this device' : 'Available for this visit',
-        );
       })
       .catch((requestError) => {
         if (active) {
@@ -194,7 +190,6 @@ export default function ExploreVocabulary({
     setSlug(value);
     setData(null);
     setSnapshot(null);
-    setLocalStatus('');
     setSelected(new Set());
     setPage(1);
 
@@ -408,7 +403,6 @@ export default function ExploreVocabulary({
               </div>
 
               <div className="collection-local-actions">
-                <span role="status">{localStatus}</span>
 
                 {snapshot && (
                   <button
@@ -422,9 +416,6 @@ export default function ExploreVocabulary({
                         .load(current, true)
                         .then((value) => {
                           setSnapshot(value.data);
-                          setLocalStatus(
-                            value.stored ? 'Saved on this device' : 'Available for this visit',
-                          );
                         })
                         .catch((requestError) => setError(requestError.message))
                         .finally(() => setLoading(false));
@@ -469,7 +460,6 @@ export default function ExploreVocabulary({
                     >
                       Select this page
                     </SelectionControl>
-                    <span role="status">{selected.size} selected across pages</span>
                   </div>
 
                   {data.families ? (

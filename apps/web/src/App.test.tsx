@@ -291,7 +291,7 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('searchbox', { name: /search your words/i })).toHaveValue('');
   });
 
-  it('groups community and working feedback under Stats while preserving direct links', async () => {
+  it('groups community under Stats and feedback and account under Settings', async () => {
     stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/feedback') ? Response.json({ id: 'feedback-1' }) : new Response('{}', { status: 401 })));
     const user = userEvent.setup();
     render(<App />);
@@ -299,14 +299,22 @@ describe('practice puzzle', () => {
     expect(await screen.findByText('Sign in to see your saved learning progress.')).toBeInTheDocument();
     const statsNavigation = screen.getByRole('navigation', { name: 'Stats sections' });
     expect(within(statsNavigation).getByRole('link', { name: 'Overview' })).toHaveAttribute('aria-current', 'page');
-    await user.click(within(statsNavigation).getByRole('link', { name: 'Feedback' }));
+    expect(within(statsNavigation).queryByRole('link', { name: 'Feedback' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    const settingsNavigation = screen.getByRole('navigation', { name: 'Settings sections' });
+    await user.click(within(settingsNavigation).getByRole('link', { name: 'Account' }));
+    expect(window.location.pathname).toBe('/account');
+    expect(await screen.findByRole('textbox', { name: 'Username or email' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
+    await user.click(within(settingsNavigation).getByRole('link', { name: 'Feedback' }));
     expect(window.location.pathname).toBe('/feedback');
-    expect(screen.getByRole('heading', { name: 'Stats', level: 1 })).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Stats' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('heading', { name: 'Settings', level: 1 })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
     await user.type(await screen.findByRole('textbox', { name: 'Your message' }), 'More word puzzles, please.');
     await user.click(screen.getByRole('button', { name: 'Send feedback' }));
     expect(await screen.findByText('Your feedback has been received.')).toBeInTheDocument();
-    await user.click(within(statsNavigation).getByRole('link', { name: 'Community' }));
+    await user.click(screen.getByRole('button', { name: 'Stats' }));
+    await user.click(within(screen.getByRole('navigation', { name: 'Stats sections' })).getByRole('link', { name: 'Community' }));
     expect(window.location.pathname).toBe('/community');
     expect(screen.getByRole('button', { name: 'Stats' })).toHaveClass('active');
     await user.click(await screen.findByRole('button', { name: 'Explore vocabulary' }));
@@ -314,7 +322,7 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('button', { name: 'Words' })).toHaveAttribute('aria-current', 'page');
     expect(screen.queryByRole('navigation', { name: 'Stats sections' })).not.toBeInTheDocument();
     act(() => { history.pushState({}, '', '/feedback'); window.dispatchEvent(new PopStateEvent('popstate')); });
-    expect(screen.getByRole('button', { name: 'Stats' })).toHaveAttribute('aria-current', 'page');
+    expect(screen.getByRole('button', { name: 'Settings' })).toHaveAttribute('aria-current', 'page');
     expect(await screen.findByRole('link', { name: 'Feedback' })).toHaveAttribute('aria-current', 'page');
   });
 

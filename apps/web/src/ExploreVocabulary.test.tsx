@@ -26,7 +26,7 @@ it('selects family members independently, keeps selections across family pages a
   await user.click(await screen.findByRole('checkbox',{name:'Select act family members'}));
   expect(screen.getByRole('checkbox',{name:'Select action (noun)'})).toBeChecked();
   expect(screen.getByRole('checkbox',{name:'Select actor (noun)'})).toBeChecked();
-  expect(screen.getByText('2 selected across pages')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Add to My Word List (2)'})).toBeEnabled();
   await user.click(screen.getByText('Related members at other levels (1)'));
   expect(screen.queryByText('verb · A2')).not.toBeInTheDocument();
   await user.click(screen.getByRole('checkbox',{name:'Select actor (noun)'}));
@@ -34,7 +34,7 @@ it('selects family members independently, keeps selections across family pages a
   await user.click(screen.getAllByRole('button',{name:'Next'})[0]!);
   expect(screen.queryByRole('checkbox',{name:'Select action (noun)'})).not.toBeInTheDocument();
   await user.click(await screen.findByRole('checkbox',{name:'Select able family members'}));
-  expect(screen.getByText('2 selected across pages')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Add to My Word List (2)'})).toBeEnabled();
   expect(fetchMock.mock.calls.filter(([input])=>String(input).endsWith('/snapshot'))).toHaveLength(1);
 });
 it('browses, selects a word, previews duplicate skipping and imports only the selected identity',async()=>{
@@ -55,7 +55,7 @@ it('browses, selects a word, previews duplicate skipping and imports only the se
   expect(screen.getByRole('button',{name:'Cancel'})).toBeEnabled();
   expect(fetchMock.mock.calls.some(([input])=>String(input).endsWith('/import-collection'))).toBe(false);
   await user.click(screen.getByRole('button',{name:'Add to My Word List'}));
-  expect(await screen.findByText('1 word added.')).toBeInTheDocument();
+  await screen.findByRole('button',{name:'Open My Word List'});expect(screen.queryByText('1 word added.')).not.toBeInTheDocument();
   expect(screen.getByRole('button',{name:'Done'})).toBeEnabled();
   expect(fetchMock).toHaveBeenCalledWith('/api/v1/word-lists/my-list/import-collection',expect.objectContaining({body:JSON.stringify({collectionId:'cefr-a2',selectedWordIds:['word-cover'],duplicatePolicy:'skip'})}));
   await user.click(screen.getByRole('button',{name:'Open My Word List'}));expect(onImported).toHaveBeenCalledWith('my-list');
@@ -89,7 +89,7 @@ it('keeps pagination visible, selections across pages and saved-word status with
   expect(screen.queryByRole('checkbox',{name:'Select cover (verb)'})).not.toBeInTheDocument();
   await screen.findByRole('checkbox',{name:'Select next (verb)'});
   await user.click(screen.getByRole('checkbox',{name:'Select next (verb)'}));
-  expect(screen.getByText('2 selected across pages')).toBeInTheDocument();
+  expect(screen.getByRole('button',{name:'Add to My Word List (2)'})).toBeEnabled();
   expect(screen.getAllByText('Page 2 of 36 · 898 words')).toHaveLength(2);
 });
 
@@ -99,5 +99,5 @@ it('lets users cancel the preview without writing and explains when all words ar
   await user.click(await screen.findByRole('button',{name:'Explore CEFR A2'}));await user.click(await screen.findByRole('checkbox',{name:'Select cover (verb)'}));await user.click(screen.getByRole('button',{name:'Add to My Word List (1)'}));
   await screen.findByText('All selected words are already in your list.');expect(screen.getByRole('button',{name:'Add to My Word List'})).toBeDisabled();
   await user.click(screen.getByRole('button',{name:'Cancel'}));expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
-  expect(screen.getByText('1 selected across pages')).toBeInTheDocument();expect(fetchMock.mock.calls.some(([url])=>String(url).endsWith('/import-collection'))).toBe(false);
+  expect(screen.getByRole('button',{name:'Add to My Word List (1)'})).toBeEnabled();expect(fetchMock.mock.calls.some(([url])=>String(url).endsWith('/import-collection'))).toBe(false);
 });

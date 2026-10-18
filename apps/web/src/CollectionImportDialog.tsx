@@ -24,10 +24,10 @@ export default function CollectionImportDialog({collection,selectedIds,signedIn,
   }}>
     <h2 id="collection-import-title">Add to My Word List</h2><p>{collection.name} · {selectedIds===undefined?'All words':`${selectedIds.length} selected`}</p>
     {!signedIn?<><p>Sign in to add these words.</p><button type="button" onClick={onSignIn}>Sign in</button></>:result?<>
-      <p role="status">{result.added===1?'1 word added.':`${result.added} words added.`}{result.skipped>0?` ${result.skipped} already in your list and left unchanged.`:''}{result.failed>0?` ${result.failed} could not be added.`:''}</p>
+      {result.failed>0&&<p role="alert">{result.failed} could not be added.</p>}
       <button type="button" className="account-action" onClick={()=>onImported(target)}>Open My Word List</button>
     </>:<>
-      {preview&&<><p role="status">{preview.added===0?'All selected words are already in your list.':`${preview.added} new ${preview.added===1?'word will':'words will'} be added.`}{preview.skipped>0&&preview.added>0?` ${preview.skipped} already in your list will be skipped.`:''}</p><p className="collection-stage-note">Your saved definitions and review progress will stay unchanged.</p><button type="button" className="account-action" disabled={busy||!preview.added} onClick={()=>void confirm()}>Add to My Word List</button></>}
+      {preview&&<><p role="status">{preview.added===0?'All selected words are already in your list.':`${preview.added} new ${preview.added===1?'word will':'words will'} be added.`}{preview.skipped>0&&preview.added>0?` ${preview.skipped} already in your list will be skipped.`:''}</p><button type="button" className="account-action" disabled={busy||!preview.added} onClick={()=>void confirm()}>Add to My Word List</button></>}
     </>}
     {error&&<p role="alert">{error} <button type="button" disabled={busy} onClick={()=>setRetry(value=>value+1)}>Try again</button></p>}
     <button type="button" disabled={busy} onClick={onClose}>{result?'Done':'Cancel'}</button>
