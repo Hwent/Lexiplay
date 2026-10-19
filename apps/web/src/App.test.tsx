@@ -99,6 +99,8 @@ describe('practice puzzle', () => {
     await user.click(screen.getByRole('button', { name: 'Games' }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     const input = await screen.findByRole('textbox', { name: /five-letter guess/i });
+    expect(input).toHaveAttribute('inputmode', 'none');
+    expect(input).toHaveAttribute('readonly');
     for (const letter of ['C', 'R', 'A', 'N']) await user.click(screen.getByRole('button', { name: letter }));
     expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/guesses'))).toHaveLength(0);
     await user.click(screen.getByRole('button', { name: 'E' }));

@@ -589,7 +589,7 @@ export default function App() {
             </div>}
             {!finished && <>
               <label className="sr-only" htmlFor="guess-input">{t('Type your {0} guess one letter at a time', t(lengthName(game.wordLength)))}</label>
-              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly={busy || progressSaving} onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="text" />
+              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
             </>}
             </div>
             {hintPanel('definition')}
