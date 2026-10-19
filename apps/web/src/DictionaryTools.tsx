@@ -62,7 +62,7 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
     {!signedIn && <p className="dictionary-tool-hint"><a href="/account">{t('Sign in')}</a>{t(' to save or import words.')}</p>}
     {mode === 'search' ? <>
       <label className="dictionary-search-label" htmlFor="library-dictionary-search">{t('Search the dictionary')}</label><input id="library-dictionary-search" type="search" value={query} maxLength={100} placeholder={t('Try a word, like curious')} onChange={event => { setQuery(event.target.value); }}/>
-      {normalized.length < 2 && <EmptyState icon="dictionary" title={t('A word worth discovering.')} action={<button className="primary-button" type="button" onClick={() => setQuery('curious')}>{t('Try “curious” ')}<Icon name="arrow"/></button>}><p>{t('Enter at least two characters to discover words.')}</p></EmptyState>}
+      {normalized.length < 2 && <EmptyState icon="dictionary" title={t('A word worth discovering.')} action={<button className="primary-button" type="button" onClick={() => setQuery('curious')}>{t('Try “curious” ')}<Icon name="arrow"/></button>}></EmptyState>}
       {searching && <p role="status">{t('Searching the dictionary…')}</p>}
       {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <EmptyState icon="search" title={t('No dictionary matches.')} action={<button className="primary-button" type="button" onClick={() => setQuery('curious')}>{t('Try “curious” ')}<Icon name="arrow"/></button>}><p>{t('Try another spelling or discover a word to get started.')}</p></EmptyState>}
       {!searching && searched === normalized && <ul className="dictionary-tool-results">{results.map(entry => {

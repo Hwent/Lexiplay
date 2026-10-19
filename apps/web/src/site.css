@@ -371,9 +371,9 @@
 .page-loading { min-height: 12rem; }
 
 /* Compact utility areas; rem sizing follows the learner's text preference. */
-:root[data-font-size='small'] { font-size: 87.5%; }
-:root[data-font-size='medium'] { font-size: 100%; }
-:root[data-font-size='large'] { font-size: 112.5%; }
+:root[data-font-size='small'] { font-size: 92.5%; }
+:root[data-font-size='medium'] { font-size: 105%; }
+:root[data-font-size='large'] { font-size: 117.5%; }
 .workspace .topbar { min-height: 4.25rem; gap: .75rem; padding-block: .6rem; }
 .header-actions { gap: .5rem; min-width: 0; }
 .header-search, .account-status-link { min-height: 2.5rem; }
