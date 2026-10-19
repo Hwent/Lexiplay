@@ -29,7 +29,7 @@ it('debounces rapid typing and cancels a queued search when switching to imports
   renderTools(new PendingWords('user'));
   const input = screen.getByRole('searchbox', { name: 'Search the dictionary' });
   for (const value of ['co', 'cov', 'cove', 'cover']) fireEvent.change(input, { target: { value } });
-  await act(() => vi.advanceTimersByTimeAsync(299));
+  await act(() => vi.advanceTimersByTimeAsync(149));
   expect(search).not.toHaveBeenCalled();
   await act(() => vi.advanceTimersByTimeAsync(1));
   expect(search).toHaveBeenCalledExactlyOnceWith('cover');
@@ -37,6 +37,17 @@ it('debounces rapid typing and cancels a queued search when switching to imports
   fireEvent.click(screen.getByRole('button', { name: 'Import words' }));
   await act(() => vi.advanceTimersByTimeAsync(300));
   expect(search).toHaveBeenCalledOnce();
+});
+it('submits a typed search immediately when Enter is pressed', async () => {
+  vi.useFakeTimers();
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ terms: [] })));
+  const search = vi.mocked(searchDictionary); search.mockClear();
+  renderTools(new PendingWords('user'));
+  const input = screen.getByRole('searchbox', { name: 'Search the dictionary' });
+  fireEvent.change(input, { target: { value: 'apple' } });
+  fireEvent.keyDown(input, { key: 'Enter' });
+  await act(() => vi.advanceTimersByTimeAsync(0));
+  expect(search).toHaveBeenCalledExactlyOnceWith('apple');
 });
 it('parses word files, deduplicates terms and leaves supplied definitions out', () => {
   expect(importTerms('word,definition\nCover,Personal note\ncover,Other note\n"analyse",My text', 'csv')).toEqual(['Cover', 'cover', 'analyse']);

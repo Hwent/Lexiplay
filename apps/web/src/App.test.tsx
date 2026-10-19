@@ -210,13 +210,15 @@ describe('practice puzzle', () => {
   });
 
   it('creates an account through the account page', async () => {
-    const fetchMock = vi.fn()
-      .mockResolvedValueOnce(new Response('{}', { status: 401 }))
-      .mockResolvedValueOnce(new Response(JSON.stringify({
-        user: { id: 'user-1', email: 'learner@example.test' },
-      }), { status: 201 }))
-      .mockResolvedValueOnce(Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }))
-      .mockResolvedValueOnce(new Response(null, { status: 204 }));
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/auth/register')) return Response.json({ user: { id: 'user-1', email: 'learner@example.test' } }, { status: 201 });
+      if (path.endsWith('/auth/logout')) return new Response(null, { status: 204 });
+      if (path.endsWith('/progress/claim')) return Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null });
+      if (path.endsWith('/word-lists/saved-terms')) return Response.json({ terms: [] });
+      return Response.json([]);
+    });
     stubFetchWithVocabularyRanges( fetchMock);
     const user = userEvent.setup();
 

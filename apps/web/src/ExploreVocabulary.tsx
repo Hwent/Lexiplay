@@ -25,7 +25,7 @@ export default function ExploreVocabulary({
 }: ExploreVocabularyProps) {
   const t = useTranslation();
   const { store } = usePendingWords(signedIn ? 'library' : '');
-  const [catalog, setCatalog] = useState<VocabularyCollection[]>([]);
+  const [catalog, setCatalog] = useState<VocabularyCollection[]>(() => store.requests.peek<VocabularyCollection[]>('/collections') ?? []);
   const [slug, setSlug] = useState(
     () => new URLSearchParams(location.search).get('collection') ?? '',
   );
@@ -34,7 +34,7 @@ export default function ExploreVocabulary({
   const [selected, setSelected] = useState<Set<string>>(new Set());
   const [saving, setSaving] = useState(false);
   const [loading, setLoading] = useState(false);
-  const [catalogLoading, setCatalogLoading] = useState(true);
+  const [catalogLoading, setCatalogLoading] = useState(() => !store.requests.peek('/collections'));
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const [importing, setImporting] = useState<{
@@ -50,6 +50,8 @@ export default function ExploreVocabulary({
 
   useEffect(() => {
     let active = true;
+    const cached = store.requests.peek<VocabularyCollection[]>('/collections');
+    if (cached) { setCatalog(cached); setCatalogLoading(false); return; }
     setCatalogLoading(true);
     setError('');
 

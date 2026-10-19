@@ -58,13 +58,11 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
     const path = `/word-lists/${list.id}/entries?${params}`;
     const cached = store.requests.peek<PersonalPage>(path);
     if (cached) { setData(cached); setLoadedKey(requestKey); setLoading(false); return; }
-    const timer = setTimeout(() => {
-      store.requests.get<PersonalPage>(path).then(value => {
-        if (active) { setData(value); setLoadedKey(requestKey); }
-      }).catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not load your entries.'); })
-        .finally(() => { if (active) setLoading(false); });
-    }, 150);
-    return () => { active = false; clearTimeout(timer); };
+    store.requests.get<PersonalPage>(path).then(value => {
+      if (active) { setData(value); setLoadedKey(requestKey); }
+    }).catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not load your entries.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
   }, [signedIn, list, requestKey, store]);
 
   async function review(word: PersonalWord, again = false) {
