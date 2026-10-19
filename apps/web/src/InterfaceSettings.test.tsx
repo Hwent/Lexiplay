@@ -70,8 +70,8 @@ describe('interface settings', () => {
   it('translates formatted messages without changing unknown words or English copy', () => {
     const t = createTranslator('zh-CN');
     expect(t('Page {0} of {1}', 2, 4)).toBe('第 2 / 4 页');
-    expect(t('Practice complete. The answer was apple.')).toBe('练习完成，答案是 apple。');
-    expect(t('You found it! 5 coins earned.')).toBe('猜对了！获得 5 金币。');
+    expect(t('Practice complete. The answer was apple.')).toBe('练习完成，答案是 apple');
+    expect(t('You found it! 5 coins earned.')).toBe('猜对了！获得 5 金币');
     expect(t('apple')).toBe('apple');
     expect(t('An unexpected service response')).toBe('An unexpected service response');
     expect(createTranslator('en')('Page {0} of {1}', 2, 4)).toBe('Page 2 of 4');

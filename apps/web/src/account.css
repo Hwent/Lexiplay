@@ -1,18 +1,8 @@
-.account-page { --account-danger: var(--danger-text); --account-danger-fill: var(--danger-700); width: min(100%, 66rem); margin: .5rem auto 2rem; }
+.account-page { --account-danger: var(--danger-text); --account-danger-fill: var(--danger-700); width: min(100%, 38rem); margin: .5rem auto 2rem; }
 .account-intro { margin: .5rem 0 1.5rem; }
 .account-intro .eyebrow { color: var(--accent); font-size: .875rem; letter-spacing: .16em; }
 .account-intro h2 { margin: .6rem 0; font-family: inherit; font-weight: 650; font-size: clamp(1.8rem, 3vw, 2.55rem); line-height: 1.15; letter-spacing: -.045em; }
 .account-intro > p:last-child { margin: 0; color: var(--muted); font-size: .9rem; line-height: 1.65; }
-.account-layout { display: grid; grid-template-columns: minmax(0, .85fr) minmax(0, 1.15fr); gap: 1.25rem; align-items: stretch; }
-.account-story { position: relative; overflow: hidden; padding: clamp(1.5rem, 3vw, 2.2rem); border: 1px solid var(--line); border-radius: 1.2rem; background: radial-gradient(ellipse at 0% 0%, color-mix(in srgb, var(--accent) 15%, transparent), transparent 70%), var(--surface-soft); }
-.account-story-mark { width: 2.7rem; height: 2.7rem; display: grid; place-items: center; border-radius: .8rem; color: var(--surface); background: var(--accent); font-size: 1.6rem; font-weight: 750; margin-bottom: 2.5rem; }
-.account-story .eyebrow { color: var(--accent); font-size: .875rem; letter-spacing: .14em; line-height: 1.7; }
-.account-story h3 { position: relative; z-index: 1; margin: .75rem 0; font: 600 clamp(1.7rem, 3vw, 2.5rem)/1.12 Georgia, serif; letter-spacing: -.035em; }
-.account-story > p:not(.eyebrow) { color: var(--muted); font-size: .875rem; line-height: 1.7; max-width: 17rem; }
-.account-story ul { position: relative; z-index: 1; display: grid; gap: 1rem; list-style: none; padding: 0; margin: 2rem 0 1rem; }
-.account-story li { display: flex; gap: .7rem; align-items: flex-start; color: var(--soft-text); font-size: .875rem; line-height: 1.6; }
-.account-story li > span { color: var(--accent); }
-.account-story-flower { position: absolute; right: -1.8rem; bottom: -3.2rem; font-size: 15rem; line-height: 1; color: var(--accent); opacity: .07; transform: rotate(-12deg); }
 .account-page-card { min-width: 0; padding: clamp(1.2rem, 3vw, 2rem); border: 1px solid var(--line); background: var(--surface); border-radius: 1.2rem; box-shadow: 0 10px 35px color-mix(in srgb, var(--text) 4%, transparent); }
 .account-page .account-tabs { padding: .3rem; background: var(--surface-soft); border-radius: .8rem; margin: 0 0 1.35rem; gap: .25rem; }
 .account-page .account-tabs button { min-height: 2.6rem; border: 1px solid transparent; border-radius: .6rem; font-size: .875rem; }
@@ -72,6 +62,5 @@
 .recovery-confirmation > span { display: grid; place-items: center; margin: 0 auto 1rem; width: 3rem; height: 3rem; border-radius: .9rem; background: var(--accent-soft); color: var(--accent); font-size: 1.5rem; }
 .recovery-confirmation h3 { font-size: 1.25rem; margin: 0 0 .6rem; }
 .recovery-confirmation p { color: var(--muted); font-size: .875rem; line-height: 1.7; }
-@media (max-width: 1000px) { .account-layout { grid-template-columns: minmax(0, .75fr) minmax(0, 1.25fr); } .account-story { padding: 1.5rem; } .account-story li { font-size: .875rem; } }
-@media (max-width: 760px) { .account-page { max-width: 34rem; } .account-layout { grid-template-columns: 1fr; } .account-story { display: none; } .account-intro { margin-bottom: 1.2rem; } }
+@media (max-width: 760px) { .account-intro { margin-bottom: 1.2rem; } }
 @media (prefers-reduced-motion: reduce) { .account-page * { scroll-behavior: auto; } }

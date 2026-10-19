@@ -8,6 +8,30 @@ describe('saved practice and account updates', () => {
   beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { partOfSpeech: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
+  it.each([
+    { signedIn: false, status: 'won', reminder: true },
+    { signedIn: false, status: 'lost', reminder: true },
+    { signedIn: false, status: 'active', reminder: false },
+    { signedIn: false, status: 'cancelled', reminder: false },
+    { signedIn: true, status: 'won', reminder: false },
+  ])('shows a save reminder for signedIn=$signedIn, status=$status', async ({ signedIn, status, reminder }) => {
+    localStorage.setItem('lexiplay-last-game', emptyGame.id);
+    stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return signedIn ? Response.json({ id: 'learner', username: 'learner' }) : new Response('{}', { status: 401 });
+      if (path.endsWith(`/games/${emptyGame.id}`)) return Response.json({ ...emptyGame, status, completed: status !== 'active' });
+      return Response.json([]);
+    }));
+    const user = userEvent.setup(); render(<App />);
+    await screen.findByText('hard · 9 letters');
+    const signIn = screen.queryByRole('link', { name: 'Sign in to save your game history.' });
+    if (reminder) {
+      expect(signIn).toHaveAttribute('href', '/account');
+      await user.click(signIn!);
+      expect(await screen.findByLabelText('Username or email')).toBeInTheDocument();
+      expect(location.pathname).toBe('/account');
+    } else expect(signIn).not.toBeInTheDocument();
+  });
   it('keeps the chosen collection for replay, new setup, and reopening the app', async () => {
     const starts: Record<string, unknown>[] = [];
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
