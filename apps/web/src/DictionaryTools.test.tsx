@@ -14,7 +14,9 @@ function renderTools(store: PendingWords, query = '') {
 }
 it('starts a real dictionary lookup from the empty-state example', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => Response.json({ terms: [] })));
-  const user = userEvent.setup(); renderTools(new PendingWords('user'));
+  const user = userEvent.setup(); const { container } = renderTools(new PendingWords('user'));
+  expect(screen.getByRole('heading', { name: 'A word worth discovering.' })).toBeInTheDocument();
+  expect(container.querySelector('.empty-state-copy')).not.toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: 'Try “curious”' }));
   expect(screen.getByRole('searchbox', { name: 'Search the dictionary' })).toHaveValue('curious');
   await waitFor(() => expect(searchDictionary).toHaveBeenCalledWith('curious'));
