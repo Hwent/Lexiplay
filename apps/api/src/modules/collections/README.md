@@ -19,3 +19,9 @@ use the full practice dictionary. This pool is independent of subsequent NYT edi
 
 `library_state` contains one cache token. Dictionary maintenance reports differences before applying them;
 referenced removals require further action. See [maintenance](../../../../../scripts/DATABASE-REDEPLOY.md).
+
+Public catalogs, collection snapshots and playable-word pools are cached per library revision; concurrent
+reads share the same load, and a published revision invalidates them. Personal membership and review state
+are read separately. Catalog counts are aggregated in PostgreSQL without loading definitions. Game word
+lookups use the partial length index from `202610190000_game_word_lookup`; case-insensitive dictionary
+imports match the existing `lower(term COLLATE "default")` search index.

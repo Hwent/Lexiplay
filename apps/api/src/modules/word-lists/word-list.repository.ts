@@ -1,5 +1,6 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
+import { LibraryCache } from './library-cache';
 
 export type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 export type WordEntry = { id: string; term: string; definition: string; partOfSpeech: string | null; status: WordStatus };
@@ -15,6 +16,7 @@ const sensesSql = `SELECT jsonb_agg(jsonb_build_object('id',e.id,'partOfSpeech',
 @Injectable()
 export class WordListRepository implements OnModuleDestroy {
   private readonly pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
+  private readonly cache = new LibraryCache();
 
   async searchDictionary(query: string, limit = 10): Promise<DictionaryEntry[]> {
     const { rows } = await this.pool.query<{ id: string; term: string; senses: DictionarySense[] }>(
@@ -45,12 +47,19 @@ export class WordListRepository implements OnModuleDestroy {
   }
 
   async dictionaryGameWords(length: number, maxLength = length): Promise<string[]> {
-    const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT e.term FROM dictionary_entries e
+    const { rows: [library] } = await this.pool.query<{ version: string }>('SELECT version FROM library_state WHERE id=1');
+    return this.cache.get(`words:${length}:${maxLength}`, library!.version, async () => {
+      const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT e.term FROM dictionary_entries e
       WHERE char_length(e.term) BETWEEN $1 AND $2 AND e.term ~ '^[a-z]+$'
       AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
       ORDER BY term`, [length, maxLength]);
-    return rows.map(row => row.term);
+      const words = rows.map(row => row.term);
+      if (length !== maxLength) for (let size = length; size <= maxLength; size++) {
+        this.cache.prime(`words:${size}:${size}`, library!.version, words.filter(term => term.length === size));
+      }
+      return words;
+    });
   }
 
   async isDictionaryGameWord(term: string): Promise<boolean> {
