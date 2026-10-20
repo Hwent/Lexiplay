@@ -3,6 +3,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { defaultAnswerWords } from '../word-lists/default-answers';
 import { GameRepository } from './game.repository';
+import { createLadder, ladderFeedback } from './word-ladder';
 import { DIFFICULTIES, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, WORDLE_COST, score } from './game.types';
 
 @Injectable()
@@ -36,9 +37,26 @@ export class GameService {
 
   async read(id: string, owner: string) { return publicGame(await this.games.read(id, owner)); }
 
+  async startLadder(wordLength: number, owner: string, startRequestId: string = randomUUID()) {
+    if (![4, 5].includes(wordLength)) throw new BadRequestException('Choose four or five letters for Word Ladder.');
+    const words = defaultAnswerWords(wordLength, await this.dictionary.dictionaryGameWords(wordLength));
+    const ladder = createLadder(words);
+    if (!ladder) throw new ServiceUnavailableException({ code: 'NO_PLAYABLE_LADDER', message: 'No connected word ladder is available at this length yet.' });
+    const game: Game = {
+      id: randomUUID(), startRequestId, kind: 'word-ladder', owner, answer: ladder.goalWord,
+      ladder: { startWord: ladder.startWord, shortestSteps: ladder.shortestSteps },
+      wordLength, difficulty: 'medium', attemptLimit: 0, guesses: [], completed: false,
+      startedAt: new Date().toISOString(), completedAt: null,
+      hints: { partOfSpeech: 0, definition: 0 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [],
+      status: 'active', coinCost: 1, winRewardCoins: 5, coinPayer: owner.startsWith('user:') ? 'account' : 'guest',
+    };
+    return publicGame(await this.games.create(game));
+  }
+
   async hint(id: string, type: HintType, owner: string) {
     const current = await this.games.read(id, owner);
     this.requireActive(current);
+    if (current.ladder) throw new BadRequestException('Word Ladder already includes word definitions.');
     // Resolve dictionary clues before taking wallet and game locks.
     const text = current.clues[type] ?? (type === 'partOfSpeech'
       ? await this.dictionary.dictionaryPartOfSpeech(current.answer)
@@ -61,11 +79,15 @@ export class GameService {
     return this.games.change(id, owner, async game => {
       this.requireActive(game);
       const guess = rawGuess.trim().toLowerCase();
+      const previous = game.guesses.at(-1)?.guess ?? game.ladder?.startWord;
+      if (game.ladder && (guess.length !== game.wordLength || ladderFeedback(previous!, guess).filter(value => value === 'CORRECT').length !== 1)) {
+        throw new BadRequestException({ code: 'INVALID_LADDER_STEP', message: 'Change exactly one letter from the previous word.' });
+      }
       if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !(await this.dictionary.isDictionaryGameWord(guess))) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
-      const attemptsRemaining = game.attemptLimit - game.guesses.length - 1;
+      const attemptsRemaining = game.ladder ? 0 : game.attemptLimit - game.guesses.length - 1;
       const won = guess === game.answer;
-      const completed = won || attemptsRemaining === 0;
-      const result: Guess = { guess, feedback: score(game.answer, guess), attemptsRemaining, completed };
+      const completed = won || (!game.ladder && attemptsRemaining === 0);
+      const result: Guess = { guess, feedback: game.ladder ? ladderFeedback(previous!, guess) : score(game.answer, guess), attemptsRemaining, completed };
       result.definition = await this.dictionary.dictionaryDefinition(guess) ?? '';
       if (completed) {
         result.outcome = won ? 'WON' : 'LOST';

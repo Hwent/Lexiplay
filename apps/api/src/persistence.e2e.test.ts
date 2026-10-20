@@ -154,6 +154,66 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await guess.json()).toMatchObject({ completed: true, outcome: 'WON' });
   });
 
+  it.each([4, 5])('persists %i-letter ladders and pays exactly once for account and guest wins', async length => {
+    const terms = length === 4
+      ? ['cold','gold','hold','hole','home','come','some','same','name','game','gave','have','hate','late','lake','like','life','wife','wide','side','site']
+      : ['stone','store','score','shore','share','spare','stare','start','smart'];
+    await publishDictionary(pool, [...dictionary, ...terms.map(term => word(term))]);
+    for (const cookie of [(await account()).cookie, await guest()]) {
+      const before = await balance(cookie), startRequestId = randomUUID();
+      const options = { kind: 'word-ladder', wordLength: length, startRequestId };
+      const response = await request('/games', 'POST', options, cookie);
+      expect(response.status, await response.clone().text()).toBe(201);
+      const game = await response.json();
+      expect(game).toMatchObject({ kind: 'word-ladder', coinCost: 1, winRewardCoins: 5, wordLength: length });
+      expect(game.ladder.startDefinition).toBeTruthy();
+      expect(game.ladder.goalDefinition).toBeTruthy();
+      expect(game).not.toHaveProperty('answer');
+      expect(await balance(cookie)).toBe(before - 1);
+      expect(await (await request('/games', 'POST', options, cookie)).json()).toMatchObject({ id: game.id });
+      expect(await balance(cookie)).toBe(before - 1);
+      const submit = (guess: string) => request(`/games/${game.id}/guesses`, 'POST', { guess }, cookie);
+      expect((await submit(game.ladder.startWord)).status).toBe(400);
+      expect((await submit('z'.repeat(length))).status).toBe(400);
+      const unknown = 'z' + game.ladder.startWord.slice(1);
+      expect((await submit(unknown)).status).toBe(400);
+      expect((await request(`/games/${game.id}/hints`, 'POST', { type: 'definition' }, cookie)).status).toBe(400);
+      expect(await balance(cookie)).toBe(before - 1);
+      // Find a valid route independently using the published fixture dictionary.
+      const queue: string[][] = [[game.ladder.startWord]], visited = new Set([game.ladder.startWord]);
+      let route: string[] = [];
+      for (let head = 0; head < queue.length; head++) {
+        const path = queue[head]!, last = path.at(-1)!;
+        if (last === game.ladder.goalWord) { route = path.slice(1); break; }
+        for (const next of terms) {
+          if (visited.has(next) || [...next].filter((letter, index) => letter !== last[index]).length !== 1) continue;
+          visited.add(next); queue.push([...path, next]);
+        }
+      }
+      expect(route.length).toBeGreaterThanOrEqual(3);
+      const detour = [route[0]!, game.ladder.startWord, route[0]!, game.ladder.startWord,
+        route[0]!, game.ladder.startWord, route[0]!, game.ladder.startWord];
+      for (const step of detour) expect(await (await submit(step)).json()).toMatchObject({ completed: false });
+      for (let index = 0; index < route.length; index++) {
+        const result = await (await submit(route[index]!)).json();
+        expect(result.feedback.filter((color: string) => color === 'CORRECT')).toHaveLength(1);
+        expect(result.definition).toBeTruthy();
+        expect(result.completed).toBe(index === route.length - 1);
+        const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
+        expect(restored.guesses.map((step: { guess: string }) => step.guess)).toEqual([...detour, ...route.slice(0, index + 1)]);
+      }
+      expect(await balance(cookie)).toBe(before + 4);
+      const duplicates = await Promise.all([submit(game.ladder.goalWord), submit(game.ladder.goalWord)]);
+      expect(duplicates.map(result => result.status)).toEqual([400, 400]);
+      expect(await balance(cookie)).toBe(before + 4);
+      const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
+      expect(restored).toMatchObject({ status: 'won', coinChange: 4, attemptCount: detour.length + route.length, ladder: game.ladder });
+    }
+    for (const options of [{ wordLength: 3 }, { wordLength: 6 }, { difficulty: 'hard' }, { collectionId: appleCollection }]) {
+      expect((await request('/games', 'POST', { kind: 'word-ladder', ...options }, (await account()).cookie)).status).toBe(400);
+    }
+  });
+
   it('uses 15 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
     expect(tables).toHaveLength(15);

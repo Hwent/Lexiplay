@@ -15,7 +15,8 @@ export type Guess = {
 };
 export type Game = {
   pool?: { id: string; name: string; author: string };
-  id: string; startRequestId: string; kind: 'word-puzzle'; owner: string; answer: string;
+  id: string; startRequestId: string; kind: 'word-puzzle' | 'word-ladder'; owner: string; answer: string;
+  ladder?: { startWord: string; shortestSteps: number; startDefinition?: string };
   wordLength: number; difficulty: Difficulty; attemptLimit: number; guesses: Guess[];
   completed: boolean; status: GameStatus; startedAt: string; completedAt: string | null;
   hints: Record<HintType, number>; clues: Partial<Record<HintType, string>>; hintCoinsSpent: number;
@@ -26,7 +27,9 @@ export type Game = {
 };
 export function publicGame(game: Game) {
   const { owner: _owner, answer: _answer, answerDefinition: _definition, startRequestId: _request, ...result } = game;
-  return { ...result, ...(game.completed ? { answer: game.answer, answerDefinition: game.answerDefinition } : {}) };
+  return { ...result,
+    ...(game.ladder ? { ladder: { ...game.ladder, goalWord: game.answer, goalDefinition: game.answerDefinition } } : {}),
+    ...(game.completed ? { answer: game.answer, answerDefinition: game.answerDefinition } : {}) };
 }
 
 export function score(answer: string, guess: string): Feedback[] {

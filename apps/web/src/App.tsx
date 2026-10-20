@@ -11,10 +11,12 @@ import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } fro
 import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
+import WordLadderBoard, { Ladder } from './WordLadderBoard';
+import DefinitionText from './DefinitionText';
 import { definitionHintText } from './hint-text';
 import { gameAudio } from './services/game-audio';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
-import { createTranslator, LanguageContext, useTranslation } from './i18n';
+import { createTranslator, LanguageContext } from './i18n';
 import { useInterfacePreferences } from './interface-preferences';
 import { PersonalList, PersonalPage, VocabularyCollection } from './collection-types';
 
@@ -52,22 +54,12 @@ type GuessResult = {
   rewardCoins?: number;
 };
 type HintType = 'partOfSpeech' | 'definition';
-type Game = { answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: Record<HintType, number>; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
+type Game = { kind?: 'word-puzzle' | 'word-ladder'; ladder?: Ladder; answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: Record<HintType, number>; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
 const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, reward: 6 }] as const;
 
 function BookmarkIcon({ added }: { added: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
-}
-
-function DefinitionText({ text }: { text: string }) {
-  const t = useTranslation();
-  const [expanded, setExpanded] = useState(false);
-  const canExpand = text.length > 150;
-  return <>
-    <span className={`definition-text${canExpand && !expanded ? ' collapsed' : ''}`}>{text}</span>
-    {canExpand && <button type="button" className="learn-more" aria-expanded={expanded} onClick={() => setExpanded(value => !value)}>{expanded ? t('Show less') : t('Learn more')}</button>}
-  </>;
 }
 
 function savedDefinition(text: string) {
@@ -95,6 +87,9 @@ export default function App() {
   const [revealingGuess, setRevealingGuess] = useState<{ gameId: string; row: number } | null>(null);
   const [celebrationId, setCelebrationId] = useState('');
   const [selectedWordLength, setSelectedWordLength] = useState(preferences.wordLength);
+  const [puzzleKind, setPuzzleKind] = useState<'word-puzzle' | 'word-ladder'>('word-puzzle');
+  const [ladderWordLength, setLadderWordLength] = useState(5);
+  useEffect(() => { if (game) setPuzzleKind(game.ladder ? 'word-ladder' : 'word-puzzle'); }, [game?.id]);
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(preferences.difficulty);
   const [restoring, setRestoring] = useState(false);
   const [accountRevision, setAccountRevision] = useState(0);
@@ -306,7 +301,9 @@ export default function App() {
     setMessage('');
     try {
       await wordStore.flush();
-      const options = { kind: 'word-puzzle', wordLength: replay && game ? game.wordLength : selectedWordLength,
+      const options = (replay && game ? !!game.ladder : puzzleKind === 'word-ladder')
+        ? { kind: 'word-ladder', wordLength: replay && game ? game.wordLength : ladderWordLength }
+        : { kind: 'word-puzzle', wordLength: replay && game ? game.wordLength : selectedWordLength,
         difficulty: replay && game ? game.difficulty ?? difficulty : difficulty, playWithMyWords,
         ...(!playWithMyWords && selectedPoolId ? { collectionId: selectedPoolId } : {}) };
       const key = JSON.stringify([account?.id ?? 'guest', options]);
@@ -359,7 +356,7 @@ export default function App() {
   }
 
   function hintPanel(type: HintType) {
-    if (!game || finished) return null;
+    if (!game || finished || game.ladder) return null;
     const title = type === 'partOfSpeech' ? 'Part of speech' : 'Definition';
     const clue = game.clues?.[type];
     return <aside className={`puzzle-hint hint-${type}`} aria-label={t('{0} hint', t(title))}>
@@ -406,7 +403,11 @@ export default function App() {
       }
     } catch (error) {
       if (session !== guessSession.current) return;
-      if (error instanceof ApiError && error.status === 400 && (error.code === 'INVALID_GUESS' || (!error.code && /valid.*word|dictionary/i.test(error.message)))) {
+      if (error instanceof ApiError && error.code === 'INVALID_LADDER_STEP') {
+        setRejectedAttempt(value => value + 1);
+        if (activeSectionRef.current === 'play') gameAudio.play('invalid');
+        setMessage(error.message);
+      } else if (error instanceof ApiError && error.status === 400 && (error.code === 'INVALID_GUESS' || (!error.code && /valid.*word|dictionary/i.test(error.message)))) {
         setRejectedAttempt(value => value + 1);
         if (activeSectionRef.current === 'play') gameAudio.play('invalid');
         setMessage(`${nextGuess.toUpperCase()} is not in the dictionary. Try another word.`);
@@ -463,7 +464,7 @@ export default function App() {
   const keyboardFeedback = new Map<string, Feedback>();
   for (const letter of game?.revealedAbsent ?? []) keyboardFeedback.set(letter.toUpperCase(), 'ABSENT');
   for (const letter of game?.revealedPresent ?? []) keyboardFeedback.set(letter.toUpperCase(), 'PRESENT');
-  for (const result of game?.guesses ?? []) {
+  for (const result of game?.ladder ? [] : game?.guesses ?? []) {
     result.guess.split('').forEach((letter, index) => {
       const key = letter.toUpperCase();
       const feedback = result.feedback[index]!;
@@ -518,6 +519,10 @@ export default function App() {
 
       {activeSection === 'play' && <>
       {!game && <div className="page-introduction"><div><h2>{t('Choose your ')}<span>{t('challenge.')}</span></h2></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
+      {!game && <div className="puzzle-type-options" role="group" aria-label={t('Puzzle type')}>
+        <button type="button" aria-pressed={puzzleKind === 'word-puzzle'} onClick={() => { setPuzzleKind('word-puzzle'); setMessage(''); }} disabled={busy || restoring}>{t('Word puzzle')}</button>
+        <button type="button" aria-pressed={puzzleKind === 'word-ladder'} onClick={() => { setPuzzleKind('word-ladder'); setMessage(''); }} disabled={busy || restoring}>{t('Word Ladder')}</button>
+      </div>}
       <section className="game-card" aria-label={t('Vocabulary puzzle')} aria-busy={busy || progressSaving || restoring} onClick={event => {
         const target = event.target;
         if (target instanceof Element && target.closest('button, input, a, select, textarea')) return;
@@ -526,6 +531,14 @@ export default function App() {
         {!game ? (
           <div className="welcome-card">
             <div className="practice-story">
+            {puzzleKind === 'word-ladder' ? <>
+            <div className="ladder-preview" aria-hidden="true">{['COLD', 'CORD', 'CARD'].map((word, row, words) => <div key={word}>{[...word].map((letter, index) => <span className={row > 0 && letter !== words[row - 1]![index] ? 'changed' : ''} key={index}>{letter}</span>)}</div>)}</div>
+            <h2>{t('Word Ladder')}</h2>
+            <details className="game-rules" open><summary>{t('How to play')}</summary>
+              <p>{t('Turn the start word into the green goal word. Change exactly one letter at each step to make a real word.')}</p>
+              <p>{t('Take as many steps as you need. Every new word comes with a definition.')}</p>
+            </details>
+            </> : <>
             <div className="sample-grid" aria-hidden="true">
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
@@ -536,47 +549,49 @@ export default function App() {
               <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />{t('Correct spot')}</span><span><i className="rule-swatch present" aria-hidden="true" />{t('Wrong spot')}</span><span><i className="rule-swatch absent" aria-hidden="true" />{t('Not in word')}</span></div>
               <p>{t('Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.')}</p>
             </details>
+            </>}
             </div>
             <div className="practice-setup">
             <div className="practice-setup-heading"><h3>{t('Puzzle options')}</h3></div>
             <div className="practice-options">
               <fieldset className="length-options"><legend>{t('Word length')}</legend>
-                <div className="length-segments">
-                  {[3, 4, 5, 6, 7, 8, 9].map(length => <label key={length} className={selectedWordLength === length ? 'selected' : ''}>
-                    <input type="radio" name="word-length" value={length} checked={selectedWordLength === length} onChange={() => setSelectedWordLength(length)} aria-label={t('{0} letters', length)} />
+                <div className={`length-segments${puzzleKind === 'word-ladder' ? ' ladder-length-options' : ''}`}>
+                  {(puzzleKind === 'word-ladder' ? [4, 5] : [3, 4, 5, 6, 7, 8, 9]).map(length => <label key={length} className={(puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength) === length ? 'selected' : ''}>
+                    <input type="radio" name="word-length" value={length} checked={(puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength) === length} onChange={() => puzzleKind === 'word-ladder' ? setLadderWordLength(length) : setSelectedWordLength(length)} aria-label={t('{0} letters', length)} />
                     <span>{length}</span>
                   </label>)}
                 </div>
               </fieldset>
-              <fieldset className="difficulty-options"><legend>{t('Difficulty')}</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{t(option.label)}</strong></label>)}</div></fieldset>
+              {puzzleKind === 'word-puzzle' && <><fieldset className="difficulty-options"><legend>{t('Difficulty')}</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{t(option.label)}</strong></label>)}</div></fieldset>
               <CollectionPicker value={playWithMyWords ? 'my-words' : selectedPoolId} wordLength={selectedWordLength} disabled={busy} personalAvailable={!!account} onChange={id => {
                 setPlayWithMyWords(id === 'my-words');
                 if (id !== 'my-words') setSelectedPoolId(id);
               }} />
+              </>}
             </div>
-            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', difficulties.find(option => option.id === difficulty)!.reward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{difficulties.find(option => option.id === difficulty)!.reward}{t(' on a win')}</span></div>
-            <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Start practice ')}<Icon name="arrow"/>
+            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', puzzleKind === 'word-ladder' ? 5 : difficulties.find(option => option.id === difficulty)!.reward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{puzzleKind === 'word-ladder' ? 5 : difficulties.find(option => option.id === difficulty)!.reward}{t(' on a win')}</span></div>
+            <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t(puzzleKind === 'word-ladder' ? 'Start ladder ' : 'Start practice ')}<Icon name="arrow"/>
             </button>
             </div>
           </div>
         ) : (
-          <div ref={puzzleRef} key={game.id} className={`puzzle${celebrationId === game.id ? ' puzzle-won' : ''}`}>
+          <div ref={puzzleRef} key={game.id} className={`puzzle${game.ladder ? ' ladder-puzzle' : ''}${celebrationId === game.id ? ' puzzle-won' : ''}`}>
             {celebrationId === game.id && <PuzzleCelebration key={game.id}/>}
             <div className="puzzle-heading">
-              <div><p className="eyebrow">{t('{0} · {1} letters', t(game.difficulty ?? difficulty), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
-              <span className="attempt-counter" aria-live="polite">{t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
+              <div><p className="eyebrow">{t('{0} · {1} letters', t(game.ladder ? 'Word Ladder' : game.difficulty ?? difficulty), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
+              <span className="attempt-counter" aria-live="polite">{game.ladder ? t(game.guesses.length === 1 ? '{0} step' : '{0} steps', game.attemptCount ?? game.guesses.length) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
             </div>
             {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>{t('Choose a new puzzle')}</button></div>}
-            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.') : message ? t(message) : finished ? t('{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length) : t('Type {0} letters to check your word automatically.', game.wordLength)}</p>
+            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.') : message ? t(message) : finished ? t(game.ladder ? '{0} in {1} steps.' : '{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length) : game.ladder ? t('Change one letter. Complete words check automatically.') : t('Type {0} letters to check your word automatically.', game.wordLength)}</p>
             {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label={t('Revealed letters')}>
               {game.revealedPresent.length > 0 && <span>{t('In the word: ')}<strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong>{t(' · position unknown')}</span>}
               {game.revealedAbsent.length > 0 && <span>{t('Ruled out: ')}<strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
             </div>}
             <div className="puzzle-columns">
-            <div className={`puzzle-stage${!finished ? ' with-hints' : ''}`}>
+            <div className={`puzzle-stage${!finished && !game.ladder ? ' with-hints' : ''}`}>
             {hintPanel('partOfSpeech')}
             <div className="puzzle-play-column">
-            {(!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={t('{0}-letter puzzle board', game.wordLength)} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
+            {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy} rejected={!!rejectedAttempt}/> : (!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={t('{0}-letter puzzle board', game.wordLength)} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
                 const result = game.guesses[row];
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
@@ -614,7 +629,11 @@ export default function App() {
                 </div>)}
               </div>
             </div>}
-            {(game.guesses.length > 0 || (finished && game.status !== 'cancelled')) && <aside className="puzzle-definitions" aria-label={t('Word definitions')}>
+            {(game.ladder || game.guesses.length > 0 || (finished && game.status !== 'cancelled')) && <aside className="puzzle-definitions" aria-label={t('Word definitions')}>
+            {game.ladder && <div className="guess-definition">
+              <div><div className="word-with-pronunciation"><strong>{game.ladder.startWord}</strong><PronunciationButton term={game.ladder.startWord}/></div><DefinitionText text={game.ladder.startDefinition || t('Definition unavailable.')}/></div>
+              {wordBookmark(game.ladder.startWord, game.ladder.startDefinition ?? '')}
+            </div>}
             {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
               <div><div className="word-with-pronunciation"><strong>{result.guess}</strong><PronunciationButton term={result.guess} /></div><DefinitionText text={result.definition || t('Definition unavailable.')} /></div>
               {wordBookmark(result.guess, result.definition ?? '')}
