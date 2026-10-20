@@ -6,27 +6,35 @@ import { AddDictionaryEntries, CollectionWordsQuery, ImportCollection, NewPerson
 import { Prisma } from '../../generated/prisma/client';
 import { WORDLE_POOL } from '../word-lists/wordle-pool';
 import { defaultAnswerWords } from '../word-lists/default-answers';
+import { LibraryCache } from '../word-lists/library-cache';
 
-const entryInclude = { family: true, definitions: { where: { languageCode: 'en' }, orderBy: { senseOrder: 'asc' as const } } };
-const collectionInclude = { entries: { orderBy: [{ sortOrder: 'asc' as const }, { dictionaryEntryId: 'asc' as const }], include: { entry: { include: entryInclude } } } };
+const entrySelect = { id: true, term: true, partOfSpeech: true, familyId: true,
+  family: { select: { headword: true } }, definitions: { select: { definition: true },
+    where: { languageCode: 'en' }, orderBy: { senseOrder: 'asc' as const } } } as const;
+const collectionInclude = { entries: { orderBy: [{ sortOrder: 'asc' as const }, { dictionaryEntryId: 'asc' as const }], include: { entry: { select: entrySelect } } } };
 type Collection = Prisma.VocabularyCollectionGetPayload<{ include: typeof collectionInclude }> & { libraryVersion: string };
 type Entry = Collection['entries'][number]['entry'];
 
 @Injectable()
 export class CollectionsService {
+  private readonly cache = new LibraryCache();
   constructor(@Inject(CollectionsStorage) private readonly db: CollectionsStorage,
     @Inject(AccountService) private readonly accounts: AccountService,
     @Inject(WordListRepository) private readonly dictionary: WordListRepository) {}
 
-  private summary(collection: Collection) {
-    const families = new Map(collection.entries.map(row => [row.entry.familyId ?? 'item:' + row.entry.term, !!row.entry.familyId]));
-    const familyCount = [...families.values()].filter(Boolean).length;
+  private summary(collection: Omit<Collection, 'entries'>, counts: { wordCount: number; familyCount: number; otherUnitCount: number }) {
     return { id: collection.id, slug: collection.slug, name: collection.name, description: collection.description,
       category: collection.category, level: collection.category === 'CEFR' ? collection.slug.slice(5).toUpperCase() : null,
       author: collection.author, source: collection.sourceUrl, license: collection.license,
       version: collection.libraryVersion,
-      status: collection.status, wordCount: collection.entries.length, memberCount: collection.entries.length,
-      ...(collection.status === 'available' ? { familyCount, otherUnitCount: families.size - familyCount } : {}) };
+      status: collection.status, wordCount: counts.wordCount, memberCount: counts.wordCount,
+      ...(collection.status === 'available' ? { familyCount: counts.familyCount, otherUnitCount: counts.otherUnitCount } : {}) };
+  }
+
+  private collectionSummary(collection: Collection) {
+    const families = new Set(collection.entries.map(row => row.entry.familyId).filter(Boolean));
+    const others = new Set(collection.entries.filter(row => !row.entry.familyId).map(row => row.entry.term));
+    return this.summary(collection, { wordCount: collection.entries.length, familyCount: families.size, otherUnitCount: others.size });
   }
 
   private definition(entry: Entry) {
@@ -45,21 +53,38 @@ export class CollectionsService {
   }
 
   async catalog(category?: string) {
-    const rows = await this.db.vocabularyCollection.findMany({ where: { hidden: false, ...(category ? { category } : {}), status: { not: 'retired' } },
-      include: collectionInclude, orderBy: [{ category: 'asc' }, { slug: 'asc' }] });
     const library = await this.revision();
-    return rows.map(row => this.summary({ ...row, libraryVersion: library.version }));
+    const catalog = await this.cache.get('catalog', library.version, async () => {
+      const [rows, counts] = await Promise.all([
+        this.db.vocabularyCollection.findMany({ where: { hidden: false, status: { not: 'retired' } }, orderBy: [{ category: 'asc' }, { slug: 'asc' }] }),
+        this.db.$queryRaw<{ id: string; wordCount: number; familyCount: number; otherUnitCount: number }[]>`
+          SELECT c.id, count(e.id)::int AS "wordCount", count(DISTINCT e.family_id)::int AS "familyCount",
+            count(DISTINCT e.term) FILTER (WHERE e.family_id IS NULL)::int AS "otherUnitCount"
+          FROM vocabulary_collections c LEFT JOIN collection_entries ce ON ce.collection_id=c.id
+          LEFT JOIN dictionary_entries e ON e.id=ce.dictionary_entry_id
+          WHERE NOT c.hidden AND c.status<>'retired' GROUP BY c.id`,
+      ]);
+      const byId = new Map(counts.map(row => [row.id, row]));
+      return rows.map(row => this.summary({ ...row, libraryVersion: library.version }, byId.get(row.id)!));
+    });
+    return category ? catalog.filter(row => row.category === category) : catalog;
   }
 
   private async collection(slug: string, includeHidden = false) {
-    const where = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(slug) ? { OR: [{ id: slug }, { slug }] } : { slug };
-    const collection = await this.db.vocabularyCollection.findFirst({ where: { ...where, ...(includeHidden ? {} : { hidden: false }) }, include: collectionInclude });
-    if (!collection) throw new NotFoundException('Vocabulary collection not found.');
-    return { ...collection, libraryVersion: (await this.revision()).version };
+    const library = await this.revision();
+    return this.cache.get(`collection:${includeHidden}:${slug}`, library.version, async () => {
+      const where = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(slug) ? { OR: [{ id: slug }, { slug }] } : { slug };
+      const collection = await this.db.vocabularyCollection.findFirst({ where: { ...where, ...(includeHidden ? {} : { hidden: false }) }, include: collectionInclude });
+      if (!collection) throw new NotFoundException('Vocabulary collection not found.');
+      return { ...collection, libraryVersion: library.version };
+    });
   }
 
-  async detail(slug: string) { return this.summary(await this.collection(slug)); }
-  async snapshot(slug: string) { return this.words(slug, { view: 'families', pageSize: '10000' }); }
+  async detail(slug: string) { return this.collectionSummary(await this.collection(slug)); }
+  async snapshot(slug: string) {
+    const library = await this.revision();
+    return this.cache.get(`snapshot:${slug}`, library.version, () => this.words(slug, { view: 'families', pageSize: '10000' }));
+  }
 
   async words(slug: string, query: CollectionWordsQuery, cookie?: string) {
     const collection = await this.collection(slug);
@@ -85,22 +110,26 @@ export class CollectionsService {
     const familyIds = selected.filter(group => group.kind === 'family').map(group => group.id);
     const related = familyView && familyIds.length ? await this.db.collectionEntry.findMany({
       where: { collectionId: { not: collection.id }, collection: { hidden: false }, entry: { familyId: { in: familyIds } } },
-      include: { collection: true, entry: true },
+      select: { collectionId: true, collection: { select: { category: true, slug: true, name: true } },
+        entry: { select: { familyId: true, term: true, partOfSpeech: true } } },
     }) : [];
-    return { collection: this.summary(collection), page, pageSize, total: familyView ? groups.size : filtered.length,
+    const relatedByFamily = new Map<string, Map<string, { lemma: string; partsOfSpeech: string[]; level: string }>>();
+    for (const row of related) {
+      const familyId = row.entry.familyId!;
+      const members = relatedByFamily.get(familyId) ?? new Map();
+      const key = row.entry.term + ':' + row.collectionId;
+      const level = row.collection.category === 'CEFR' ? row.collection.slug.slice(5).toUpperCase() : row.collection.name;
+      const member = members.get(key) ?? { lemma: row.entry.term, partsOfSpeech: [], level };
+      member.partsOfSpeech.push(row.entry.partOfSpeech); members.set(key, member);
+      relatedByFamily.set(familyId, members);
+    }
+    return { collection: this.collectionSummary(collection), page, pageSize, total: familyView ? groups.size : filtered.length,
       partsOfSpeech: [...new Set(collection.entries.map(row => row.entry.partOfSpeech))].sort(),
       stages: ['Foundation', 'Core', 'Advanced'], words,
-      ...(familyView ? { memberTotal: filtered.length, pageUnit: 'family', families: selected.map(group => {
-        const members = new Map<string, { lemma: string; partsOfSpeech: string[]; level: string }>();
-        for (const row of related) {
-          if (row.entry.familyId !== group.id) continue;
-          const level = row.collection.category === 'CEFR' ? row.collection.slug.slice(5).toUpperCase() : row.collection.name;
-          const key = row.entry.term + ':' + row.collectionId;
-          const member = members.get(key) ?? { lemma: row.entry.term, partsOfSpeech: [], level };
-          member.partsOfSpeech.push(row.entry.partOfSpeech); members.set(key, member);
-        }
-        return { id: group.id, headword: group.headword, kind: group.kind, memberIds: group.rows.map(row => row.entry.id), relatedMembers: [...members.values()] };
-      }) } : {}) };
+      ...(familyView ? { memberTotal: filtered.length, pageUnit: 'family', families: selected.map(group => ({
+        id: group.id, headword: group.headword, kind: group.kind, memberIds: group.rows.map(row => row.entry.id),
+        relatedMembers: [...(relatedByFamily.get(group.id)?.values() ?? [])],
+      })) } : {}) };
   }
 
   private async owned(cookie: string | undefined, id: string) {
@@ -125,9 +154,11 @@ export class CollectionsService {
 
   async savedCollections(cookie: string | undefined) {
     const user = await this.accounts.current(cookie);
-    const rows = await this.db.userVocabularyCollection.findMany({ where: { userId: user.id, collection: { hidden: false } }, include: { collection: { include: collectionInclude } }, orderBy: { savedAt: 'asc' } });
-    const library = await this.revision();
-    return rows.map(row => this.summary({ ...row.collection, libraryVersion: library.version }));
+    const rows = await this.db.userVocabularyCollection.findMany({ where: { userId: user.id, collection: { hidden: false } },
+      select: { collectionId: true }, orderBy: { savedAt: 'asc' } });
+    const catalog = await this.catalog();
+    const byId = new Map(catalog.map(row => [row.id, row]));
+    return Promise.all(rows.map(row => byId.get(row.collectionId) ?? this.detail(row.collectionId)));
   }
 
   async saveCollection(cookie: string | undefined, slug: string) {
@@ -173,8 +204,10 @@ export class CollectionsService {
     const user = await this.owned(cookie, id);
     const terms = [...new Set(input.terms.map(term => term.trim()))];
     if (terms.some(term => !term)) throw new BadRequestException('Enter a word for every row.');
-    const entries = await this.db.dictionaryEntry.findMany({ where: { term: { in: terms, mode: 'insensitive' },
-      definitions: { some: { languageCode: 'en' } } } });
+    const entries = await this.db.$queryRaw<{ id: string; term: string }[]>`
+      SELECT e.id, e.term FROM dictionary_entries e
+      WHERE lower(e.term COLLATE "default") IN (${Prisma.join(terms.map(term => Prisma.sql`lower(${term})`))})
+        AND EXISTS (SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')`;
     const ids = new Set<string>(), missing: string[] = [];
     for (const term of terms) {
       const alternatives = [...new Set(entries.filter(entry => entry.term.toLowerCase() === term.toLowerCase()).map(entry => entry.term))];
@@ -198,7 +231,7 @@ export class CollectionsService {
         ...(query.q ? { term: { contains: query.q.trim(), mode: 'insensitive' } } : {}) } } : {}),
       ...(query.review ? { OR: [{ nextReviewAt: null }, { nextReviewAt: { lte: new Date() } }] } : {}) };
     const [total, rows] = await Promise.all([this.db.userWord.count({ where }), this.db.userWord.findMany({
-      where, skip: (page - 1) * pageSize, take: pageSize, include: { entry: { include: entryInclude } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
+      where, skip: (page - 1) * pageSize, take: pageSize, include: { entry: { select: entrySelect } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
     })]);
     const words = rows.map(row => ({ id: row.id, dictionaryEntryId: row.dictionaryEntryId, lemma: row.entry.term,
       partOfSpeech: row.entry.partOfSpeech, stage: row.stage, familiarity: row.familiarity, nextReviewAt: row.nextReviewAt,
@@ -239,14 +272,20 @@ export class CollectionsService {
   allGameOptions() { return this.gameOptionsForLengths(3, 9); }
 
   private async gameOptionsForLengths(minLength: number, maxLength: number) {
+    const library = await this.revision();
+    const options = await this.cache.get('game-options', library.version, () => this.loadGameOptions());
+    return options.filter(option => option.wordLength >= minLength && option.wordLength <= maxLength);
+  }
+
+  private async loadGameOptions() {
     const [collections, words] = await Promise.all([
       this.db.vocabularyCollection.findMany({ where: { status: 'available', hidden: false }, orderBy: { slug: 'asc' },
         select: { id: true, slug: true, name: true, entries: { select: { entry: { select: { term: true } } } } } }),
-      this.dictionary.dictionaryGameWords(minLength, maxLength),
+      this.dictionary.dictionaryGameWords(3, 9),
     ]);
     const playable = new Set(words);
-    return Array.from({ length: maxLength - minLength + 1 }, (_, index) => {
-      const length = minLength + index;
+    return Array.from({ length: 7 }, (_, index) => {
+      const length = index + 3;
       return { wordLength: length, totalWords: defaultAnswerWords(length, words).length, collections: collections.map(collection => ({
         id: collection.id, slug: collection.slug, name: collection.name,
         wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => term.length === length && playable.has(term))).size,

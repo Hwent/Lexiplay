@@ -342,6 +342,29 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(columns).toEqual([]);
   });
 
+  it('refreshes cached catalogs, snapshots and word pools after publication without caching personal membership', async () => {
+    const repository = app.get(WordListRepository);
+    const before = await (await request('/collections/cefr-a1/snapshot')).json();
+    await request('/collections');
+    await request('/collections/game-options/all');
+    expect((await repository.dictionaryGameWords(5)).includes('brave')).toBe(false);
+    const updated = dictionary.map(row => row.term === 'apple'
+      ? { ...row, senses: [{ partOfSpeech: 'noun', definitions: ['A fresh meaning.'], source: 'fixture' }] } : row);
+    await publishDictionary(pool, [...updated, word('brave')]);
+    const after = await (await request('/collections/cefr-a1/snapshot')).json();
+    expect(after.collection.version === before.collection.version).toBe(false);
+    expect(after.words.find((row: { lemma: string }) => row.lemma === 'apple').definition).toBe('A fresh meaning.');
+    expect(await repository.dictionaryGameWords(5)).toContain('brave');
+    const catalog = await (await request('/collections')).json();
+    expect(catalog.find((row: { slug: string }) => row.slug === 'cefr-a1')).toEqual(after.collection);
+    const user = await account();
+    await request('/word-lists/' + user.id + '/dictionary-entries', 'POST', { terms: ['apple'] }, user.cookie);
+    const personal = await (await request('/collections/cefr-a1/words', 'GET', undefined, user.cookie)).json();
+    expect(personal.words.find((row: { lemma: string }) => row.lemma === 'apple').inMyWordList).toBe(true);
+    const publicSnapshot = await (await request('/collections/cefr-a1/snapshot')).json();
+    expect(publicSnapshot.words.find((row: { lemma: string }) => row.lemma === 'apple').inMyWordList).toBe(false);
+  });
+
   it('paginates recent practice without changing overall statistics or exposing other accounts', async () => {
     const user = await account(), other = await account();
     for (let index = 0; index < 3; index++) {

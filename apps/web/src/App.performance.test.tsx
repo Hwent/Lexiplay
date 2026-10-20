@@ -52,3 +52,23 @@ it('limits revision checks during navigation and checks again after the throttle
   await waitFor(() => expect(localStorage.getItem('lexiplay-library-revision')).toBe('second'));
   expect(revisions).toHaveBeenCalledTimes(2);
 });
+
+it('loads the signed-in word list before navigation and reuses the first page', async () => {
+  const list = { id: 'learner', name: 'My Word List', preferredLanguage: 'en', isDefault: true, wordCount: 1 };
+  const entries = vi.fn(async () => Response.json({ list, total: 1, page: 1, pageSize: 25,
+    words: [{ id: 'word', lemma: 'apple', definition: 'A fruit.', partOfSpeech: 'noun', familiarity: 0, stage: 'Core', nextReviewAt: null }] }));
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
+    if (path.endsWith('/word-lists/mine')) return Response.json([list]);
+    if (path.includes('/word-lists/learner/entries?')) return entries();
+    if (path.endsWith('/word-lists/saved-terms')) return Response.json({ terms: [] });
+    return Response.json([]);
+  }));
+  const user = userEvent.setup(); render(<App />);
+  await waitFor(() => expect(entries).toHaveBeenCalledOnce());
+  await user.click(screen.getByRole('button', { name: 'Words' }));
+  await user.click(screen.getByRole('tab', { name: 'My Word List' }));
+  expect(await screen.findByText('A fruit.')).toBeInTheDocument();
+  expect(entries).toHaveBeenCalledOnce();
+});

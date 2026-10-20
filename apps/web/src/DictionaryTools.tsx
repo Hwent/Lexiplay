@@ -1,5 +1,5 @@
 import { useTranslation } from './i18n';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
 import usePendingWords from './usePendingWords';
 import PronunciationButton from './PronunciationButton';
@@ -13,6 +13,7 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
   const { store, selection } = usePendingWords(listId);
   const [mode, setMode] = useState<'search' | 'import'>('search');
   const [query, setQuery] = useState(searchQuery);
+  const typed = useRef(false);
   const [results, setResults] = useState<DictionaryEntry[]>([]);
   const [searching, setSearching] = useState(false);
   const [searched, setSearched] = useState('');
@@ -30,7 +31,7 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
     void store.loadSaved().catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not load your saved words.'); });
     return () => { active = false; };
   }, [listId, store]);
-  useEffect(() => { setQuery(searchQuery); setMode('search'); }, [searchQuery]);
+  useEffect(() => { typed.current = false; setQuery(searchQuery); setMode('search'); }, [searchQuery]);
   useEffect(() => {
     let active = true;
     setResults([]); setError(''); setSearching(normalized.length >= 2);
@@ -39,7 +40,7 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
       searchDictionary(normalized).then(rows => { if (active) { setResults(rows); setSearched(normalized); } })
         .catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not search the dictionary.'); })
         .finally(() => { if (active) setSearching(false); });
-    }, 300);
+    }, typed.current ? 150 : 0);
     return () => { active = false; clearTimeout(timer); };
   }, [normalized, mode, retry]);
   function stage(values: string[]) {
@@ -61,10 +62,10 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
     <div className="dictionary-tool-tabs" role="group" aria-label={t('Dictionary tool')}><button type="button" aria-pressed={mode === 'search'} onClick={() => { setMode('search'); }}><Icon name="search"/>{t('Find a word')}</button><button type="button" aria-pressed={mode === 'import'} onClick={() => { setMode('import'); }}>{t('Import words')}</button></div>
     {!signedIn && <p className="dictionary-tool-hint"><a href="/account">{t('Sign in')}</a>{t(' to save or import words.')}</p>}
     {mode === 'search' ? <>
-      <label className="dictionary-search-label" htmlFor="library-dictionary-search">{t('Search the dictionary')}</label><input id="library-dictionary-search" type="search" value={query} maxLength={100} placeholder={t('Try a word, like curious')} onChange={event => { setQuery(event.target.value); }}/>
-      {normalized.length < 2 && <EmptyState icon="dictionary" title={t('A word worth discovering.')} action={<button className="primary-button" type="button" onClick={() => setQuery('curious')}>{t('Try “curious” ')}<Icon name="arrow"/></button>} />}
+      <label className="dictionary-search-label" htmlFor="library-dictionary-search">{t('Search the dictionary')}</label><input id="library-dictionary-search" type="search" value={query} maxLength={100} placeholder={t('Try a word, like curious')} onChange={event => { typed.current = true; setQuery(event.target.value); }} onKeyDown={event => { if (event.key === 'Enter') { typed.current = false; setRetry(value => value + 1); } }}/>
+      {normalized.length < 2 && <EmptyState icon="dictionary" title={t('A word worth discovering.')} action={<button className="primary-button" type="button" onClick={() => { typed.current = false; setQuery('curious'); }}>{t('Try “curious” ')}<Icon name="arrow"/></button>} />}
       {searching && <p role="status">{t('Searching the dictionary…')}</p>}
-      {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <EmptyState icon="search" title={t('No dictionary matches.')} action={<button className="primary-button" type="button" onClick={() => setQuery('curious')}>{t('Try “curious” ')}<Icon name="arrow"/></button>}><p>{t('Try another spelling or discover a word to get started.')}</p></EmptyState>}
+      {!searching && normalized.length >= 2 && searched === normalized && !results.length && !error && <EmptyState icon="search" title={t('No dictionary matches.')} action={<button className="primary-button" type="button" onClick={() => { typed.current = false; setQuery('curious'); }}>{t('Try “curious” ')}<Icon name="arrow"/></button>}><p>{t('Try another spelling or discover a word to get started.')}</p></EmptyState>}
       {!searching && searched === normalized && <ul className="dictionary-tool-results">{results.map(entry => {
         const definition = entry.definition || entry.senses?.flatMap(sense => sense.definitions).join('; ');
         const pending = selection.pending.has(entry.term.trim());
