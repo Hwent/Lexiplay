@@ -550,5 +550,12 @@ export const zhCN: Record<string, string> = {
   "{0} steps left": "剩余 {0} 步",
   "Give up": "放弃",
   "You gave up. The entry coin was not returned.": "已放弃。本次入场金币不予退还。",
-  "Could not give up. Try again.": "暂时无法放弃，请重试。"
+  "Could not give up. Try again.": "暂时无法放弃，请重试。",
+  "Game actions": "游戏操作",
+  "Keep your progress.": "保留你的学习进度。",
+  "Sign in to save your game history and words.": "登录以保存游戏记录和单词。",
+  "New accounts start with 100 coins.": "新用户注册即获 100 金币。",
+  "Welcome reward for new accounts": "新用户注册奖励",
+  "Continue as guest": "继续以访客身份游玩",
+  "coins": "金币"
 };

@@ -13,6 +13,7 @@ import { readPracticePreferences, savePracticePreferences } from './practice-pre
 import PuzzleCelebration from './PuzzleCelebration';
 import WordLadderBoard, { Ladder } from './WordLadderBoard';
 import PuzzleGuessRow from './PuzzleGuessRow';
+import GuestGameReminder from './GuestGameReminder';
 import DefinitionText from './DefinitionText';
 import { definitionHintText } from './hint-text';
 import { gameAudio } from './services/game-audio';
@@ -78,6 +79,9 @@ export default function App() {
   const [preferences] = useState(readPracticePreferences);
   const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount, signedIn, progressSaving, progressError, progressMessage, retryProgress } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
+  const [dismissedGuestReminder, setDismissedGuestReminder] = useState('');
+  const [accountEntryMode, setAccountEntryMode] = useState<'login' | 'register'>('login');
+  const playAgainRef = useRef<HTMLButtonElement>(null);
   const [wallet, setWallet] = useState<{ coinBalance: number; kind: string } | null>(null);
   const [walletOwner, setWalletOwner] = useState<string | null>(null);
   const startRequest = useRef<{ key: string; id: string } | null>(null);
@@ -168,11 +172,12 @@ export default function App() {
     return () => { window.removeEventListener('popstate', syncSection); window.removeEventListener('pagehide', leaving); };
   }, [wordStore]);
 
-  function navigateTo(section: Section, search?: string) {
+  function navigateTo(section: Section, search?: string, accountMode: 'login' | 'register' = 'login') {
     const commit = () => {
       const path = sectionPaths[section];
       if (window.location.pathname !== path) { window.dispatchEvent(new Event('lexiplay:before-route-change')); window.history.pushState({}, '', path); }
       if (section !== activeSection) setQuickSearch(search ?? '');
+      if (section === 'account') setAccountEntryMode(accountMode);
       setActiveSection(section);
     };
     if (section === activeSection || (!wordSelection.pending.size && !wordSelection.saving)) { commit(); return; }
@@ -262,6 +267,7 @@ export default function App() {
 
   const finished = game?.completed || game?.status === 'cancelled' || (game?.guesses.at(-1)?.completed ?? false);
   const attemptsRemaining = game ? Math.max(0,game.attemptLimit - (game.attemptCount ?? game.guesses.length)) : 0;
+  const showGuestReminder = !!(activeSection === 'play' && game && finished && game.status !== 'cancelled' && !account && !accountLoading && !accountError && dismissedGuestReminder !== game.id);
 
   useEffect(() => {
     if (accountLoading) return;
@@ -505,7 +511,7 @@ export default function App() {
   const sectionNavigation = activeNavigationSection === 'progress' ? statsSections : activeNavigationSection === 'settings' ? settingsSections : null;
 
   return (
-    <LanguageContext.Provider value={interfacePreferences.language}><PendingWordsContext.Provider value={wordStore}><main className="app-shell">
+    <LanguageContext.Provider value={interfacePreferences.language}><PendingWordsContext.Provider value={wordStore}><main className="app-shell" inert={showGuestReminder}>
       <aside className="sidebar">
         <a className="brand" href="/" aria-label={t('LexiPlay home')} onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark">L</span>{t(' LexiPlay')}</a>
         <nav aria-label={t('Main navigation')} className="main-navigation">
@@ -620,6 +626,7 @@ export default function App() {
                   rejectedAttempt={rejected ? rejectedAttempt : 0} revealing={revealing} checking={checking} onRevealEnd={() => setRevealingGuess(null)}/>;
               })}
             </div>}
+            {finished && <div className="next-game" role="group" aria-label={t('Game actions')}><button ref={playAgainRef} className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Play again')}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>{t('Change settings')}</button>{!account && !accountLoading && !accountError && game.status !== 'cancelled' && <p className="guest-save-reminder"><a href={sectionPaths.account} onClick={event => { event.preventDefault(); navigateTo('account'); }}>{t('Sign in to save your game history.')}</a></p>}</div>}
             {!finished && <>
               <label className="sr-only" htmlFor="guess-input">{t('Type your {0} guess one letter at a time', t(lengthName(game.wordLength)))}</label>
               <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
@@ -659,7 +666,6 @@ export default function App() {
           </div>
         )}
       {!game && message && <p className="notice" role="status">{t(message)}</p>}
-      {finished && <div className="next-game"><button className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Play again')}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>{t('Change settings')}</button>{!account && !accountLoading && !accountError && game?.status !== 'cancelled' && <p className="guest-save-reminder"><a href={sectionPaths.account} onClick={event => { event.preventDefault(); navigateTo('account'); }}>{t('Sign in to save your game history.')}</a></p>}</div>}
       </section>
       </>}
       {activeSection === 'library' && <section className="library-page">
@@ -668,7 +674,7 @@ export default function App() {
       {activeSection === 'dictionary' && <DictionaryPage key={accountRevision} signedIn={!!account} accountLoading={accountLoading} searchQuery={quickSearch} />}
       {activeSection === 'feedback' && <FeedbackPage />}
       {activeSection === 'home' && <HomePage onNavigate={navigateTo} />}
-      {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} />}
+      {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} initialMode={accountEntryMode} />}
       {activeSection === 'progress' && <StatisticsPanel key={accountRevision} onPlay={() => navigateTo('play')} onSignIn={() => navigateTo('account')} />}
       {activeSection === 'community' && <CommunityPage onExplore={() => navigateTo('library')} />}
       {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} soundEnabled={soundEnabled} onSoundChange={enabled => { gameAudio.setEnabled(enabled); setSoundEnabled(enabled); }} fontSize={interfacePreferences.fontSize} onFontSizeChange={interfacePreferences.setFontSize} language={interfacePreferences.languagePreference} onLanguageChange={interfacePreferences.setLanguage} />}
@@ -685,6 +691,8 @@ export default function App() {
       </section>}
       <footer className="workspace-footer"><div className="footer-links"><a href="https://github.com/Hwent" target="_blank" rel="noopener noreferrer" aria-label={t('Visit Hwent on GitHub (opens in a new tab)')}>{t('Hwent on GitHub ')}<Icon name="arrow" /></a><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>{t('Licenses')}</a></div></footer>
       </div>
-    </main></PendingWordsContext.Provider></LanguageContext.Provider>
+    </main>
+    {showGuestReminder && game && <GuestGameReminder key={game.id} returnFocusRef={playAgainRef} onDismiss={() => setDismissedGuestReminder(game.id)} onSignIn={() => { setDismissedGuestReminder(game.id); navigateTo('account'); }} onCreateAccount={() => { setDismissedGuestReminder(game.id); navigateTo('account', undefined, 'register'); }}/>}
+    </PendingWordsContext.Provider></LanguageContext.Provider>
   );
 }

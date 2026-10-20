@@ -98,6 +98,8 @@ describe('Word Ladder', () => {
     }));
     const user = userEvent.setup(); render(<App/>);
     await user.click(await screen.findByRole('button', { name: 'Give up' }));
+    const reminder = await screen.findByRole('dialog', { name: 'Keep your progress.' });
+    await user.click(within(reminder).getByRole('button', { name: 'Continue as guest' }));
     expect(await screen.findByText('You gave up. The entry coin was not returned.')).toBeInTheDocument();
     expect(givenUp).toBe(true);
     expect(screen.getByText('THE ANSWER')).toBeInTheDocument();
