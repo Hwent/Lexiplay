@@ -187,14 +187,15 @@ export class GameRepository implements OnModuleDestroy {
     return rows.map(row => {
       const state = row.active_state, rules = DIFFICULTIES[row.difficulty], completed = row.status !== 'active';
       const ladder = row.ladder_state;
+      const attemptLimit = ladder ? ladder.shortestSteps + 3 : rules.attemptLimit;
       const steps = state?.guesses ?? ladder?.guesses ?? [];
       const guesses: Guess[] = steps.map((guess,index) => ({ guess,
-        feedback:ladder ? ladderFeedback(steps[index - 1] ?? ladder.startWord,guess) : score(row.answer,guess),
-        definition:meanings.get(guess) ?? '',attemptsRemaining:ladder ? 0 : rules.attemptLimit-index-1,completed:completed && index === steps.length - 1 }));
+        feedback:ladder ? ladderFeedback(steps[index - 1] ?? ladder.startWord,guess,row.answer) : score(row.answer,guess),
+        definition:meanings.get(guess) ?? '',attemptsRemaining:attemptLimit-index-1,completed:completed && index === steps.length - 1 }));
       return { id:row.id,startRequestId:row.start_request_id,kind:ladder ? 'word-ladder' : 'word-puzzle',owner,answer:row.answer,
         ...(ladder ? { ladder: { startWord: ladder.startWord, shortestSteps: ladder.shortestSteps, startDefinition: meanings.get(ladder.startWord) ?? '' } } : {}),
         answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
-        wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit:ladder ? 0 : rules.attemptLimit,guesses,completed,status:row.status,
+        wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit,guesses,completed,status:row.status,
         startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
         hints: { partOfSpeech: completed ? 0 : state?.hints.partOfSpeech ?? 1, definition: completed ? 0 : state?.hints.definition ?? 1 },
         clues: { ...(state?.clues?.partOfSpeech ? { partOfSpeech: state.clues.partOfSpeech } : {}),

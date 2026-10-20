@@ -58,6 +58,11 @@ export class GameController {
     return this.games.abandon(id,await this.owner(cookie));
   }
 
+  @Post(':gameId/give-up')
+  async giveUp(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string) {
+    return this.games.giveUp(id, await this.owner(cookie));
+  }
+
   private async owner(cookie: string | undefined, response?: Response) {
     if (/(?:^|;\s*)lexiplay_session=/.test(cookie ?? '')) {
       try { return `user:${(await this.accounts.current(readSessionCookie(cookie))).id}`; }

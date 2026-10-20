@@ -1,12 +1,17 @@
 # Puzzle answers and rules
 
 Word Ladder offers four- or five-letter words from the common default answer
-pools described below, with dictionary definitions and no step limit. Each move substitutes
+pools described below, with dictionary definitions. Each move substitutes
 exactly one letter and must appear in the game dictionary. Start and goal words
-have a verified shortest path of 3–6 moves in the common pool; players may use
-the broader dictionary and take longer routes. Entry costs 1 coin and reaching
+have a verified path of 3–6 moves in the common pool; players may use
+the broader dictionary. The limit is the shortest path in that dictionary plus
+three steps. Changed letters are green when they match the goal at that position
+and yellow otherwise. Entry costs 1 coin and reaching
 the goal awards 5 coins. Ladder paths survive reloads and completion.
 Rules: [Word ladder](https://en.wikipedia.org/wiki/Word_ladder).
+
+`POST /games/:id/give-up` ends either puzzle as a loss, reveals the answer, and
+keeps the entry coin spent. Repeating this request does not change the balance.
 
 Default five-letter answers use the original Wordle list. At 3–4 and 6–9 letters,
 defaults use the existing Oxford A1–B2 vocabulary selection. Both pools intersect

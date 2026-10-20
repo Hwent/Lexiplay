@@ -191,12 +191,14 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
         }
       }
       expect(route.length).toBeGreaterThanOrEqual(3);
-      const detour = [route[0]!, game.ladder.startWord, route[0]!, game.ladder.startWord,
-        route[0]!, game.ladder.startWord, route[0]!, game.ladder.startWord];
+      expect(game.ladder.shortestSteps).toBe(route.length);
+      expect(game.attemptLimit).toBe(route.length + 3);
+      const detour = [route[0]!, game.ladder.startWord];
       for (const step of detour) expect(await (await submit(step)).json()).toMatchObject({ completed: false });
       for (let index = 0; index < route.length; index++) {
         const result = await (await submit(route[index]!)).json();
-        expect(result.feedback.filter((color: string) => color === 'CORRECT')).toHaveLength(1);
+        expect(result.feedback.filter((color: string) => color !== 'ABSENT')).toHaveLength(1);
+        expect(result.attemptsRemaining).toBe(game.attemptLimit - detour.length - index - 1);
         expect(result.definition).toBeTruthy();
         expect(result.completed).toBe(index === route.length - 1);
         const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
@@ -208,9 +210,43 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       expect(await balance(cookie)).toBe(before + 4);
       const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
       expect(restored).toMatchObject({ status: 'won', coinChange: 4, attemptCount: detour.length + route.length, ladder: game.ladder });
+      const loss = await (await request('/games', 'POST', { kind: 'word-ladder', wordLength: length }, cookie)).json();
+      const firstStep = terms.find(term => [...term].filter((letter, index) => letter !== loss.ladder.startWord[index]).length === 1)!;
+      const beforeLoss = await balance(cookie);
+      for (let index = 0; index < loss.attemptLimit; index++) {
+        const step = await (await request(`/games/${loss.id}/guesses`, 'POST', { guess: index % 2 ? loss.ladder.startWord : firstStep }, cookie)).json();
+        expect(step.completed).toBe(index === loss.attemptLimit - 1);
+        if (step.completed) expect(step).toMatchObject({ outcome: 'LOST', attemptsRemaining: 0 });
+      }
+      expect(await balance(cookie)).toBe(beforeLoss);
+      expect(await (await request(`/games/${loss.id}`, 'GET', undefined, cookie)).json()).toMatchObject({ status: 'lost', attemptCount: loss.attemptLimit, coinChange: -1 });
     }
     for (const options of [{ wordLength: 3 }, { wordLength: 6 }, { difficulty: 'hard' }, { collectionId: appleCollection }]) {
       expect((await request('/games', 'POST', { kind: 'word-ladder', ...options }, (await account()).cookie)).status).toBe(400);
+    }
+  });
+
+  it.each(['word-puzzle', 'word-ladder'])('giving up %s keeps the entry coin spent and reveals the answer', async kind => {
+    await publishDictionary(pool, [...dictionary, ...['stone','store','score','shore','share','spare','stare','start','smart'].map(term => word(term))]);
+    for (const cookie of [(await account()).cookie, await guest()]) {
+      const before = await balance(cookie);
+      const game = kind === 'word-puzzle' ? await start(cookie)
+        : await (await request('/games', 'POST', { kind, wordLength: 5 }, cookie)).json();
+      expect(await balance(cookie)).toBe(before - 1);
+      const other = await account();
+      expect((await request(`/games/${game.id}/give-up`, 'POST', {}, other.cookie)).status).toBe(404);
+      const responses = await Promise.all([request(`/games/${game.id}/give-up`, 'POST', {}, cookie), request(`/games/${game.id}/give-up`, 'POST', {}, cookie)]);
+      for (const response of responses) {
+        expect(response.status).toBe(201);
+        const result = await response.json();
+        expect(result).toMatchObject({ status: 'lost', completed: true });
+        expect(result.answer).toBeTruthy();
+        expect(result.answerDefinition).toBeTruthy();
+      }
+      expect(await balance(cookie)).toBe(before - 1);
+      expect((await request(`/games/${game.id}/guesses`, 'POST', { guess: 'apple' }, cookie)).status).toBe(400);
+      const stored = (await pool.query('SELECT status,coin_change FROM practice_games WHERE id=$1', [game.id])).rows[0];
+      expect(stored).toEqual({ status: 'lost', coin_change: -1 });
     }
   });
 

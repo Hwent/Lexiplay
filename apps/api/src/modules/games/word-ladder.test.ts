@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { createLadder, ladderFeedback } from './word-ladder';
+import { createLadder, ladderFeedback, shortestLadderSteps } from './word-ladder';
 
 describe('word ladders', () => {
   it('offers a reachable pair with at least three substitutions', () => {
@@ -18,7 +18,14 @@ describe('word ladders', () => {
     expect(createLadder(['cold', 'warm', 'solo'])).toBeUndefined();
     expect(createLadder(['cold', 'cord'])).toBeUndefined();
   });
-  it('highlights the changed position, including repeated letters', () => {
-    expect(ladderFeedback('still', 'stall')).toEqual(['ABSENT', 'ABSENT', 'CORRECT', 'ABSENT', 'ABSENT']);
+  it('colors changed letters by their exact position in the goal', () => {
+    expect(ladderFeedback('still', 'stall', 'stale')).toEqual(['ABSENT', 'ABSENT', 'CORRECT', 'ABSENT', 'ABSENT']);
+    expect(ladderFeedback('cold', 'gold', 'warm')).toEqual(['PRESENT', 'ABSENT', 'ABSENT', 'ABSENT']);
+    expect(ladderFeedback('cold', 'cord', 'warm')).toEqual(['ABSENT', 'ABSENT', 'CORRECT', 'ABSENT']);
+  });
+  it('finds the shortest route across the full accepted dictionary', () => {
+    expect(shortestLadderSteps(['cat','cot','cog','dog','dot'], 'cat', 'dog')).toBe(3);
+    expect(shortestLadderSteps(['cat','cot','cog','dog','dot','dat'], 'cat', 'dot')).toBe(2);
+    expect(shortestLadderSteps(['cold','warm'], 'cold', 'warm')).toBeUndefined();
   });
 });

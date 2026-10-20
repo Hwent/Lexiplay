@@ -1,8 +1,25 @@
 import { randomInt } from 'node:crypto';
 import type { Feedback } from './game.types';
 
-export function ladderFeedback(previous: string, next: string): Feedback[] {
-  return [...next].map((letter, index) => letter !== previous[index] ? 'CORRECT' : 'ABSENT');
+export function ladderFeedback(previous: string, next: string, goal: string): Feedback[] {
+  return [...next].map((letter, index) => letter === previous[index] ? 'ABSENT' : letter === goal[index] ? 'CORRECT' : 'PRESENT');
+}
+
+export function shortestLadderSteps(words: string[], start: string, goal: string) {
+  const allowed = new Set(words), queue = [{ word: start, steps: 0 }];
+  allowed.delete(start);
+  for (let head = 0; head < queue.length; head++) {
+    const { word, steps } = queue[head]!;
+    if (word === goal) return steps;
+    for (let index = 0; index < word.length; index++) {
+      for (const letter of 'abcdefghijklmnopqrstuvwxyz') {
+        const next = word.slice(0, index) + letter + word.slice(index + 1);
+        if (!allowed.delete(next)) continue;
+        queue.push({ word: next, steps: steps + 1 });
+      }
+    }
+  }
+  return undefined;
 }
 
 // Search only connected, common words so every offered ladder can be solved.

@@ -531,7 +531,7 @@ export const zhCN: Record<string, string> = {
   "Start ladder ": "开始阶梯挑战 ",
   "How to play": "玩法",
   "Turn the start word into the green goal word. Change exactly one letter at each step to make a real word.": "将起始单词变为绿色的目标单词。每一步只能替换一个字母，并组成有效单词。",
-  "Take as many steps as you need. Every new word comes with a definition.": "步数不限。每个新单词都会显示释义。",
+  "Your step limit is the shortest path plus three. Every new word comes with a definition.": "步数上限为最短路径加三步。每个新单词都会显示释义。",
   "GOAL WORD": "目标单词",
   "Goal: {0}": "目标：{0}",
   "{0}, changed letter": "{0}，已更改的字母",
@@ -543,5 +543,12 @@ export const zhCN: Record<string, string> = {
   "{0} in {1} steps.": "{0}，共 {1} 步。",
   "Change one letter. Complete words check automatically.": "替换一个字母。输入完整单词后会自动检查。",
   "Change exactly one letter from the previous word.": "请在上一个单词的基础上仅替换一个字母。",
-  "No connected word ladder is available at this length yet.": "此长度暂时没有可玩的单词阶梯。"
+  "No connected word ladder is available at this length yet.": "此长度暂时没有可玩的单词阶梯。",
+  "Matches goal": "与目标位置一致",
+  "Does not match goal": "与目标位置不一致",
+  "{0} step left": "剩余 {0} 步",
+  "{0} steps left": "剩余 {0} 步",
+  "Give up": "放弃",
+  "You gave up. The entry coin was not returned.": "已放弃。本次入场金币不予退还。",
+  "Could not give up. Try again.": "暂时无法放弃，请重试。"
 };

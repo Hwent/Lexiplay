@@ -190,6 +190,22 @@ export default function App() {
     } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not leave your puzzle. Try again.'); }
     finally { setBusy(false); }
   }
+  async function giveUp() {
+    if (!game || finished || busy || progressSaving) return;
+    const session = guessSession.current;
+    setBusy(true);
+    try {
+      await wordStore.flush();
+      const result = await api<Game>(`/games/${game.id}/give-up`, { method: 'POST' });
+      if (session !== guessSession.current) return;
+      guessSession.current++;
+      setGame(result); setGuess(''); setRejectedAttempt(0);
+      setMessage(result.status === 'lost' ? 'You gave up. The entry coin was not returned.' : '');
+      wordStore.requests.invalidate('/progress/');
+      if (activeSectionRef.current === 'play') gameAudio.play('complete');
+    } catch (error) { if (session === guessSession.current) setMessage(error instanceof Error ? error.message : 'Could not give up. Try again.'); }
+    finally { setBusy(false); }
+  }
   async function useCollection(poolId:string) {
     if (busy) return;
     setBusy(true);
@@ -532,18 +548,19 @@ export default function App() {
           <div className="welcome-card">
             <div className="practice-story">
             {puzzleKind === 'word-ladder' ? <>
-            <div className="ladder-preview" aria-hidden="true">{['COLD', 'CORD', 'CARD'].map((word, row, words) => <div key={word}>{[...word].map((letter, index) => <span className={row > 0 && letter !== words[row - 1]![index] ? 'changed' : ''} key={index}>{letter}</span>)}</div>)}</div>
+            <div className="ladder-preview" aria-hidden="true">{['COLD', 'GOLD', 'GOOD'].map((word, row, words) => <div key={word}>{[...word].map((letter, index) => <span className={row > 0 && letter !== words[row - 1]![index] ? letter === 'FOOD'[index] ? 'correct' : 'present' : ''} key={index}>{letter}</span>)}</div>)}</div>
             <h2>{t('Word Ladder')}</h2>
             <details className="game-rules" open><summary>{t('How to play')}</summary>
               <p>{t('Turn the start word into the green goal word. Change exactly one letter at each step to make a real word.')}</p>
-              <p>{t('Take as many steps as you need. Every new word comes with a definition.')}</p>
+              <p>{t('Your step limit is the shortest path plus three. Every new word comes with a definition.')}</p>
+              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />{t('Matches goal')}</span><span><i className="rule-swatch present" aria-hidden="true" />{t('Does not match goal')}</span></div>
             </details>
             </> : <>
             <div className="sample-grid" aria-hidden="true">
               {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
             </div>
             <h2>{t('Word puzzle')}</h2>
-            <details className="game-rules">
+            <details className="game-rules" open>
               <summary>{t('Wordle rules')}</summary>
               <p>{t('Find the hidden {0}-letter word in {1} guesses. Each full word checks automatically.', selectedWordLength, difficulties.find(option => option.id === difficulty)!.guesses)}</p>
               <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />{t('Correct spot')}</span><span><i className="rule-swatch present" aria-hidden="true" />{t('Wrong spot')}</span><span><i className="rule-swatch absent" aria-hidden="true" />{t('Not in word')}</span></div>
@@ -579,9 +596,9 @@ export default function App() {
             {celebrationId === game.id && <PuzzleCelebration key={game.id}/>}
             <div className="puzzle-heading">
               <div><p className="eyebrow">{t('{0} · {1} letters', t(game.ladder ? 'Word Ladder' : game.difficulty ?? difficulty), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
-              <span className="attempt-counter" aria-live="polite">{game.ladder ? t(game.guesses.length === 1 ? '{0} step' : '{0} steps', game.attemptCount ?? game.guesses.length) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
+              <span className="attempt-counter" aria-live="polite">{game.ladder ? t(attemptsRemaining === 1 ? '{0} step left' : '{0} steps left', attemptsRemaining) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
             </div>
-            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>{t('Choose a new puzzle')}</button></div>}
+            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>{t('Choose a new puzzle')}</button><button className="account-link" type="button" onClick={() => void giveUp()} disabled={busy || progressSaving}>{t('Give up')}</button></div>}
             <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.') : message ? t(message) : finished ? t(game.ladder ? '{0} in {1} steps.' : '{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length) : game.ladder ? t('Change one letter. Complete words check automatically.') : t('Type {0} letters to check your word automatically.', game.wordLength)}</p>
             {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label={t('Revealed letters')}>
               {game.revealedPresent.length > 0 && <span>{t('In the word: ')}<strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong>{t(' · position unknown')}</span>}
