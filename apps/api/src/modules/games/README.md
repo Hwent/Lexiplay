@@ -5,8 +5,9 @@ pools described below, with dictionary definitions. Each move substitutes
 exactly one letter and must appear in the game dictionary. Start and goal words
 have a verified path of 3–6 moves in the common pool; players may use
 the broader dictionary. The limit is the shortest path in that dictionary plus
-three steps. Changed letters are green when they match the goal at that position
-and yellow otherwise. Entry costs 1 coin and reaching
+three steps. Letters matching the goal at that position remain green in each row;
+other changed letters are yellow. Both games share tile feedback, illegal-word
+handling, and pronunciation controls. Entry costs 1 coin and reaching
 the goal awards 5 coins. Ladder paths survive reloads and completion.
 Rules: [Word ladder](https://en.wikipedia.org/wiki/Word_ladder).
 

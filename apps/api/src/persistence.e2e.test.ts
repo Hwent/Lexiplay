@@ -174,7 +174,9 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       expect(await balance(cookie)).toBe(before - 1);
       const submit = (guess: string) => request(`/games/${game.id}/guesses`, 'POST', { guess }, cookie);
       expect((await submit(game.ladder.startWord)).status).toBe(400);
-      expect((await submit('z'.repeat(length))).status).toBe(400);
+      const illegal = await submit('z'.repeat(length));
+      expect(illegal.status).toBe(400);
+      expect(await illegal.json()).toMatchObject({ code: 'INVALID_GUESS' });
       const unknown = 'z' + game.ladder.startWord.slice(1);
       expect((await submit(unknown)).status).toBe(400);
       expect((await request(`/games/${game.id}/hints`, 'POST', { type: 'definition' }, cookie)).status).toBe(400);
@@ -197,7 +199,8 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       for (const step of detour) expect(await (await submit(step)).json()).toMatchObject({ completed: false });
       for (let index = 0; index < route.length; index++) {
         const result = await (await submit(route[index]!)).json();
-        expect(result.feedback.filter((color: string) => color !== 'ABSENT')).toHaveLength(1);
+        const previous = index ? route[index - 1]! : game.ladder.startWord;
+        expect(result.feedback).toEqual([...route[index]!].map((letter, column) => letter === game.ladder.goalWord[column] ? 'CORRECT' : letter !== previous[column] ? 'PRESENT' : 'ABSENT'));
         expect(result.attemptsRemaining).toBe(game.attemptLimit - detour.length - index - 1);
         expect(result.definition).toBeTruthy();
         expect(result.completed).toBe(index === route.length - 1);

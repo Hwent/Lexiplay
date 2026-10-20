@@ -21,6 +21,7 @@ describe('Word Ladder', () => {
       if (path.endsWith('/guesses')) {
         submissions++;
         if (submissions === 1) return Response.json({ code: 'INVALID_LADDER_STEP', message: 'Change exactly one letter from the previous word.' }, { status: 400 });
+        if (submissions > 2) return Response.json({ code: 'INVALID_GUESS', message: 'Enter a valid 4-letter word from the practice dictionary.' }, { status: 400 });
         return Response.json({ guess: 'cord', definition: 'A thin rope.', feedback: ['ABSENT', 'ABSENT', 'CORRECT', 'ABSENT'], completed: false, attemptsRemaining: 6 });
       }
       return Response.json([]);
@@ -52,13 +53,32 @@ describe('Word Ladder', () => {
     await user.keyboard('{Backspace}{Backspace}{Backspace}{Backspace}cord');
     expect(await screen.findByText('A thin rope.')).toBeInTheDocument();
     expect(within(board).getByRole('gridcell', { name: 'r, changed letter, Matches goal' })).toHaveClass('correct');
+    expect(within(board).getByRole('row', { name: 'cord' })).toHaveClass('revealing-guess');
     expect(screen.getByText('6 steps left')).toBeInTheDocument();
+    await user.keyboard('corz');
+    expect(await screen.findByText('CORZ is not in the dictionary. Try another word.')).toBeInTheDocument();
+    const rejectedRow = within(board).getByRole('row', { name: 'Next word' });
+    expect(rejectedRow).toHaveClass('invalid-guess');
+    expect(within(rejectedRow).getAllByRole('gridcell').every(tile => tile.classList.contains('letter-tile'))).toBe(true);
+    expect(screen.getByRole('textbox', { name: /four-letter guess/i })).toHaveValue('corz');
+    expect(screen.getByText('6 steps left')).toBeInTheDocument();
+    await user.keyboard('{Enter}');
+    await waitFor(() => expect(submissions).toBe(4));
+    expect(within(board).getByRole('row', { name: 'Next word' })).not.toBe(rejectedRow);
   });
 
   it('shows nonmatching changes in yellow and exact goal matches in green', () => {
-    render(<WordLadderBoard ladder={ladder} steps={[{ guess: 'gold' }, { guess: 'cold' }, { guess: 'cord' }]} guess="" finished={false} busy={false} rejected={false}/>);
+    render(<WordLadderBoard ladder={ladder} steps={[{ guess: 'gold' }, { guess: 'cold' }, { guess: 'cord' }]} guess="" finished={false} busy={false}/>);
     expect(screen.getByRole('gridcell', { name: 'g, changed letter, Does not match goal' })).toHaveClass('present');
     expect(screen.getByRole('gridcell', { name: 'r, changed letter, Matches goal' })).toHaveClass('correct');
+  });
+
+  it('keeps exact goal letters green when later steps change another letter', () => {
+    render(<WordLadderBoard ladder={ladder} steps={[{ guess: 'cord' }, { guess: 'card' }, { guess: 'ward' }]} guess="" finished={false} busy={false}/>);
+    expect(within(screen.getByRole('row', { name: 'card' })).getByRole('gridcell', { name: 'r, Matches goal' })).toHaveClass('correct');
+    const last = screen.getByRole('row', { name: 'ward' });
+    expect(within(last).getByRole('gridcell', { name: 'a, Matches goal' })).toHaveClass('correct');
+    expect(within(last).getByRole('gridcell', { name: 'r, Matches goal' })).toHaveClass('correct');
   });
 
   it.each(['word-puzzle', 'word-ladder'])('gives up %s and displays the revealed answer without a refund notice', async kind => {

@@ -1,12 +1,14 @@
 import { type CSSProperties, useEffect, useRef } from 'react';
 import { useTranslation } from './i18n';
 import PronunciationButton from './PronunciationButton';
+import PuzzleGuessRow from './PuzzleGuessRow';
 import './word-ladder.css';
 
 export type Ladder = { startWord: string; startDefinition?: string; goalWord: string; goalDefinition?: string; shortestSteps: number };
 
-export default function WordLadderBoard({ ladder, steps, guess, finished, busy, rejected }: {
-  ladder: Ladder; steps: { guess: string }[]; guess: string; finished: boolean; busy: boolean; rejected: boolean;
+export default function WordLadderBoard({ ladder, steps, guess, finished, busy, rejectedAttempt = 0, revealingRow, onRevealEnd }: {
+  ladder: Ladder; steps: { guess: string }[]; guess: string; finished: boolean; busy: boolean;
+  rejectedAttempt?: number; revealingRow?: number | undefined; onRevealEnd?: () => void;
 }) {
   const t = useTranslation();
   const words = [ladder.startWord, ...steps.map(step => step.guess)];
@@ -23,20 +25,16 @@ export default function WordLadderBoard({ ladder, steps, guess, finished, busy, 
       </details>
     </div>
     <div ref={pathRef} className="ladder-path" role="grid" aria-label={t('Word ladder board')}>
-      {words.map((word, row) => <div className="ladder-rung" key={row}>
-        <div className="ladder-tiles" role="row" aria-label={word}>
-          {[...word].map((letter, column) => {
-            const changed = row > 0 && letter !== words[row - 1]![column];
-            const correct = letter === ladder.goalWord[column];
-            return <span role="gridcell" aria-label={changed ? `${t('{0}, changed letter', letter)}, ${t(correct ? 'Matches goal' : 'Does not match goal')}` : letter} className={`ladder-tile${changed ? ` changed ${correct ? 'correct' : 'present'}` : ''}`} key={column}>{letter}</span>;
-          })}
-        </div>
-      </div>)}
-      {!finished && <div className={`ladder-rung${rejected ? ' invalid-guess' : ''}`}>
-        <div className="ladder-tiles" role="row" aria-label={t('Next word')} aria-busy={busy}>
-          {Array.from({ length }, (_, column) => <span role="gridcell" className={`ladder-tile next${guess[column] ? ' filled' : ''}`} key={column}>{guess[column] ?? ''}</span>)}
-        </div>
-      </div>}
+      {words.map((word, row) => {
+        const states = [...word].map((letter, column) => letter === ladder.goalWord[column] ? 'correct' : row > 0 && letter !== words[row - 1]![column] ? 'present' : 'neutral');
+        const labels = [...word].map((letter, column) => {
+          const changed = row > 0 && letter !== words[row - 1]![column];
+          if (states[column] === 'neutral') return letter;
+          return `${changed ? t('{0}, changed letter', letter) : letter}, ${t(states[column] === 'correct' ? 'Matches goal' : 'Does not match goal')}`;
+        });
+        return <PuzzleGuessRow key={row} className={`ladder-tiles${word === ladder.goalWord ? ' ladder-solved' : ''}`} tileClassName="ladder-tile" word={word} wordLength={length} label={word} states={states} labels={labels} revealing={row > 0 && revealingRow === row - 1} onRevealEnd={onRevealEnd}/>;
+      })}
+      {!finished && <PuzzleGuessRow className="ladder-tiles" tileClassName="ladder-tile next" word={guess} wordLength={length} label={t('Next word')} rejectedAttempt={rejectedAttempt} checking={busy}/>}
     </div>
   </div>;
 }

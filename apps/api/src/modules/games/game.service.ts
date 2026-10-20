@@ -80,11 +80,11 @@ export class GameService {
     return this.games.change(id, owner, async game => {
       this.requireActive(game);
       const guess = rawGuess.trim().toLowerCase();
+      if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !(await this.dictionary.isDictionaryGameWord(guess))) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
       const previous = game.guesses.at(-1)?.guess ?? game.ladder?.startWord;
       if (game.ladder && (guess.length !== game.wordLength || [...guess].filter((letter, index) => letter !== previous![index]).length !== 1)) {
         throw new BadRequestException({ code: 'INVALID_LADDER_STEP', message: 'Change exactly one letter from the previous word.' });
       }
-      if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !(await this.dictionary.isDictionaryGameWord(guess))) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
       const attemptsRemaining = game.attemptLimit - game.guesses.length - 1;
       const won = guess === game.answer;
       const completed = won || attemptsRemaining === 0;

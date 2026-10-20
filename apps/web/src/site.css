@@ -258,7 +258,7 @@
 .footer-links .ui-icon { width: .95rem; height: .95rem; }
 @media (prefers-reduced-motion: no-preference) {
   .confetti-piece { animation: confetti-burst 2.3s ease-out both; transform-origin: 300px 30px; }
-  .puzzle-won .guess-row:has(.correct):not(:has(.absent, .present)) { animation: solved-bounce .6s ease-in-out; }
+  .puzzle-won .guess-row:has(.correct):not(:has(.absent, .present, .neutral)), .puzzle-won .guess-row.ladder-solved { animation: solved-bounce .6s ease-in-out; }
   .coins-changed > .ui-icon { animation: coin-flip .6s ease-out; }
   .coin-change { animation: coin-delta 1.5s ease-out both; }
   @keyframes confetti-burst { 0% { opacity: 0; transform: translate(300px, 30px) scale(.3); } 12% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(300px + var(--x)), var(--y)) rotate(var(--turn)); } }

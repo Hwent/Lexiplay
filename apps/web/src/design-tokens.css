@@ -78,7 +78,8 @@
   --key-absent-text: var(--neutral-400);
   --absent: var(--neutral-800);
   --absent-text: var(--neutral-300);
-  --correct: var(--success-400);
+  /* Coolors: 8.68:1 for dark feedback, 7.58:1 for light feedback (AAA). */
+  --correct: var(--success-300);
   --correct-text: var(--success-950);
   --present: var(--warning-300);
   --present-text: var(--neutral-950);
@@ -118,7 +119,7 @@
   --key-absent-text: var(--neutral-100);
   --absent: var(--neutral-200);
   --absent-text: var(--neutral-700);
-  --correct: var(--success-600);
+  --correct: var(--success-700);
   --correct-text: var(--neutral-0);
   --present: var(--warning-300);
   --present-text: var(--neutral-950);

@@ -2,7 +2,7 @@ import { randomInt } from 'node:crypto';
 import type { Feedback } from './game.types';
 
 export function ladderFeedback(previous: string, next: string, goal: string): Feedback[] {
-  return [...next].map((letter, index) => letter === previous[index] ? 'ABSENT' : letter === goal[index] ? 'CORRECT' : 'PRESENT');
+  return [...next].map((letter, index) => letter === goal[index] ? 'CORRECT' : letter !== previous[index] ? 'PRESENT' : 'ABSENT');
 }
 
 export function shortestLadderSteps(words: string[], start: string, goal: string) {

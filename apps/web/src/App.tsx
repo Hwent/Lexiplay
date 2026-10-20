@@ -12,6 +12,7 @@ import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
 import WordLadderBoard, { Ladder } from './WordLadderBoard';
+import PuzzleGuessRow from './PuzzleGuessRow';
 import DefinitionText from './DefinitionText';
 import { definitionHintText } from './hint-text';
 import { gameAudio } from './services/game-audio';
@@ -608,22 +609,15 @@ export default function App() {
             <div className={`puzzle-stage${!finished && !game.ladder ? ' with-hints' : ''}`}>
             {hintPanel('partOfSpeech')}
             <div className="puzzle-play-column">
-            {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy} rejected={!!rejectedAttempt}/> : (!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={t('{0}-letter puzzle board', game.wordLength)} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
+            {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy && submittingGuess.current} rejectedAttempt={rejectedAttempt} revealingRow={revealingGuess?.gameId === game.id ? revealingGuess.row : undefined} onRevealEnd={() => setRevealingGuess(null)}/> : (!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={t('{0}-letter puzzle board', game.wordLength)} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
                 const result = game.guesses[row];
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
                 const rejected = !result && row === game.guesses.length && rejectedAttempt > 0;
                 const revealing = revealingGuess?.gameId === game.id && revealingGuess.row === row;
                 const checking = !result && row === game.guesses.length && busy && submittingGuess.current;
-                return <div className={`guess-row${rejected ? ' invalid-guess' : ''}${revealing ? ' revealing-guess' : ''}${checking ? ' checking-guess' : ''}`} role="row" aria-label={result?.guess ?? t('Guess {0}', row + 1)} aria-busy={checking || undefined} key={`${game.id}-${row}-${rejected ? rejectedAttempt : 0}`} onAnimationEnd={event => {
-                  if (event.animationName === 'puzzle-tile-reveal' && event.target === event.currentTarget.lastElementChild) setRevealingGuess(null);
-                }} style={{ gridTemplateColumns: `repeat(${game.wordLength}, minmax(0, 1fr))` }}>
-                  {Array.from({ length: game.wordLength }, (_, column) => {
-                    const letter = result?.guess[column] ?? activeGuess[column] ?? '';
-                    const state = result?.feedback[column]?.toLowerCase() ?? '';
-                    return <span role="gridcell" aria-label={letter ? `${letter}, ${t(state || 'not submitted')}` : t('Empty')} className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`} style={{ fontSize: `clamp(1rem, calc(64cqi / ${game.wordLength}), 2.25rem)` }} key={`${column}-${letter}`}>{letter}</span>;
-                  })}
-                </div>;
+                return <PuzzleGuessRow key={`${game.id}-${row}`} word={result?.guess ?? activeGuess} wordLength={game.wordLength} label={result?.guess ?? t('Guess {0}', row + 1)} states={result?.feedback.map(state => state.toLowerCase()) ?? []}
+                  rejectedAttempt={rejected ? rejectedAttempt : 0} revealing={revealing} checking={checking} onRevealEnd={() => setRevealingGuess(null)}/>;
               })}
             </div>}
             {!finished && <>

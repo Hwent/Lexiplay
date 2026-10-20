@@ -19,9 +19,11 @@ describe('word ladders', () => {
     expect(createLadder(['cold', 'cord'])).toBeUndefined();
   });
   it('colors changed letters by their exact position in the goal', () => {
-    expect(ladderFeedback('still', 'stall', 'stale')).toEqual(['ABSENT', 'ABSENT', 'CORRECT', 'ABSENT', 'ABSENT']);
+    expect(ladderFeedback('still', 'stall', 'stale')).toEqual(['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT', 'ABSENT']);
     expect(ladderFeedback('cold', 'gold', 'warm')).toEqual(['PRESENT', 'ABSENT', 'ABSENT', 'ABSENT']);
     expect(ladderFeedback('cold', 'cord', 'warm')).toEqual(['ABSENT', 'ABSENT', 'CORRECT', 'ABSENT']);
+    expect(ladderFeedback('cord', 'card', 'warm')).toEqual(['ABSENT', 'CORRECT', 'CORRECT', 'ABSENT']);
+    expect(ladderFeedback('ward', 'warm', 'warm')).toEqual(['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT']);
   });
   it('finds the shortest route across the full accepted dictionary', () => {
     expect(shortestLadderSteps(['cat','cot','cog','dog','dot'], 'cat', 'dog')).toBe(3);
