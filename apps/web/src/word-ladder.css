@@ -2,11 +2,3 @@
 .puzzle-type-options button { display: inline-flex; align-items: center; gap: .6rem; min-height: 3rem; padding: .7rem 1.2rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--surface); color: var(--soft-text); font: inherit; font-weight: 650; cursor: pointer; transition: background .18s, border-color .18s; }
 .puzzle-type-options button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
 .practice-options .ladder-length-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-.ladder-stage { width: min(100%, 18rem); margin: 0 auto; }
-.ladder-tiles { display: grid; grid-template-columns: repeat(var(--ladder-length), minmax(0, 1fr)); gap: .4rem; width: 100%; max-width: 21rem; margin-inline: auto; }
-.ladder-tile { display: grid; place-items: center; aspect-ratio: 1; min-width: 0; border: 1px solid var(--tile-border); border-radius: .55rem; background: var(--surface-soft); color: var(--text); font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 750; text-transform: uppercase; }
-.ladder-tile.next { background: var(--control-bg); border-style: dashed; }
-.ladder-tile.filled { border-style: solid; border-color: var(--filled-border); }
-.ladder-path { display: grid; gap: .5rem; }
-.ladder-puzzle .puzzle-stage { display: block; }
-.ladder-puzzle .puzzle-tools { margin-bottom: 1rem; }

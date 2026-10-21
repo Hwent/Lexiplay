@@ -1,5 +1,5 @@
-import { type CSSProperties } from 'react';
 import { useTranslation } from './i18n';
+import PuzzleGrid from './PuzzleGrid';
 import PuzzleGuessRow from './PuzzleGuessRow';
 import './word-ladder.css';
 
@@ -12,18 +12,16 @@ export default function WordLadderBoard({ ladder, steps, guess, finished, busy, 
   const t = useTranslation();
   const length = ladder.startWord.length;
   const neutral = Array<string>(length).fill('neutral');
-  return <div className="ladder-stage" style={{ '--ladder-length': length } as CSSProperties}>
-    <div className="ladder-path" role="grid" aria-label={t('Word ladder board')}>
-      <PuzzleGuessRow className="ladder-tiles" tileClassName="ladder-tile" word={ladder.startWord} wordLength={length} label={ladder.startWord} states={neutral} labels={[...ladder.startWord]}/>
-      {Array.from({ length: Math.max(ladder.targetWords, steps.length) }, (_, row) => {
-        const step = steps[row];
-        const active = !finished && row === steps.length;
-        return <PuzzleGuessRow key={row} className={`ladder-tiles${step && row === ladder.targetWords - 1 ? ' ladder-solved' : ''}`} tileClassName={`ladder-tile${step ? '' : ' next'}`}
-          word={step?.guess ?? (active ? guess : '')} wordLength={length} label={step?.guess ?? t(active ? 'Next word' : 'Empty word')}
-          states={step ? neutral : []} labels={step ? [...step.guess] : []}
-          rejectedAttempt={active ? rejectedAttempt : 0} checking={active && busy}
-          revealing={!!step && revealingRow === row} onRevealEnd={onRevealEnd}/>;
-      })}
-    </div>
-  </div>;
+  return <PuzzleGrid wordLength={length} label={t('Word ladder board')}>
+    <PuzzleGuessRow word={ladder.startWord} wordLength={length} label={ladder.startWord} states={neutral} labels={[...ladder.startWord]}/>
+    {Array.from({ length: Math.max(ladder.targetWords, steps.length) }, (_, row) => {
+      const step = steps[row];
+      const active = !finished && row === steps.length;
+      return <PuzzleGuessRow key={row} className={step && row === ladder.targetWords - 1 ? 'ladder-solved' : ''}
+        word={step?.guess ?? (active ? guess : '')} wordLength={length} label={step?.guess ?? t(active ? 'Next word' : 'Empty word')}
+        states={step ? neutral : []} labels={step ? [...step.guess] : []}
+        rejectedAttempt={active ? rejectedAttempt : 0} checking={active && busy}
+        revealing={!!step && revealingRow === row} onRevealEnd={onRevealEnd}/>;
+    })}
+  </PuzzleGrid>;
 }

@@ -218,7 +218,8 @@
   .game-rules p { font-size: .9rem; }
   .rule-colors { gap: .65rem 1rem; }
   .puzzle-message { font-size: .95rem; padding: .65rem .75rem; }
-  .guess-board { --puzzle-tile-size: clamp(1.75rem, calc((100svh - 31rem) / var(--puzzle-attempts)), 3.6rem); }
+  /* Both games use the same scale, sized for Easy's seven rows. */
+  .guess-board { --puzzle-tile-size: clamp(1.75rem, calc((100svh - 31rem) / 7), 3.6rem); }
   .workspace .topbar { flex-wrap: wrap; padding-block: .75rem; gap: .75rem; }
   .header-actions { width: 100%; }
   .header-search { flex: 1; height: 2.75rem; }

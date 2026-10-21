@@ -2,7 +2,7 @@ import { PendingWords } from './services/pending-words';
 import { PendingWordsContext, useWordSelection } from './usePendingWords';
 import Icon, { IconName } from './Icon';
 import CollectionPicker from './CollectionPicker';
-import { CSSProperties, KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
+import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import AccountStatus from './AccountStatus';
 import useAccount from './useAccount';
 import HomePage from './HomePage';
@@ -14,6 +14,7 @@ import PuzzleCelebration from './PuzzleCelebration';
 import WordLadderBoard, { Ladder } from './WordLadderBoard';
 import GameGuide from './GameGuide';
 import PuzzleGuessRow from './PuzzleGuessRow';
+import PuzzleGrid from './PuzzleGrid';
 import GuestGameReminder from './GuestGameReminder';
 import DefinitionText from './DefinitionText';
 import { definitionHintText } from './hint-text';
@@ -608,7 +609,7 @@ export default function App() {
             <div className="puzzle-columns">
             <div className={`puzzle-stage${!finished && !game.ladder ? ' with-hints' : ''}`}>
             <div className="puzzle-play-column">
-            {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy && submittingGuess.current} rejectedAttempt={rejectedAttempt} revealingRow={revealingGuess?.gameId === game.id ? revealingGuess.row : undefined} onRevealEnd={() => setRevealingGuess(null)}/> : (!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={t('{0}-letter puzzle board', game.wordLength)} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
+            {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy && submittingGuess.current} rejectedAttempt={rejectedAttempt} revealingRow={revealingGuess?.gameId === game.id ? revealingGuess.row : undefined} onRevealEnd={() => setRevealingGuess(null)}/> : (!finished || game.guesses.length > 0) && <PuzzleGrid wordLength={game.wordLength} label={t('{0}-letter puzzle board', game.wordLength)}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
                 const result = game.guesses[row];
                 const activeGuess = !result && row === game.guesses.length ? guess : '';
@@ -618,7 +619,7 @@ export default function App() {
                 return <PuzzleGuessRow key={`${game.id}-${row}`} word={result?.guess ?? activeGuess} wordLength={game.wordLength} label={result?.guess ?? t('Guess {0}', row + 1)} states={result?.feedback.map(state => state.toLowerCase()) ?? []}
                   rejectedAttempt={rejected ? rejectedAttempt : 0} revealing={revealing} checking={checking} onRevealEnd={() => setRevealingGuess(null)}/>;
               })}
-            </div>}
+            </PuzzleGrid>}
             {finished && <div className="next-game" role="group" aria-label={t('Game actions')}><button ref={playAgainRef} className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Play again')}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>{t('Change settings')}</button>{!account && !accountLoading && !accountError && game.status !== 'cancelled' && <p className="guest-save-reminder"><a href={sectionPaths.account} onClick={event => { event.preventDefault(); navigateTo('account'); }}>{t('Sign in to save your game history.')}</a></p>}</div>}
             {!finished && <>
               <label className="sr-only" htmlFor="guess-input">{t('Type your {0} guess one letter at a time', t(lengthName(game.wordLength)))}</label>
