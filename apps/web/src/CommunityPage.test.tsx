@@ -13,29 +13,29 @@ describe('community coin leaderboard', () => {
     render(<CommunityPage onExplore={() => {}}/>);
     expect(screen.getByRole('status')).toHaveTextContent('Loading rankings…');
     finish(Response.json([
-      { rank: 1, username: 'w***', coinBalance: 1500 },
-      { rank: 1, username: 'a***', coinBalance: 1500 },
-      { rank: 3, username: 'a***', coinBalance: 900 },
+      { rank: 1, username: 'we**', coinBalance: 1500 },
+      { rank: 1, username: 'al**', coinBalance: 1500 },
+      { rank: 3, username: 'al**', coinBalance: 900 },
     ]));
     const table = await screen.findByRole('table', { name: 'Coin leaderboard' });
     const rows = within(table).getAllByRole('row');
     expect(rows).toHaveLength(4);
-    expect(within(rows[1]!).getAllByRole('cell').map(cell => cell.textContent)).toEqual(['1','w***','1,500']);
-    expect(within(rows[2]!).getAllByRole('cell').map(cell => cell.textContent)).toEqual(['1','a***','1,500']);
-    expect(within(rows[3]!).getAllByRole('cell').map(cell => cell.textContent)).toEqual(['3','a***','900']);
+    expect(within(rows[1]!).getAllByRole('cell').map(cell => cell.textContent)).toEqual(['1','we**','1,500']);
+    expect(within(rows[2]!).getAllByRole('cell').map(cell => cell.textContent)).toEqual(['1','al**','1,500']);
+    expect(within(rows[3]!).getAllByRole('cell').map(cell => cell.textContent)).toEqual(['3','al**','900']);
     expect(fetch).toHaveBeenCalledWith('/api/v1/community/coin-rankings', expect.objectContaining({ credentials: 'same-origin' }));
   });
 
   it('lets users retry a failed request', async () => {
     const fetch = vi.fn()
       .mockResolvedValueOnce(Response.json({ message: 'Could not load the coin leaderboard.' }, { status: 503 }))
-      .mockResolvedValueOnce(Response.json([{ rank: 1, username: 'w***', coinBalance: 100 }]));
+      .mockResolvedValueOnce(Response.json([{ rank: 1, username: 'we**', coinBalance: 100 }]));
     vi.stubGlobal('fetch', fetch);
     const user = userEvent.setup();
     render(<CommunityPage onExplore={() => {}}/>);
     expect(await screen.findByText('Rankings are unavailable.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Try again' }));
-    expect(await screen.findByRole('table', { name: 'Coin leaderboard' })).toHaveTextContent('w***');
+    expect(await screen.findByRole('table', { name: 'Coin leaderboard' })).toHaveTextContent('we**');
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 

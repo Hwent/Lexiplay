@@ -23,5 +23,7 @@ test_materials/
 *.log
 .DS_Store
 Thumbs.db
+todo.md
+
 
 /apps/api/src/generated/prisma/

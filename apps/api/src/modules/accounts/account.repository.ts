@@ -39,7 +39,7 @@ export class AccountRepository implements OnModuleDestroy {
   async coinRankings(): Promise<CoinRanking[]> {
     const result = await this.pool.query<CoinRanking>(`SELECT
       rank() OVER (ORDER BY coin_balance DESC)::int AS rank,
-      left(username,1) || '***' AS username, coin_balance AS "coinBalance"
+      left(username,2) || '**' AS username, coin_balance AS "coinBalance"
       FROM account_users ORDER BY coin_balance DESC,id LIMIT 20`);
     return result.rows;
   }

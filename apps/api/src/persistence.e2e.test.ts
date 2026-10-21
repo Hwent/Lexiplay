@@ -89,19 +89,19 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(response.status).toBe(200);
     const rankings = await response.json();
     expect(rankings).toHaveLength(20);
-    expect(rankings[0]).toEqual({ rank: 1, username: 'a***', coinBalance: 320 });
+    expect(rankings[0]).toEqual({ rank: 1, username: 'al**', coinBalance: 320 });
     expect(rankings.slice(1,3)).toEqual(expect.arrayContaining([
-      { rank: 2, username: 'b***', coinBalance: 250 },
-      { rank: 2, username: 'c***', coinBalance: 250 },
+      { rank: 2, username: 'bo**', coinBalance: 250 },
+      { rank: 2, username: 'ch**', coinBalance: 250 },
     ]));
-    expect(rankings[3]).toEqual({ rank: 4, username: 'r***', coinBalance: 99 });
+    expect(rankings[3]).toEqual({ rank: 4, username: 'ra**', coinBalance: 99 });
     for (const row of rankings) {
       expect(Object.keys(row).sort()).toEqual(['coinBalance','rank','username']);
-      expect(row.username).toMatch(/^[a-z]\*{3}$/);
+      expect(row.username).toMatch(/^[a-z]{1,2}\*{2}$/);
       expect(typeof row.coinBalance).toBe('number');
     }
     await pool.query("UPDATE account_users SET coin_balance=500 WHERE username='bob'");
-    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'b***', coinBalance: 500 });
+    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'bo**', coinBalance: 500 });
   });
 
   it('counts distinct playable words by length and excludes names while preserving ordinary homographs', async () => {

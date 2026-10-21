@@ -42,6 +42,6 @@ export default function CommunityPage({ onExplore }: { onExplore: () => void }) 
           </tr>)}</tbody>
         </table>}
     </article>
-    <div className="community-footer"><p>{t('Only the first letter of each username is shown. Equal balances share a rank.')}</p><button type="button" className="quiet-button" onClick={onExplore}>{t('Explore vocabulary ')}<Icon name="arrow"/></button></div>
+    <div className="community-footer"><p>{t('Only the first two letters of each username are shown.')}</p><button type="button" className="quiet-button" onClick={onExplore}>{t('Explore vocabulary ')}<Icon name="arrow"/></button></div>
   </section>;
 }
