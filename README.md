@@ -25,6 +25,10 @@ Dictionary publication preserves referenced entries and updates the library revi
 
 Word Guess offers a definition hint for 1 coin from the local dictionary. Failed or unavailable hints cost nothing. Purchased hints stay visible while the puzzle is active, and their fees are not refunded when leaving a puzzle.
 
+Community shows the top 20 registered accounts by current coin balance at
+`GET /community/coin-rankings`. Names are masked on the server as `w***`;
+equal balances share a rank. Guest wallets are not listed.
+
 Settings provides compact controls for appearance, three text sizes, interface language and sound. The interface follows the browser's English or Chinese preference by default; learners can choose English or Simplified Chinese manually. These preferences stay on the device. Learning words, parts of speech and dictionary definitions stay in English.
 
 The Feedback page accepts messages from accounts and guests without requiring a game first. `POST /api/v1/feedback` accepts `{ "content": "Your feedback" }` (1–2,000 characters). The server identifies the sender from cookies and stores the message in `message` with exactly one account or guest-session reference and a creation timestamp. Messages are not publicly readable. Deleting a sender’s account or guest session also deletes its messages.

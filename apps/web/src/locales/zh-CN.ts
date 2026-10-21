@@ -1,5 +1,16 @@
 // Interface copy only; learning words and dictionary content stay in English.
 export const zhCN: Record<string, string> = {
+  'Coin leaderboard': '金币排行榜',
+  'Top 20 accounts by current coin balance.': '按当前金币余额排列的前 20 位用户。',
+  'Loading rankings…': '正在加载排行榜…',
+  'Could not load the coin leaderboard.': '无法加载金币排行榜。',
+  'Rankings are unavailable.': '排行榜暂时不可用。',
+  'No rankings yet.': '暂无排名。',
+  'Account coin balances will appear here.': '用户的金币余额将在这里显示。',
+  'Rank': '排名',
+  'Coins': '金币',
+  'Only the first letter of each username is shown. Equal balances share a rank.': '用户名仅显示首字母，金币余额相同的用户并列排名。',
+
   'Word Ladder example': '单词阶梯示例',
   'Word puzzle example': '单词猜谜示例',
   'Start with {0}. Make four new words: {1}. Each word changes one letter from the previous word. Underlines show the changed letters.': '从 {0} 开始，接出四个新单词：{1}。每个单词只替换上一个单词中的一个字母。下划线标出替换的字母。',

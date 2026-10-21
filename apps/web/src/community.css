@@ -1,0 +1,22 @@
+.coin-leaderboard { overflow: hidden; width: 100%; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface); }
+.coin-ranking-table { width: 100%; border-collapse: collapse; text-align: left; font-variant-numeric: tabular-nums; }
+.coin-ranking-table th { padding: 1rem 1.5rem; background: var(--surface-soft); color: var(--muted); font-size: .95rem; font-weight: 550; }
+.coin-ranking-table td { padding: 1rem 1.5rem; border-top: 1px solid var(--line); }
+.coin-ranking-table th:first-child { width: 5rem; }
+.coin-ranking-table th:last-child, .coin-ranking-table td:last-child { text-align: right; }
+.coin-rank { display: inline-grid; place-items: center; width: 2.5rem; height: 2.5rem; color: var(--muted); font-weight: 650; }
+.coin-rank.top-rank { border: 1px solid color-mix(in srgb, var(--warning-300) 40%, var(--line)); border-radius: 50%; background: color-mix(in srgb, var(--warning-300) 10%, var(--surface)); color: var(--warning-200); }
+:root[data-theme='light'] .coin-rank.top-rank { color: var(--warning-800); }
+.ranked-username { color: var(--text); font-size: 1.1rem; font-weight: 600; letter-spacing: .06em; }
+.ranked-coins { display: inline-flex; align-items: center; justify-content: flex-end; gap: .5rem; color: var(--text); white-space: nowrap; }
+.ranked-coins strong { font-size: 1.2rem; font-weight: 650; }
+.ranked-coins .ui-icon { width: 1.5rem; height: 1.5rem; }
+.leaderboard-status { margin: 0; padding: 3rem 1.5rem; color: var(--muted); text-align: center; }
+.community-footer { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 1rem; margin-top: 1rem; }
+.community-footer p { max-width: 38rem; margin: 0; color: var(--muted); font-size: .95rem; line-height: 1.6; }
+@media (max-width: 560px) {
+  .coin-ranking-table th, .coin-ranking-table td { padding: .85rem .7rem; }
+  .coin-ranking-table th:first-child { width: 3.25rem; }
+  .ranked-username { font-size: 1rem; }
+  .ranked-coins strong { font-size: 1.1rem; }
+}

@@ -79,6 +79,31 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       WHERE u.user_id=$1 AND e.term=$2 ORDER BY e.part_of_speech`, [user.id, term])).rows[0];
   }
 
+  it('publishes the top 20 coin balances with server-masked names and shared ranks', async () => {
+    expect(await (await request('/community/coin-rankings')).json()).toEqual([]);
+    await pool.query(`INSERT INTO account_users(username,password_hash,coin_balance) VALUES
+      ('alice','fixture-only',320),('bob','fixture-only',250),('charlie','fixture-only',250);
+      INSERT INTO account_users(username,password_hash,coin_balance)
+      SELECT 'ranked_' || n,'fixture-only',100-n FROM generate_series(1,20) n`);
+    const response = await request('/community/coin-rankings');
+    expect(response.status).toBe(200);
+    const rankings = await response.json();
+    expect(rankings).toHaveLength(20);
+    expect(rankings[0]).toEqual({ rank: 1, username: 'a***', coinBalance: 320 });
+    expect(rankings.slice(1,3)).toEqual(expect.arrayContaining([
+      { rank: 2, username: 'b***', coinBalance: 250 },
+      { rank: 2, username: 'c***', coinBalance: 250 },
+    ]));
+    expect(rankings[3]).toEqual({ rank: 4, username: 'r***', coinBalance: 99 });
+    for (const row of rankings) {
+      expect(Object.keys(row).sort()).toEqual(['coinBalance','rank','username']);
+      expect(row.username).toMatch(/^[a-z]\*{3}$/);
+      expect(typeof row.coinBalance).toBe('number');
+    }
+    await pool.query("UPDATE account_users SET coin_balance=500 WHERE username='bob'");
+    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'b***', coinBalance: 500 });
+  });
+
   it('counts distinct playable words by length and excludes names while preserving ordinary homographs', async () => {
     await publishDictionary(pool, [...dictionary, word('Paris'), word('Alice'), word('sally', ['proper noun']), word('China'), word('china')]);
     await pool.query(`INSERT INTO collection_entries(collection_id,dictionary_entry_id,sort_order)
