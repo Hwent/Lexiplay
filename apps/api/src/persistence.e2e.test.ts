@@ -599,6 +599,38 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await (await request('/progress/summary','GET',undefined,user.cookie)).json()).toMatchObject({total:0,wins:0,losses:0});
   });
 
+  it.each(['word-puzzle', 'word-ladder'])('allows replacing %s only before its first accepted word', async kind => {
+    const terms = ['stone','store','score','shore','share','spare','stare','start','smart'];
+    await publishDictionary(pool, [...dictionary, ...terms.map(term => word(term))]);
+    for (const cookie of [(await account()).cookie, await guest()]) {
+      const before = await balance(cookie);
+      const options = { kind, wordLength: 5, ...(kind === 'word-puzzle' ? { collectionId: appleCollection } : {}) };
+      const first = await (await request('/games', 'POST', options, cookie)).json();
+      expect((await request(`/games/${first.id}/guesses`, 'POST', { guess: 'zzzzz' }, cookie)).status).toBe(400);
+      const replacement = await request('/games', 'POST', options, cookie);
+      expect(replacement.status).toBe(201);
+      const game = await replacement.json();
+      expect(await balance(cookie)).toBe(before - 1);
+      const guess = kind === 'word-puzzle' ? 'paper'
+        : terms.find(term => [...term].filter((letter, index) => letter !== game.ladder.startWord[index]).length === 1)!;
+      expect((await request(`/games/${game.id}/guesses`, 'POST', { guess }, cookie)).status).toBe(201);
+      for (const response of await Promise.all([
+        request(`/games/${game.id}/abandon`, 'POST', {}, cookie),
+        request('/games', 'POST', options, cookie),
+      ])) {
+        expect(response.status).toBe(409);
+        expect(await response.json()).toMatchObject({ code: 'PUZZLE_ALREADY_STARTED' });
+      }
+      expect(await balance(cookie)).toBe(before - 1);
+      expect(await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json()).toMatchObject({ status: 'active', attemptCount: 1 });
+      expect((await request(`/games/${game.id}/give-up`, 'POST', {}, cookie)).status).toBe(201);
+      const next = await request('/games', 'POST', options, cookie);
+      expect(next.status).toBe(201);
+      await request(`/games/${(await next.json()).id}/abandon`, 'POST', {}, cookie);
+      expect(await balance(cookie)).toBe(before - 1);
+    }
+  });
+
   it('refunds the guest wallet when a transferred unfinished game is replaced', async () => {
     const cookie=await guest(),game=await start(cookie),user=await account();
     await request('/progress/claim','POST',{accountId:user.id,transferId:randomUUID(),words:[],lastGameId:game.id},user.cookie+'; '+cookie);

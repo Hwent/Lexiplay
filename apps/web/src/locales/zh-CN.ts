@@ -1,5 +1,23 @@
 // Interface copy only; learning words and dictionary content stay in English.
 export const zhCN: Record<string, string> = {
+  'Word Ladder example': '单词阶梯示例',
+  'Word puzzle example': '单词猜谜示例',
+  'Start with {0}. Make four new words: {1}. Each word changes one letter from the previous word. Underlines show the changed letters.': '从 {0} 开始，接出四个新单词：{1}。每个单词只替换上一个单词中的一个字母。下划线标出替换的字母。',
+  'Five-letter example: the hidden word is PLANT. Guess SLATE: L and A are in the right spot, T belongs in another spot, and S and E are not in the word. Guess PLANT to win.': '五字母示例：隐藏单词为 PLANT。猜 SLATE 时，L 和 A 的位置正确，T 应在其他位置，S 和 E 不在答案中。猜出 PLANT 即可获胜。',
+  'Change one letter': '替换一个字母',
+  'Find the hidden word': '找出隐藏的单词',
+  '4 new words to win': '接出四个新单词即可获胜',
+  '5-letter example': '五字母示例',
+  'Word {0}': '单词 {0}',
+  'Hidden': '隐藏',
+  'Try a word': '猜一个词',
+  'Green means the letter is in the correct spot. Yellow means it belongs in another spot. Gray means it is not in the word.': '绿色表示字母位置正确，黄色表示字母应在其他位置，灰色表示字母不在答案中。',
+  'A definition hint costs 1 coin.': '释义提示需要 1 枚金币。',
+  'Only dictionary words are accepted. Invalid words do not count as attempts.': '仅接受词典中的单词。无效单词不计入尝试次数。',
+  'Choose a new puzzle before your first accepted word. After that, finish the game or give up. Giving up keeps the entry coin spent.': '首次提交有效单词前可以更换题目。之后需完成游戏或放弃。放弃不会退还入场金币。',
+  'Available before your first accepted word': '仅在首次提交有效单词前可用',
+  'Finish this puzzle or give up before choosing a new one.': '请先完成当前游戏或放弃，再选择新题目。',
+
   'Make four new words. Change exactly one letter from the previous word each time.': '接出四个新单词。每次只替换上一个单词中的一个字母。',
   'Use each word only once, including the starting word. Every new word comes with a definition.': '每个单词只能使用一次，起始词也不能重复。每个新单词都附有释义。',
   'Use a different word. The starting word and earlier words cannot be reused.': '请使用不同的单词。不能重复起始词或之前的单词。',

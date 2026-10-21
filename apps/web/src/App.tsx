@@ -12,6 +12,7 @@ import { ApiError, apiRequest as api } from './services/api-client';
 import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
 import WordLadderBoard, { Ladder } from './WordLadderBoard';
+import GameGuide from './GameGuide';
 import PuzzleGuessRow from './PuzzleGuessRow';
 import GuestGameReminder from './GuestGameReminder';
 import DefinitionText from './DefinitionText';
@@ -187,7 +188,7 @@ export default function App() {
   }
 
   async function exitGame() {
-    if (busy) return;
+    if (busy || (game && !finished && game.guesses.length > 0)) return;
     setBusy(true);
     try {
       await wordStore.flush();
@@ -219,7 +220,10 @@ export default function App() {
       await wordStore.flush();
       if (game && !finished) await api(`/games/${game.id}/abandon`, { method: 'POST' });
       resetGame(); setSelectedPoolId(poolId); setPlayWithMyWords(false); navigateTo('play');
-    } catch (error) { setMessage(error instanceof Error ? error.message : 'Could not change your puzzle. Try again.'); }
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'Could not change your puzzle. Try again.');
+      if (error instanceof ApiError && error.code === 'PUZZLE_ALREADY_STARTED') navigateTo('play');
+    }
     finally { setBusy(false); }
   }
 
@@ -554,25 +558,8 @@ export default function App() {
         {!game ? (
           <div className="welcome-card">
             <div className="practice-story">
-            {puzzleKind === 'word-ladder' ? <>
-            <div className="ladder-preview" aria-hidden="true">{['COLD', 'GOLD', 'GOOD'].map(word => <div key={word}>{[...word].map((letter, index) => <span key={index}>{letter}</span>)}</div>)}</div>
-            <h2>{t('Word Ladder')}</h2>
-            <details className="game-rules" open><summary>{t('How to play')}</summary>
-              <p>{t('Make four new words. Change exactly one letter from the previous word each time.')}</p>
-              <p>{t('Use each word only once, including the starting word. Every new word comes with a definition.')}</p>
-            </details>
-            </> : <>
-            <div className="sample-grid" aria-hidden="true">
-              {['G', 'R', 'O', 'W', 'S'].map((letter, index) => <span className={`sample-tile tile-${index}`} key={letter}>{letter}</span>)}
-            </div>
-            <h2>{t('Word puzzle')}</h2>
-            <details className="game-rules" open>
-              <summary>{t('Wordle rules')}</summary>
-              <p>{t('Find the hidden {0}-letter word in {1} guesses. Each full word checks automatically.', selectedWordLength, difficulties.find(option => option.id === difficulty)!.guesses)}</p>
-              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />{t('Correct spot')}</span><span><i className="rule-swatch present" aria-hidden="true" />{t('Wrong spot')}</span><span><i className="rule-swatch absent" aria-hidden="true" />{t('Not in word')}</span></div>
-              <p>{t('Letters can repeat. Each colored match counts once. Invalid words don’t use a guess.')}</p>
-            </details>
-            </>}
+            <h2>{t(puzzleKind === 'word-ladder' ? 'Word Ladder' : 'Word puzzle')}</h2>
+            <GameGuide kind={puzzleKind} wordLength={puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength} attempts={difficulties.find(option => option.id === difficulty)!.guesses}/>
             </div>
             <div className="practice-setup">
             <div className="practice-setup-heading"><h3>{t('Puzzle options')}</h3></div>
@@ -604,7 +591,7 @@ export default function App() {
               <div><p className="eyebrow">{t('{0} · {1} letters', t(game.ladder ? 'Word Ladder' : game.difficulty ?? difficulty), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
               <span className="attempt-counter" aria-live="polite">{game.ladder ? t('{0} / {1} words', game.guesses.length, game.ladder.targetWords) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
             </div>
-            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>{t('Choose a new puzzle')}</button><button className="account-link" type="button" onClick={() => void giveUp()} disabled={busy || progressSaving}>{t('Give up')}</button></div>}
+            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving || game.guesses.length > 0} title={t('Available before your first accepted word')}>{t('Choose a new puzzle')}</button><button className="account-link" type="button" onClick={() => void giveUp()} disabled={busy || progressSaving}>{t('Give up')}</button></div>}
             <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{
               game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.')
               : message ? t(message)

@@ -1,0 +1,24 @@
+.practice-story .game-guide { width: 100%; grid-column: 1 / -1; }
+.game-guide-picture { display: block; width: 100%; max-width: 25rem; height: auto; margin: 1rem 0 0; padding: .75rem; border: 1px solid var(--line); border-radius: 1rem; background: var(--surface-soft); font-family: inherit; }
+.guide-title { fill: var(--text); font-size: 21px; font-weight: 650; }
+.guide-subtitle { fill: var(--soft-text); font-size: 15px; }
+.guide-letter rect { fill: var(--control-bg); stroke: var(--tile-border); stroke-width: 1.5; }
+.guide-letter text { fill: var(--text); font-size: 23px; font-weight: 700; }
+.guide-letter.correct rect, .guide-key.correct rect { fill: var(--correct); stroke: var(--correct); }
+.guide-letter.correct text { fill: var(--correct-text); }
+.guide-letter.present rect, .guide-key.present rect { fill: var(--present); stroke: var(--present); }
+.guide-letter.present text { fill: var(--present-text); }
+.guide-letter.absent rect, .guide-key.absent rect { fill: var(--absent); stroke: var(--tile-border); }
+.guide-letter.absent text { fill: var(--absent-text); }
+.guide-changed-letter { stroke: var(--text); stroke-width: 2; stroke-linecap: round; }
+.guide-row-label { fill: var(--soft-text); font-size: 16px; }
+.guide-key text { fill: var(--soft-text); font-size: 15px; }
+.guide-arrow, .guide-win-check { fill: none; stroke: var(--accent); stroke-width: 2; stroke-linecap: round; stroke-linejoin: round; }
+.game-guide .game-rules { margin-top: .75rem; }
+.game-guide .game-rules summary { display: flex; align-items: center; gap: .6rem; min-height: 2.75rem; width: fit-content; padding: .35rem 0; color: var(--accent); list-style: none; }
+.game-guide .game-rules summary::-webkit-details-marker { display: none; }
+.game-guide .game-rules summary:focus-visible { outline: 2px solid var(--accent); outline-offset: 3px; border-radius: .3rem; }
+.guide-chevron { transition: transform .2s; }
+.game-guide .game-rules[open] .guide-chevron { transform: rotate(180deg); }
+.puzzle-tools .account-link:disabled { opacity: .45; cursor: default; }
+@media (prefers-reduced-motion: reduce) { .guide-chevron { transition: none; } }

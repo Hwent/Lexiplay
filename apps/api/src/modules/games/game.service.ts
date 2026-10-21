@@ -1,10 +1,10 @@
-import { BadRequestException, Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
+import { BadRequestException, ConflictException, Inject, Injectable, ServiceUnavailableException } from '@nestjs/common';
 import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { defaultAnswerWords } from '../word-lists/default-answers';
 import { GameRepository } from './game.repository';
 import { createLadder, LADDER_WORDS } from './word-ladder';
-import { DIFFICULTIES, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, WORDLE_COST, score } from './game.types';
+import { DIFFICULTIES, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, PUZZLE_ALREADY_STARTED, WORDLE_COST, score } from './game.types';
 
 @Injectable()
 export class GameService {
@@ -107,6 +107,7 @@ export class GameService {
 
   async abandon(id: string, owner: string) {
     return this.games.change(id,owner,game => {
+      if (!game.completed && game.guesses.length > 0) throw new ConflictException(PUZZLE_ALREADY_STARTED);
       if (!game.completed) { game.completed=true; game.status='cancelled'; game.completedAt=new Date().toISOString(); }
       return { success:true };
     });

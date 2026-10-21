@@ -12,6 +12,10 @@ for four-letter words or 5 coins for five-letter words. Paths survive reloads.
 spent. Word Guess reveals its answer. Repeating the request does not change the
 balance. Unfinished ladders from the old goal-based rules are refunded on migration.
 
+Players can replace and refund a game only before its first accepted word.
+Invalid words do not count. After an accepted word, both abandonment and a new
+start return `PUZZLE_ALREADY_STARTED` until the player finishes or gives up.
+
 Default five-letter answers use the original Wordle list. At 3–4 and 6–9 letters,
 defaults use the existing Oxford A1–B2 vocabulary selection. Both pools intersect
 the live dictionary, so every answer is lowercase, alphabetic, and has an English

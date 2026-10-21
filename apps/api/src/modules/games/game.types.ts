@@ -3,6 +3,7 @@ export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameStatus = 'active' | 'won' | 'lost' | 'cancelled';
 export const WORDLE_COST = 1;
 export const HINT_COST = 1;
+export const PUZZLE_ALREADY_STARTED = { code: 'PUZZLE_ALREADY_STARTED', message: 'Finish this puzzle or give up before choosing a new one.' };
 export type HintType = 'definition';
 export const DIFFICULTIES = {
   easy: { attemptLimit: 7, reward: 4 },

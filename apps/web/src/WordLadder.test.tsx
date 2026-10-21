@@ -28,7 +28,8 @@ describe('Word Ladder', () => {
     }));
     const user = userEvent.setup(); render(<App/>);
     await user.click(screen.getByRole('button', { name: 'Word Ladder' }));
-    expect(screen.getByText('How to play').closest('details')).toHaveAttribute('open');
+    expect(screen.getByText('How to play').closest('details')).not.toHaveAttribute('open');
+    expect(screen.getByRole('img', { name: 'Word Ladder example' })).toBeInTheDocument();
     expect(screen.getAllByRole('radio').map(input => input.getAttribute('aria-label'))).toEqual(['4 letters', '5 letters']);
     expect(screen.queryByLabelText('Collection')).not.toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Difficulty' })).not.toBeInTheDocument();
@@ -48,9 +49,11 @@ describe('Word Ladder', () => {
     expect(screen.queryByRole('button', { name: /hint ·/ })).not.toBeInTheDocument();
     await user.keyboard('warm');
     expect(await screen.findByText('Change exactly one letter from the previous word.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose a new puzzle' })).toBeEnabled();
     expect(within(board).queryByRole('row', { name: 'warm' })).not.toBeInTheDocument();
     await user.keyboard('{Backspace}{Backspace}{Backspace}{Backspace}cord');
     expect(await screen.findByText('A thin rope.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose a new puzzle' })).toBeDisabled();
     expect(within(board).getByRole('row', { name: 'cord' }).querySelectorAll('.neutral')).toHaveLength(4);
     expect(within(board).getByRole('row', { name: 'cord' })).toHaveClass('revealing-guess');
     expect(screen.getByText('1 / 4 words')).toBeInTheDocument();
@@ -89,6 +92,7 @@ describe('Word Ladder', () => {
     expect(await screen.findByText('Use a different word. The starting word and earlier words cannot be reused.')).toBeInTheDocument();
     expect(screen.getByRole('row', { name: 'Next word' })).toHaveClass('invalid-guess');
     expect(screen.getByText('0 / 4 words')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Choose a new puzzle' })).toBeEnabled();
   });
 
   it.each(['word-puzzle', 'word-ladder'])('gives up %s and displays the revealed answer without a refund notice', async kind => {

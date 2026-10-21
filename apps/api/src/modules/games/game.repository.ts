@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
-import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, score } from './game.types';
+import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, PUZZLE_ALREADY_STARTED, score } from './game.types';
 import { LADDER_WORDS } from './word-ladder';
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
@@ -56,7 +56,7 @@ export class GameRepository implements OnModuleDestroy {
       const wallet = await this.walletRow(client, game.owner, true);
       const answer = await this.resolveWord(client, game.answer);
       if (!answer) throw new BadRequestException('The dictionary changed. Choose a new game.');
-      // Replacing a puzzle refunds its original payer in this same transaction.
+      // Only untried puzzles can be replaced and refunded to their original payer.
       const unfinished = (await client.query(`SELECT g.id,g.coin_user_id,g.coin_guest_session_id,
         COALESCE((g.active_state->>'coinCost')::int,1) AS entry_cost FROM practice_games g
         LEFT JOIN guest_sessions s ON s.id=g.guest_session_id WHERE g.status='active'
@@ -66,6 +66,9 @@ export class GameRepository implements OnModuleDestroy {
         const payerTable = previous.coin_user_id ? 'account_users' : 'guest_sessions';
         const payerId = previous.coin_user_id ?? previous.coin_guest_session_id;
         await client.query(`SELECT id FROM ${payerTable} WHERE id=$1 FOR UPDATE`, [payerId]);
+        const current = (await client.query<{ status: GameStatus; attempt_count: number }>(
+          'SELECT status,attempt_count FROM practice_games WHERE id=$1 FOR UPDATE', [previous.id])).rows[0]!;
+        if (current.status === 'active' && current.attempt_count > 0) throw new ConflictException(PUZZLE_ALREADY_STARTED);
         const refunded = await client.query(`UPDATE practice_games SET status='cancelled',finished_at=now(),
           active_state=NULL,collection_id=NULL,coin_change=coin_change+$2 WHERE id=$1 AND status='active' RETURNING id`, [previous.id, previous.entry_cost]);
         if (refunded.rowCount) await client.query(`UPDATE ${payerTable} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId, previous.entry_cost]);
