@@ -55,7 +55,7 @@ type GuessResult = {
   answerDefinition?: string;
   rewardCoins?: number;
 };
-type HintType = 'partOfSpeech' | 'definition';
+type HintType = 'definition';
 type Game = { kind?: 'word-puzzle' | 'word-ladder'; ladder?: Ladder; answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: Record<HintType, number>; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
 const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, reward: 6 }] as const;
@@ -345,7 +345,7 @@ export default function App() {
       guessSession.current++;
       setCelebrationId('');
       setRejectedAttempt(0);
-      setGame({ ...newGame, hints: newGame.hints ?? { partOfSpeech: 1, definition: 1 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
+      setGame({ ...newGame, hints: newGame.hints ?? { definition: 1 }, revealedAbsent: newGame.revealedAbsent ?? [], revealedPresent: newGame.revealedPresent ?? [] });
       try { window.localStorage.setItem(LAST_GAME_KEY, newGame.id); } catch { /* Gameplay remains available without browser storage. */ }
       setGuess('');
       startRequest.current = null;
@@ -380,13 +380,13 @@ export default function App() {
 
   function hintPanel(type: HintType) {
     if (!game || finished || game.ladder) return null;
-    const title = type === 'partOfSpeech' ? 'Part of speech' : 'Definition';
+    const title = 'Definition';
     const clue = game.clues?.[type];
     return <aside className={`puzzle-hint hint-${type}`} aria-label={t('{0} hint', t(title))}>
       <button className="friendly-hint" type="button" aria-label={t('{0} hint · {1}', t(title), (clue ? t('Revealed') : t('1 coin')))} onClick={() => void useHint(type)} disabled={busy || progressSaving || !!clue || game.hints[type] === 0}>
-        <span className="hint-icon" aria-hidden="true"><Icon name={type === 'partOfSpeech' ? 'dictionary' : 'library'}/></span><strong>{t(title)}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
+        <span className="hint-icon" aria-hidden="true"><Icon name="library"/></span><strong>{t(title)}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
       </button>
-      {clue && <p className="hint-clue">{type === 'definition' ? definitionHintText(clue) : clue}</p>}
+      {clue && <p className="hint-clue">{definitionHintText(clue)}</p>}
     </aside>;
   }
 
@@ -421,12 +421,12 @@ export default function App() {
         wordStore.requests.invalidate('/progress/');
         if (result.outcome === 'WON') setCelebrationId(game.id);
         setMessage(result.outcome === 'WON'
-          ? result.rewardCoins ? `You found it! ${result.rewardCoins} coins earned${game.coinPayer === 'guest' && account ? ' in your guest wallet' : ''}.` : 'You found it! A new word is ready whenever you are.'
+          ? result.rewardCoins ? `${game.ladder ? 'Four new words!' : 'You found it!'} ${result.rewardCoins} coins earned${game.coinPayer === 'guest' && account ? ' in your guest wallet' : ''}.` : 'You found it! A new word is ready whenever you are.'
           : `Practice complete. The answer was ${result.answer}.`);
       }
     } catch (error) {
       if (session !== guessSession.current) return;
-      if (error instanceof ApiError && error.code === 'INVALID_LADDER_STEP') {
+      if (error instanceof ApiError && (error.code === 'INVALID_LADDER_STEP' || error.code === 'REPEATED_LADDER_WORD')) {
         setRejectedAttempt(value => value + 1);
         if (activeSectionRef.current === 'play') gameAudio.play('invalid');
         setMessage(error.message);
@@ -555,12 +555,11 @@ export default function App() {
           <div className="welcome-card">
             <div className="practice-story">
             {puzzleKind === 'word-ladder' ? <>
-            <div className="ladder-preview" aria-hidden="true">{['COLD', 'GOLD', 'GOOD'].map((word, row, words) => <div key={word}>{[...word].map((letter, index) => <span className={row > 0 && letter !== words[row - 1]![index] ? letter === 'FOOD'[index] ? 'correct' : 'present' : ''} key={index}>{letter}</span>)}</div>)}</div>
+            <div className="ladder-preview" aria-hidden="true">{['COLD', 'GOLD', 'GOOD'].map(word => <div key={word}>{[...word].map((letter, index) => <span key={index}>{letter}</span>)}</div>)}</div>
             <h2>{t('Word Ladder')}</h2>
             <details className="game-rules" open><summary>{t('How to play')}</summary>
-              <p>{t('Turn the start word into the green goal word. Change exactly one letter at each step to make a real word.')}</p>
-              <p>{t('Your step limit is the shortest path plus three. Every new word comes with a definition.')}</p>
-              <div className="rule-colors"><span><i className="rule-swatch correct" aria-hidden="true" />{t('Matches goal')}</span><span><i className="rule-swatch present" aria-hidden="true" />{t('Does not match goal')}</span></div>
+              <p>{t('Make four new words. Change exactly one letter from the previous word each time.')}</p>
+              <p>{t('Use each word only once, including the starting word. Every new word comes with a definition.')}</p>
             </details>
             </> : <>
             <div className="sample-grid" aria-hidden="true">
@@ -593,7 +592,7 @@ export default function App() {
               }} />
               </>}
             </div>
-            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', puzzleKind === 'word-ladder' ? 5 : difficulties.find(option => option.id === difficulty)!.reward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{puzzleKind === 'word-ladder' ? 5 : difficulties.find(option => option.id === difficulty)!.reward}{t(' on a win')}</span></div>
+            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', puzzleKind === 'word-ladder' ? ladderWordLength : difficulties.find(option => option.id === difficulty)!.reward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{puzzleKind === 'word-ladder' ? ladderWordLength : difficulties.find(option => option.id === difficulty)!.reward}{t(' on a win')}</span></div>
             <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t(puzzleKind === 'word-ladder' ? 'Start ladder ' : 'Start practice ')}<Icon name="arrow"/>
             </button>
             </div>
@@ -603,17 +602,24 @@ export default function App() {
             {celebrationId === game.id && <PuzzleCelebration key={game.id}/>}
             <div className="puzzle-heading">
               <div><p className="eyebrow">{t('{0} · {1} letters', t(game.ladder ? 'Word Ladder' : game.difficulty ?? difficulty), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
-              <span className="attempt-counter" aria-live="polite">{game.ladder ? t(attemptsRemaining === 1 ? '{0} step left' : '{0} steps left', attemptsRemaining) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
+              <span className="attempt-counter" aria-live="polite">{game.ladder ? t('{0} / {1} words', game.guesses.length, game.ladder.targetWords) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
             </div>
             {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving}>{t('Choose a new puzzle')}</button><button className="account-link" type="button" onClick={() => void giveUp()} disabled={busy || progressSaving}>{t('Give up')}</button></div>}
-            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.') : message ? t(message) : finished ? t(game.ladder ? '{0} in {1} steps.' : '{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length) : game.ladder ? t('Change one letter. Complete words check automatically.') : t('Type {0} letters to check your word automatically.', game.wordLength)}</p>
+            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{
+              game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.')
+              : message ? t(message)
+              : finished ? game.ladder
+                ? game.status === 'won' ? t('{0} new words made.', game.guesses.length) : t('Challenge ended.')
+                : t('{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length)
+              : game.ladder ? t('Change one letter. Complete words check automatically.')
+              : t('Type {0} letters to check your word automatically.', game.wordLength)
+            }</p>
             {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label={t('Revealed letters')}>
               {game.revealedPresent.length > 0 && <span>{t('In the word: ')}<strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong>{t(' · position unknown')}</span>}
               {game.revealedAbsent.length > 0 && <span>{t('Ruled out: ')}<strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
             </div>}
             <div className="puzzle-columns">
             <div className={`puzzle-stage${!finished && !game.ladder ? ' with-hints' : ''}`}>
-            {hintPanel('partOfSpeech')}
             <div className="puzzle-play-column">
             {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy && submittingGuess.current} rejectedAttempt={rejectedAttempt} revealingRow={revealingGuess?.gameId === game.id ? revealingGuess.row : undefined} onRevealEnd={() => setRevealingGuess(null)}/> : (!finished || game.guesses.length > 0) && <div className="guess-board" role="grid" aria-label={t('{0}-letter puzzle board', game.wordLength)} style={{ width: `calc(${game.wordLength} * var(--puzzle-tile-size, 3.6rem) + ${(game.wordLength - 1) * .35}rem)`, '--puzzle-attempts': game.attemptLimit } as CSSProperties}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
@@ -656,7 +662,7 @@ export default function App() {
               <div><div className="word-with-pronunciation"><strong>{result.guess}</strong><PronunciationButton term={result.guess} /></div><DefinitionText text={result.definition || t('Definition unavailable.')} /></div>
               {wordBookmark(result.guess, result.definition ?? '')}
             </div>)}
-            {finished && game.answer && <div className="answer-definition">
+            {finished && !game.ladder && game.answer && <div className="answer-definition">
               <div><p className="eyebrow">{t('THE ANSWER')}</p><div className="word-with-pronunciation"><strong>{game.answer}</strong><PronunciationButton term={game.answer!} /></div><DefinitionText text={game.answerDefinition || t('Definition unavailable.')} /></div>
               {wordBookmark(game.answer!, game.answerDefinition ?? '')}
             </div>}

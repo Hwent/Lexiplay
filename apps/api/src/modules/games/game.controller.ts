@@ -28,7 +28,7 @@ export class GameController {
   async start(@Headers('cookie') cookie: string | undefined, @Body() body: StartGameDto, @Res({ passthrough: true }) response: Response) {
     if (body.kind === 'word-ladder') {
       if (body.collectionId || body.wordListId || body.playWithMyWords || body.difficulty && body.difficulty !== 'medium') {
-        throw new BadRequestException('Word Ladder uses its own common-word pool and a fixed five-coin reward.');
+        throw new BadRequestException('Word Ladder uses its own common-word pool and rewards one coin per letter.');
       }
       return this.games.startLadder(body.wordLength ?? 5, await this.owner(cookie, response), body.startRequestId);
     }

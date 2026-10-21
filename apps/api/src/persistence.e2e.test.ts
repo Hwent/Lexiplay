@@ -1,5 +1,6 @@
 import 'reflect-metadata';
 import { randomBytes, randomUUID } from 'node:crypto';
+import { readFileSync } from 'node:fs';
 import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
@@ -165,15 +166,16 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       const response = await request('/games', 'POST', options, cookie);
       expect(response.status, await response.clone().text()).toBe(201);
       const game = await response.json();
-      expect(game).toMatchObject({ kind: 'word-ladder', coinCost: 1, winRewardCoins: 5, wordLength: length });
+      expect(game).toMatchObject({ kind: 'word-ladder', coinCost: 1, winRewardCoins: length, wordLength: length });
       expect(game.ladder.startDefinition).toBeTruthy();
-      expect(game.ladder.goalDefinition).toBeTruthy();
+      expect(game.ladder).toMatchObject({ targetWords: 4 });
+      expect(game.ladder).not.toHaveProperty('goalWord');
       expect(game).not.toHaveProperty('answer');
       expect(await balance(cookie)).toBe(before - 1);
       expect(await (await request('/games', 'POST', options, cookie)).json()).toMatchObject({ id: game.id });
       expect(await balance(cookie)).toBe(before - 1);
       const submit = (guess: string) => request(`/games/${game.id}/guesses`, 'POST', { guess }, cookie);
-      expect((await submit(game.ladder.startWord)).status).toBe(400);
+      expect(await (await submit(game.ladder.startWord)).json()).toMatchObject({ code: 'REPEATED_LADDER_WORD' });
       const illegal = await submit('z'.repeat(length));
       expect(illegal.status).toBe(400);
       expect(await illegal.json()).toMatchObject({ code: 'INVALID_GUESS' });
@@ -181,52 +183,68 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       expect((await submit(unknown)).status).toBe(400);
       expect((await request(`/games/${game.id}/hints`, 'POST', { type: 'definition' }, cookie)).status).toBe(400);
       expect(await balance(cookie)).toBe(before - 1);
-      // Find a valid route independently using the published fixture dictionary.
-      const queue: string[][] = [[game.ladder.startWord]], visited = new Set([game.ladder.startWord]);
-      let route: string[] = [];
-      for (let head = 0; head < queue.length; head++) {
-        const path = queue[head]!, last = path.at(-1)!;
-        if (last === game.ladder.goalWord) { route = path.slice(1); break; }
+      // Find four distinct steps independently from the published dictionary.
+      function findPath(path: string[]): string[] | undefined {
+        if (path.length === 5) return path.slice(1);
         for (const next of terms) {
-          if (visited.has(next) || [...next].filter((letter, index) => letter !== last[index]).length !== 1) continue;
-          visited.add(next); queue.push([...path, next]);
+          if (path.includes(next) || [...next].filter((letter, index) => letter !== path.at(-1)![index]).length !== 1) continue;
+          const found = findPath([...path, next]);
+          if (found) return found;
         }
       }
-      expect(route.length).toBeGreaterThanOrEqual(3);
-      expect(game.ladder.shortestSteps).toBe(route.length);
-      expect(game.attemptLimit).toBe(route.length + 3);
-      const detour = [route[0]!, game.ladder.startWord];
-      for (const step of detour) expect(await (await submit(step)).json()).toMatchObject({ completed: false });
+      const route = findPath([game.ladder.startWord])!;
+      expect(route).toHaveLength(4);
+      expect(game.attemptLimit).toBe(4);
+      const badMove = terms.find(term => [...term].filter((letter, index) => letter !== game.ladder.startWord[index]).length > 1)!;
+      expect(await (await submit(badMove)).json()).toMatchObject({ code: 'INVALID_LADDER_STEP' });
       for (let index = 0; index < route.length; index++) {
         const result = await (await submit(route[index]!)).json();
-        const previous = index ? route[index - 1]! : game.ladder.startWord;
-        expect(result.feedback).toEqual([...route[index]!].map((letter, column) => letter === game.ladder.goalWord[column] ? 'CORRECT' : letter !== previous[column] ? 'PRESENT' : 'ABSENT'));
-        expect(result.attemptsRemaining).toBe(game.attemptLimit - detour.length - index - 1);
+        expect(result.feedback).toEqual([]);
+        expect(result.attemptsRemaining).toBe(3 - index);
         expect(result.definition).toBeTruthy();
-        expect(result.completed).toBe(index === route.length - 1);
+        expect(result.completed).toBe(index === 3);
+        if (index === 3) expect(result).toMatchObject({ outcome: 'WON', rewardCoins: length });
+        else {
+          const repeated = await submit(index ? route[index - 1]! : game.ladder.startWord);
+          expect(await repeated.json()).toMatchObject({ code: 'REPEATED_LADDER_WORD' });
+        }
         const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
-        expect(restored.guesses.map((step: { guess: string }) => step.guess)).toEqual([...detour, ...route.slice(0, index + 1)]);
+        expect(restored.guesses.map((step: { guess: string }) => step.guess)).toEqual(route.slice(0, index + 1));
+        expect(restored.guesses.every((step: { feedback: string[] }) => step.feedback.length === 0)).toBe(true);
       }
-      expect(await balance(cookie)).toBe(before + 4);
-      const duplicates = await Promise.all([submit(game.ladder.goalWord), submit(game.ladder.goalWord)]);
+      expect(await balance(cookie)).toBe(before + length - 1);
+      const duplicates = await Promise.all([submit(route[3]!), submit(route[3]!)]);
       expect(duplicates.map(result => result.status)).toEqual([400, 400]);
-      expect(await balance(cookie)).toBe(before + 4);
+      expect(await balance(cookie)).toBe(before + length - 1);
       const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
-      expect(restored).toMatchObject({ status: 'won', coinChange: 4, attemptCount: detour.length + route.length, ladder: game.ladder });
-      const loss = await (await request('/games', 'POST', { kind: 'word-ladder', wordLength: length }, cookie)).json();
-      const firstStep = terms.find(term => [...term].filter((letter, index) => letter !== loss.ladder.startWord[index]).length === 1)!;
-      const beforeLoss = await balance(cookie);
-      for (let index = 0; index < loss.attemptLimit; index++) {
-        const step = await (await request(`/games/${loss.id}/guesses`, 'POST', { guess: index % 2 ? loss.ladder.startWord : firstStep }, cookie)).json();
-        expect(step.completed).toBe(index === loss.attemptLimit - 1);
-        if (step.completed) expect(step).toMatchObject({ outcome: 'LOST', attemptsRemaining: 0 });
-      }
-      expect(await balance(cookie)).toBe(beforeLoss);
-      expect(await (await request(`/games/${loss.id}`, 'GET', undefined, cookie)).json()).toMatchObject({ status: 'lost', attemptCount: loss.attemptLimit, coinChange: -1 });
+      expect(restored).toMatchObject({ status: 'won', coinChange: length - 1, attemptCount: 4, ladder: game.ladder, answer: route[3] });
+      expect((await pool.query('SELECT answer FROM practice_games WHERE id=$1', [game.id])).rows[0].answer).toBe(route[3]);
     }
     for (const options of [{ wordLength: 3 }, { wordLength: 6 }, { difficulty: 'hard' }, { collectionId: appleCollection }]) {
       expect((await request('/games', 'POST', { kind: 'word-ladder', ...options }, (await account()).cookie)).status).toBe(400);
     }
+  });
+
+  it('refunds old goal ladders once and preserves current games during migration', async () => {
+    await publishDictionary(pool, [...dictionary, ...['stone','store','score','shore','share','spare','stare','start','smart'].map(term => word(term))]);
+    const cookies = [(await account()).cookie, await guest()];
+    for (const cookie of cookies) {
+      const game = await (await request('/games', 'POST', { kind: 'word-ladder', wordLength: 5 }, cookie)).json();
+      await pool.query(`UPDATE practice_games SET ladder_state=(ladder_state-'targetWords') || '{"shortestSteps":4}'::jsonb WHERE id=$1`, [game.id]);
+    }
+    const currentCookie = await guest();
+    const current = await (await request('/games', 'POST', { kind: 'word-ladder', wordLength: 5 }, currentCookie)).json();
+    const balances = await Promise.all(cookies.map(balance));
+    const migration = readFileSync('prisma/migrations/202610200100_word_chain/migration.sql', 'utf8');
+    await pool.query(migration);
+    expect(await Promise.all(cookies.map(balance))).toEqual(balances.map(coins => coins + 1));
+    await pool.query(migration);
+    expect(await Promise.all(cookies.map(balance))).toEqual(balances.map(coins => coins + 1));
+    const old = (await pool.query("SELECT status,coin_change,active_state FROM practice_games WHERE id<>$1", [current.id])).rows;
+    expect(old).toHaveLength(2);
+    expect(old).toEqual(Array(2).fill({ status: 'cancelled', coin_change: 0, active_state: null }));
+    expect(await (await request(`/games/${current.id}`, 'GET', undefined, currentCookie)).json()).toMatchObject({ status: 'active', ladder: { targetWords: 4 } });
+    expect(await balance(currentCookie)).toBe(9);
   });
 
   it.each(['word-puzzle', 'word-ladder'])('giving up %s keeps the entry coin spent and reveals the answer', async kind => {
@@ -317,6 +335,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await balance(user.cookie)).toBe(99);
     const failed = await request('/games', 'POST', { wordLength: 10 }, user.cookie);
     expect(failed.status).toBe(400); expect(await balance(user.cookie)).toBe(99);
+    await publishDictionary(pool, dictionary);
     await pool.query('UPDATE account_users SET coin_balance=0 WHERE id=$1', [user.id]);
     const denied = await request('/games', 'POST', { collectionId: appleCollection, startRequestId: randomUUID() }, user.cookie);
     expect(denied.status).toBe(400); expect(await denied.json()).toMatchObject({ code: 'INSUFFICIENT_COINS' });
@@ -509,50 +528,52 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const clues = await Promise.all(replies.map(response => response.json()));
     expect(clues.map(clue => clue.cost).sort()).toEqual([0, 1]);
     expect(await balance(user.cookie)).toBe(98);
-    expect(await (await hint('partOfSpeech')).json()).toMatchObject({ text: 'noun', cost: 1 });
-    expect(await balance(user.cookie)).toBe(97);
+    expect((await hint('partOfSpeech')).status).toBe(400);
+    expect(await balance(user.cookie)).toBe(98);
     const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(restored).toMatchObject({ hints: { partOfSpeech: 0, definition: 0 }, clues: { partOfSpeech: 'noun', definition: 'Definition of _____.' }, hintCoinsSpent: 2 });
+    expect(restored).toMatchObject({ hints: { definition: 0 }, clues: { definition: 'Definition of _____.' }, hintCoinsSpent: 1 });
     expect(restored).not.toHaveProperty('answer');
     await request('/games/' + game.id + '/abandon', 'POST', {}, user.cookie);
-    expect(await balance(user.cookie)).toBe(98);
-    expect((await pool.query('SELECT coin_change FROM practice_games WHERE id=$1', [game.id])).rows[0].coin_change).toBe(-2);
+    expect(await balance(user.cookie)).toBe(99);
+    expect((await pool.query('SELECT coin_change FROM practice_games WHERE id=$1', [game.id])).rows[0].coin_change).toBe(-1);
   });
 
   it('does not charge for unavailable hints or commit a hint without enough coins', async () => {
     const user = await account(), game = await start(user.cookie);
-    vi.spyOn(WordListsService.prototype, 'dictionaryPartOfSpeech').mockResolvedValueOnce(undefined);
+    await pool.query("DELETE FROM dictionary_definitions WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='apple')");
+    vi.spyOn(WordListsService.prototype, 'dictionaryDefinition').mockResolvedValueOnce('');
     const path = '/games/' + game.id + '/hints';
-    const unavailable = await request(path, 'POST', { type: 'partOfSpeech' }, user.cookie);
+    const unavailable = await request(path, 'POST', { type: 'definition' }, user.cookie);
     expect(unavailable.status).toBe(400);
     expect(await balance(user.cookie)).toBe(99);
+    await publishDictionary(pool, dictionary);
     await pool.query('UPDATE account_users SET coin_balance=0 WHERE id=$1', [user.id]);
     const denied = await request(path, 'POST', { type: 'definition' }, user.cookie);
     expect(denied.status).toBe(400);
     expect(await denied.json()).toMatchObject({ code: 'INSUFFICIENT_COINS' });
     expect(await balance(user.cookie)).toBe(0);
     const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(restored).toMatchObject({ hints: { partOfSpeech: 1, definition: 1 }, clues: {}, hintCoinsSpent: 0 });
+    expect(restored).toMatchObject({ hints: { definition: 1 }, clues: {}, hintCoinsSpent: 0 });
     const other = await account();
     expect((await request(path, 'POST', { type: 'definition' }, other.cookie)).status).toBe(404);
     expect(await balance(other.cookie)).toBe(100);
   });
 
-  it('offers word classes for legacy games without reusing old synonym clues', async () => {
+  it('ignores removed word-class and synonym hints on legacy games', async () => {
     const user = await account();
     const game = await app.get(GameService).start(5, ['cover'], 'medium', 'user:' + user.id);
     await pool.query(`UPDATE practice_games SET active_state=active_state ||
-      '{"hints":{"synonym":0,"definition":1},"clues":{"synonym":"conceal"},"hintCoinsSpent":1}'::jsonb,
+      '{"hints":{"synonym":0,"partOfSpeech":0,"definition":1},"clues":{"synonym":"conceal","partOfSpeech":"noun"},"hintCoinsSpent":1}'::jsonb,
       coin_change=coin_change-1 WHERE id=$1`, [game.id]);
     await pool.query('UPDATE account_users SET coin_balance=coin_balance-1 WHERE id=$1', [user.id]);
     const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(restored).toMatchObject({ hints: { partOfSpeech: 1, definition: 1 }, clues: {}, hintCoinsSpent: 1 });
-    const clue = await request('/games/' + game.id + '/hints', 'POST', { type: 'partOfSpeech' }, user.cookie);
-    expect(await clue.json()).toMatchObject({ type: 'partOfSpeech', text: 'noun · verb', cost: 1 });
+    expect(restored).toMatchObject({ hints: { definition: 1 }, clues: {}, hintCoinsSpent: 1 });
+    const clue = await request('/games/' + game.id + '/hints', 'POST', { type: 'definition' }, user.cookie);
+    expect(await clue.json()).toMatchObject({ type: 'definition', text: 'Definition of _____.; Definition of _____.', cost: 1 });
     expect(await balance(user.cookie)).toBe(97);
     const state = (await pool.query('SELECT active_state FROM practice_games WHERE id=$1', [game.id])).rows[0].active_state;
-    expect(state.clues).toEqual({ partOfSpeech: 'noun · verb' });
-    expect(state.hints).toEqual({ partOfSpeech: 0, definition: 1 });
+    expect(state.clues).toEqual({ definition: 'Definition of _____.; Definition of _____.' });
+    expect(state.hints).toEqual({ definition: 0 });
   });
 
   it('keeps hint fees when replacing a puzzle and upgrades saved letter hints', async () => {

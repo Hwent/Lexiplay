@@ -5,18 +5,11 @@
 .ladder-preview { display: grid; gap: .4rem; margin-bottom: 1.5rem; }
 .ladder-preview > div { display: flex; gap: .35rem; }
 .ladder-preview span { display: grid; place-items: center; width: 2.7rem; height: 2.7rem; border: 1px solid var(--line); border-radius: .45rem; background: var(--surface-soft); color: var(--text); font-weight: 750; }
-.ladder-preview .correct, .ladder-tile.correct { border-color: var(--correct); background: var(--correct); color: var(--correct-text); }
-.ladder-preview .present, .ladder-tile.present { border-color: var(--present); background: var(--present); color: var(--present-text); }
-.ladder-stage { width: min(100%, 27rem); margin: 0 auto; }
-.ladder-goal { margin-bottom: 1.75rem; padding: 1.2rem; border-radius: 1rem; border: 1px solid var(--line); background: var(--success-soft); }
-.ladder-goal-details { margin-top: .8rem; }
-.ladder-goal-details > summary { width: fit-content; color: var(--accent); cursor: pointer; font-size: .95rem; font-weight: 650; }
+.ladder-stage { width: min(100%, 18rem); margin: 0 auto; }
 .ladder-tiles { display: grid; grid-template-columns: repeat(var(--ladder-length), minmax(0, 1fr)); gap: .4rem; width: 100%; max-width: 21rem; margin-inline: auto; }
 .ladder-tile { display: grid; place-items: center; aspect-ratio: 1; min-width: 0; border: 1px solid var(--tile-border); border-radius: .55rem; background: var(--surface-soft); color: var(--text); font-size: clamp(1.4rem, 5vw, 2rem); font-weight: 750; text-transform: uppercase; }
 .ladder-tile.next { background: var(--control-bg); border-style: dashed; }
 .ladder-tile.filled { border-style: solid; border-color: var(--filled-border); }
-.ladder-goal-definition { display: flex; align-items: start; gap: .65rem; margin-top: 1rem; color: var(--soft-text); }
-.ladder-goal-definition > div { min-width: 0; font-size: 1rem; line-height: 1.6; }
-.ladder-path { display: grid; gap: .65rem; max-height: 25rem; overflow-y: auto; scrollbar-width: thin; }
+.ladder-path { display: grid; gap: .5rem; }
 .ladder-puzzle .puzzle-stage { display: block; }
 .ladder-puzzle .puzzle-tools { margin-bottom: 1rem; }

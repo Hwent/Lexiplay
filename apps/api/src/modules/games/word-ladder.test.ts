@@ -1,33 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { createLadder, ladderFeedback, shortestLadderSteps } from './word-ladder';
+import { createLadder } from './word-ladder';
 
 describe('word ladders', () => {
-  it('offers a reachable pair with at least three substitutions', () => {
+  it('offers a start with four distinct one-letter substitutions', () => {
     const words = ['cold', 'cord', 'card', 'ward', 'warm', 'solo'];
+    function hasPath(path: string[]): boolean {
+      if (path.length === 5) return true;
+      return words.some(next => !path.includes(next)
+        && [...next].filter((letter, index) => letter !== path.at(-1)![index]).length === 1
+        && hasPath([...path, next]));
+    }
     for (let i = 0; i < 20; i++) {
       const ladder = createLadder(words)!;
       expect(ladder).toBeDefined();
-      expect(ladder.startWord).not.toBe('solo');
-      expect(ladder.goalWord).not.toBe('solo');
-      expect(ladder.shortestSteps).toBe(Math.abs(words.indexOf(ladder.startWord) - words.indexOf(ladder.goalWord)));
-      expect(ladder.shortestSteps).toBeGreaterThanOrEqual(3);
+      expect(hasPath([ladder.startWord])).toBe(true);
+      expect(ladder).not.toHaveProperty('goalWord');
     }
   });
-  it('does not offer disconnected or trivial puzzles', () => {
+  it('rejects pools without four new words, even when words can be revisited', () => {
     expect(createLadder([])).toBeUndefined();
     expect(createLadder(['cold', 'warm', 'solo'])).toBeUndefined();
-    expect(createLadder(['cold', 'cord'])).toBeUndefined();
-  });
-  it('colors changed letters by their exact position in the goal', () => {
-    expect(ladderFeedback('still', 'stall', 'stale')).toEqual(['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT', 'ABSENT']);
-    expect(ladderFeedback('cold', 'gold', 'warm')).toEqual(['PRESENT', 'ABSENT', 'ABSENT', 'ABSENT']);
-    expect(ladderFeedback('cold', 'cord', 'warm')).toEqual(['ABSENT', 'ABSENT', 'CORRECT', 'ABSENT']);
-    expect(ladderFeedback('cord', 'card', 'warm')).toEqual(['ABSENT', 'CORRECT', 'CORRECT', 'ABSENT']);
-    expect(ladderFeedback('ward', 'warm', 'warm')).toEqual(['CORRECT', 'CORRECT', 'CORRECT', 'CORRECT']);
-  });
-  it('finds the shortest route across the full accepted dictionary', () => {
-    expect(shortestLadderSteps(['cat','cot','cog','dog','dot'], 'cat', 'dog')).toBe(3);
-    expect(shortestLadderSteps(['cat','cot','cog','dog','dot','dat'], 'cat', 'dot')).toBe(2);
-    expect(shortestLadderSteps(['cold','warm'], 'cold', 'warm')).toBeUndefined();
+    expect(createLadder(['cold', 'cord', 'card', 'ward'])).toBeUndefined();
+    expect(createLadder(['cold', 'cord', 'cold', 'cord', 'cold'])).toBeUndefined();
   });
 });

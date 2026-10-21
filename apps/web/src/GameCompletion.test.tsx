@@ -6,11 +6,11 @@ import App from './App';
 describe('completed games', () => {
   beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
-  const ladder = { startWord: 'cold', startDefinition: 'At a low temperature.', goalWord: 'warm', goalDefinition: 'At a comfortable temperature.', shortestSteps: 4 };
+  const ladder = { startWord: 'cold', startDefinition: 'At a low temperature.', targetWords: 4 };
   function fixture(kind: string, status: string) {
-    return { id: 'completion', kind, ...(kind === 'word-ladder' ? { ladder } : {}), wordLength: 4, attemptLimit: kind === 'word-ladder' ? 7 : 6,
-      difficulty: 'medium', status, completed: status !== 'active', answer: status === 'active' ? undefined : 'warm', answerDefinition: ladder.goalDefinition,
-      guesses: ['cord', 'card', 'ward'].map(guess => ({ guess, definition: `Definition of ${guess}.`, feedback: ['ABSENT','ABSENT','CORRECT','ABSENT'], completed: false })),
+    return { id: 'completion', kind, ...(kind === 'word-ladder' ? { ladder } : {}), wordLength: 4, attemptLimit: kind === 'word-ladder' ? 4 : 6,
+      difficulty: 'medium', status, completed: status !== 'active', answer: status === 'active' ? undefined : 'warm', answerDefinition: 'At a comfortable temperature.',
+      guesses: (status === 'won' && kind === 'word-ladder' ? ['cord', 'card', 'ward', 'warm'] : ['cord', 'card', 'ward']).map(guess => ({ guess, definition: `Definition of ${guess}.`, feedback: ['ABSENT','ABSENT','CORRECT','ABSENT'], completed: false })),
       hints: { partOfSpeech: 1, definition: 1 }, revealedPresent: [], revealedAbsent: [] };
   }
   function mockGame(kind: string, status: string, auth: 'guest' | 'account' | 'error' = 'guest') {
@@ -21,7 +21,7 @@ describe('completed games', () => {
       if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: 10, kind: auth === 'account' ? 'account' : 'guest' });
       if (path.endsWith('/games/completion')) return Response.json(fixture(kind, status));
       if (path.endsWith('/games') && init?.method === 'POST') return Response.json({ ...fixture(kind, 'active'), id: 'replay' });
-      if (path.endsWith('/guesses')) return Response.json({ guess: 'warm', definition: ladder.goalDefinition, feedback: Array(4).fill('CORRECT'), completed: true, outcome: 'WON', answer: 'warm', answerDefinition: ladder.goalDefinition, rewardCoins: 5, attemptsRemaining: 2 });
+      if (path.endsWith('/guesses')) return Response.json({ guess: 'warm', definition: 'At a comfortable temperature.', feedback: Array(4).fill('CORRECT'), completed: true, outcome: 'WON', answer: 'warm', answerDefinition: 'At a comfortable temperature.', rewardCoins: kind === 'word-ladder' ? 4 : 5, attemptsRemaining: kind === 'word-ladder' ? 0 : 2 });
       return Response.json([]);
     }));
   }

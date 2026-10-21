@@ -133,12 +133,12 @@ describe('saved practice and account updates', () => {
     expect(starts[1]).toBe(starts[0]);
     expect(starts[0]).toMatch(/^[0-9a-f-]{36}$/);
   });
-  it('starts a hard game and shows a purchased part-of-speech hint beside the remaining definition hint', async () => {
+  it('starts a hard game with only a definition hint beside the grid', async () => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (url.endsWith('/word-lists')) return new Response('[]');
-      if (url.endsWith('/hints')) return Response.json({ type: 'partOfSpeech', text: 'adjective', cost: 1, hints: { partOfSpeech: 0, definition: 1 } });
+      if (url.endsWith('/hints')) return Response.json({ type: 'definition', text: 'Having great beauty.', cost: 1, hints: { definition: 0 } });
       if (init?.method === 'POST') return Response.json(emptyGame);
       throw new Error(`Unexpected request: ${url}`);
     });
@@ -151,18 +151,18 @@ describe('saved practice and account updates', () => {
     expect(screen.getAllByRole('row')).toHaveLength(5);
     const start = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/games'))!;
     expect(JSON.parse(String(start[1]?.body))).toEqual({ kind: 'word-puzzle', wordLength: 9, difficulty: 'hard', playWithMyWords: false, startRequestId: expect.any(String) });
-    await user.click(screen.getByRole('button', { name: /part of speech hint.*1 coin/i }));
-    expect(await screen.findByRole('button', { name: /part of speech hint.*revealed/i })).toBeDisabled();
-    expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeEnabled();
-    expect(screen.getByRole('complementary', { name: 'Part of speech hint' })).toHaveTextContent('adjective');
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/games/saved-game/hints', expect.objectContaining({ body: JSON.stringify({ type: 'partOfSpeech' }) }));
+    await user.click(screen.getByRole('button', { name: /definition hint.*1 coin/i }));
+    expect(await screen.findByRole('button', { name: /definition hint.*revealed/i })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: /part of speech/i })).not.toBeInTheDocument();
+    expect(screen.getByRole('complementary', { name: 'Definition hint' })).toHaveTextContent('Having great beauty.');
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/games/saved-game/hints', expect.objectContaining({ body: JSON.stringify({ type: 'definition' }) }));
     await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
     await user.click(screen.getByRole('button', { name: /^Games$/i }));
-    expect(screen.getByRole('button', { name: /part of speech hint.*revealed/i })).toBeDisabled();
+    expect(screen.getByRole('button', { name: /definition hint.*revealed/i })).toBeDisabled();
   });
   it('refreshes the coin badge after a purchase and leaves failed hints available', async () => {
     localStorage.setItem('lexiplay-last-game', 'saved-game');
-    let balance = 9;
+    let balance = 9, hintAttempts = 0;
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
@@ -170,17 +170,17 @@ describe('saved practice and account updates', () => {
       if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [] }]);
       if (path.endsWith('/games/saved-game')) return Response.json(emptyGame);
       if (path.endsWith('/hints')) {
-        if (JSON.parse(String(init?.body)).type === 'partOfSpeech') return Response.json({ message: 'Part of speech lookup is unavailable. No coins were charged.' }, { status: 503 });
+        if (++hintAttempts === 1) return Response.json({ message: 'Definition lookup is unavailable. No coins were charged.' }, { status: 503 });
         balance--;
-        return Response.json({ type: 'definition', text: 'Pleasing to look at. Often admired by others.; Another meaning.', cost: 1, hints: { partOfSpeech: 1, definition: 0 } });
+        return Response.json({ type: 'definition', text: 'Pleasing to look at. Often admired by others.; Another meaning.', cost: 1, hints: { definition: 0 } });
       }
       return Response.json([]);
     }));
     const user = userEvent.setup(); render(<App/>);
     expect(await screen.findByLabelText('Coin balance: 9')).toBeInTheDocument();
-    await user.click(await screen.findByRole('button', { name: /part of speech hint.*1 coin/i }));
+    await user.click(await screen.findByRole('button', { name: /definition hint.*1 coin/i }));
     expect(await screen.findByText(/No coins were charged/)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: /part of speech hint.*1 coin/i })).toBeEnabled();
+    expect(screen.getByRole('button', { name: /definition hint.*1 coin/i })).toBeEnabled();
     expect(screen.getByLabelText('Coin balance: 9')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /definition hint.*1 coin/i }));
     expect(await screen.findByLabelText('Coin balance: 8')).toBeInTheDocument();

@@ -23,7 +23,7 @@ For a fresh local database, publish a reviewed dictionary using `pnpm library:pu
 
 Dictionary publication preserves referenced entries and updates the library revision so clients refresh cached vocabulary. License notices are shipped under `apps/web/public/licenses/`.
 
-Each puzzle offers a part-of-speech hint (for example, `noun · verb`) and a definition hint for 1 coin each. Both use the local dictionary. Failed or unavailable hints cost nothing. Purchased hints stay visible while the puzzle is active, and their fees are not refunded when leaving a puzzle.
+Word Guess offers a definition hint for 1 coin from the local dictionary. Failed or unavailable hints cost nothing. Purchased hints stay visible while the puzzle is active, and their fees are not refunded when leaving a puzzle.
 
 Settings provides compact controls for appearance, three text sizes, interface language and sound. The interface follows the browser's English or Chinese preference by default; learners can choose English or Simplified Chinese manually. These preferences stay on the device. Learning words, parts of speech and dictionary definitions stay in English.
 

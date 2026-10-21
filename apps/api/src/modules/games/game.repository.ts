@@ -1,7 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, score } from './game.types';
-import { ladderFeedback } from './word-ladder';
+import { LADDER_WORDS } from './word-ladder';
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
 type ActiveState = { guesses: string[]; hints: Partial<Game['hints']>; revealedAbsent: string[]; revealedPresent: string[];
@@ -10,7 +10,7 @@ type ActiveState = { guesses: string[]; hints: Partial<Game['hints']>; revealedA
 type GameRow = {
   id: string; start_request_id: string; answer: string; difficulty: Difficulty; attempt_count: number; coin_change: number;
   active_state: ActiveState | null; status: GameStatus; finished_at: Date | null;
-  ladder_state: { startWord: string; shortestSteps: number; guesses?: string[] } | null;
+  ladder_state: { startWord: string; targetWords?: number; guesses?: string[] } | null;
   collection_id: string | null; collection_name: string; collection_author: string | null;
   coin_user_id: string | null; coin_guest_session_id: string | null;
 };
@@ -131,10 +131,10 @@ export class GameRepository implements OnModuleDestroy {
           coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
         await client.query(`UPDATE practice_games SET status=$2,finished_at=$3,active_state=$4,
           attempt_count=$5,coin_change=coin_change+$6,collection_id=CASE WHEN $7 THEN NULL ELSE collection_id END,
-          ladder_state=$8 WHERE id=$1`,
+          ladder_state=$8,answer=$9 WHERE id=$1`,
           [id,game.status,game.completedAt,state ? JSON.stringify(state) : null,game.guesses.length,credit-debit,game.completed,
-            game.ladder ? JSON.stringify({ startWord: game.ladder.startWord, shortestSteps: game.ladder.shortestSteps,
-              ...(game.completed ? { guesses: game.guesses.map(guess => guess.guess) } : {}) }) : null]);
+            game.ladder ? JSON.stringify({ startWord: game.ladder.startWord, targetWords: game.ladder.targetWords,
+              ...(game.completed ? { guesses: game.guesses.map(guess => guess.guess) } : {}) }) : null,game.answer]);
       }
       await client.query('COMMIT'); return result;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
@@ -187,22 +187,21 @@ export class GameRepository implements OnModuleDestroy {
     return rows.map(row => {
       const state = row.active_state, rules = DIFFICULTIES[row.difficulty], completed = row.status !== 'active';
       const ladder = row.ladder_state;
-      const attemptLimit = ladder ? ladder.shortestSteps + 3 : rules.attemptLimit;
+      const attemptLimit = ladder ? ladder.targetWords ?? (row.attempt_count || LADDER_WORDS) : rules.attemptLimit;
       const steps = state?.guesses ?? ladder?.guesses ?? [];
       const guesses: Guess[] = steps.map((guess,index) => ({ guess,
-        feedback:ladder ? ladderFeedback(steps[index - 1] ?? ladder.startWord,guess,row.answer) : score(row.answer,guess),
+        feedback:ladder ? [] : score(row.answer,guess),
         definition:meanings.get(guess) ?? '',attemptsRemaining:attemptLimit-index-1,completed:completed && index === steps.length - 1 }));
       return { id:row.id,startRequestId:row.start_request_id,kind:ladder ? 'word-ladder' : 'word-puzzle',owner,answer:row.answer,
-        ...(ladder ? { ladder: { startWord: ladder.startWord, shortestSteps: ladder.shortestSteps, startDefinition: meanings.get(ladder.startWord) ?? '' } } : {}),
+        ...(ladder ? { ladder: { startWord: ladder.startWord, targetWords: attemptLimit, startDefinition: meanings.get(ladder.startWord) ?? '' } } : {}),
         answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
         wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit,guesses,completed,status:row.status,
         startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
-        hints: { partOfSpeech: completed ? 0 : state?.hints.partOfSpeech ?? 1, definition: completed ? 0 : state?.hints.definition ?? 1 },
-        clues: { ...(state?.clues?.partOfSpeech ? { partOfSpeech: state.clues.partOfSpeech } : {}),
-          ...(state?.clues?.definition ? { definition: state.clues.definition } : {}) }, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
+        hints: { definition: completed ? 0 : state?.hints.definition ?? 1 },
+        clues: { ...(state?.clues?.definition ? { definition: state.clues.definition } : {}) }, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
         revealedAbsent:state?.revealedAbsent ?? [],revealedPresent:state?.revealedPresent ?? [],
         coinCost:state?.coinCost ?? (row.status === 'lost' ? -row.coin_change : 0),
-        winRewardCoins:ladder ? 5 : state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',
+        winRewardCoins:ladder ? (ladder.targetWords ? row.answer.length : 5) : state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',
         ...(row.status === 'cancelled' ? {cancellationReason:'This unfinished game was refunded.'} : {}),
         ...(row.collection_id ? {pool:{id:row.collection_id,name:row.collection_name,author:row.collection_author ?? ''}} : {}) };
     });
