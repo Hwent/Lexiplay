@@ -3,20 +3,22 @@ import { FormEvent, useEffect, useState } from 'react';
 import { apiRequest } from './services/api-client';
 import { forgetPendingProgress } from './services/guest-progress';
 import PasswordField from './PasswordField';
+import NewAccountReward from './NewAccountReward';
 import type { Account } from './useAccount';
 
 type AccountMode = 'login' | 'register' | 'forgot' | 'reset' | 'verify';
-function initialAction() {
+function initialAction(defaultMode: 'login' | 'register') {
   const params = new URLSearchParams(window.location.hash.slice(1));
   const action = params.get('action');
-  return { mode: action === 'reset' || action === 'verify' ? action : 'login', token: params.get('token') ?? '' } as { mode: AccountMode; token: string };
+  return { mode: action === 'reset' || action === 'verify' ? action : defaultMode, token: params.get('token') ?? '' } as { mode: AccountMode; token: string };
 }
-export default function AccountPage({ account, setAccount, loading, accountError, onRetry, onSignedIn, progressSaving, progressError, progressMessage, onRetryProgress }: {
+export default function AccountPage({ account, setAccount, loading, accountError, onRetry, onSignedIn, progressSaving, progressError, progressMessage, onRetryProgress, initialMode = 'login' }: {
   account: Account | null; setAccount: (account: Account | null) => void; loading: boolean; accountError: string; onRetry: () => void;
   onSignedIn: (account: Account) => Promise<void>; progressSaving: boolean; progressError: string; progressMessage: string; onRetryProgress: () => void;
+  initialMode?: 'login' | 'register';
 }) {
   const t = useTranslation();
-  const [action] = useState(initialAction);
+  const [action] = useState(() => initialAction(initialMode));
   const [mode, setMode] = useState<AccountMode>(action.mode);
   const [token, setToken] = useState(action.token);
   const [email, setEmail] = useState('');
@@ -107,6 +109,7 @@ export default function AccountPage({ account, setAccount, loading, accountError
           </section>
         </> : <>
           {['login', 'register'].includes(mode) && <div className="account-tabs" role="tablist" aria-label={t('Account access')}><button role="tab" aria-selected={mode === 'login'} onClick={() => switchMode('login')} disabled={controlsBusy}>{t('Sign in')}</button><button role="tab" aria-selected={mode === 'register'} onClick={() => switchMode('register')} disabled={controlsBusy}>{t('Create account')}</button></div>}
+          {mode === 'register' && <NewAccountReward/>}
           {mode === 'forgot' && recoveryRequested ? <div className="recovery-confirmation"><span aria-hidden="true">↗</span><h3>{t('Check your inbox')}</h3><p>{t('If there’s an account linked to that email, you’ll receive a reset link. It expires in 30 minutes.')}</p><button className="account-secondary" onClick={() => { setRecoveryRequested(false); clearFeedback(); }}>{t('Send another link')}</button></div> : <form className="account-form" onSubmit={event => void submit(event)}>
             {mode === 'register' && <><label htmlFor="account-username">{t('Username')}</label><input id="account-username" autoComplete="username" required minLength={3} maxLength={32} pattern="[a-zA-Z][a-zA-Z0-9_]{2,31}" value={username} onChange={event => setUsername(event.target.value)} disabled={controlsBusy} /><p className="account-hint">{t('3–32 letters, numbers, or underscores. Start with a letter.')}</p></>}
             {!['reset', 'verify'].includes(mode) && <><label htmlFor="account-email">{mode === 'login' ? t('Username or email') : t('Email')}{mode === 'register' && <> <span className="field-optional">{t('optional')}</span></>}</label><input id="account-email" type={mode === 'login' ? 'text' : 'email'} autoComplete={mode === 'login' ? 'username' : 'email'} required={mode !== 'register'} maxLength={254} value={email} onChange={event => { setEmail(event.target.value); if (!event.target.value.trim()) setSendVerification(false); }} disabled={controlsBusy} />{mode === 'register' && <p className="account-hint">{t('Add an email if you’d like password recovery. You can add one later.')}</p>}</>}

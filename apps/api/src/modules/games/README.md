@@ -1,5 +1,21 @@
 # Puzzle answers and rules
 
+Word Ladder gives a common four- or five-letter starting word. Make four new,
+distinct dictionary words, replacing exactly one letter from the previous word
+each time. The starting word cannot be reused. Every start has a verified chain
+of four new common words, and players may also use the broader dictionary.
+The neutral grid includes definitions and pronunciation with the same invalid-word
+handling as Word Guess. Entry costs 1 coin; completing the chain awards 4 coins
+for four-letter words or 5 coins for five-letter words. Paths survive reloads.
+
+`POST /games/:id/give-up` ends either puzzle as a loss and keeps the entry coin
+spent. Word Guess reveals its answer. Repeating the request does not change the
+balance. Unfinished ladders from the old goal-based rules are refunded on migration.
+
+Players can replace and refund a game only before its first accepted word.
+Invalid words do not count. After an accepted word, both abandonment and a new
+start return `PUZZLE_ALREADY_STARTED` until the player finishes or gives up.
+
 Default five-letter answers use the original Wordle list. At 3–4 and 6–9 letters,
 defaults use the existing Oxford A1–B2 vocabulary selection. Both pools intersect
 the live dictionary, so every answer is lowercase, alphabetic, and has an English

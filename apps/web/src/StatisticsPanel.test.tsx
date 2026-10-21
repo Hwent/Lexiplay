@@ -2,13 +2,13 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
-import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
+import { stubGameApiFetch } from './game-api-test-fixtures';
 
 beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/progress'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it('offers a puzzle instead of empty metrics and pagination before the first game', async () => {
-  stubFetchWithVocabularyRanges(vi.fn(async (input: RequestInfo | URL) => {
+  stubGameApiFetch(vi.fn(async (input: RequestInfo | URL) => {
     const path = String(input);
     if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
     if (path.includes('/progress/summary')) return Response.json({ total: 0, wins: 0, winRate: 0, streak: 0, recent: [], page: 1, pageSize: 10, totalPages: 1, timezone: 'America/Toronto' });
@@ -23,7 +23,7 @@ it('offers a puzzle instead of empty metrics and pagination before the first gam
 });
 
 it('takes guests from their progress empty state to sign in', async () => {
-  stubFetchWithVocabularyRanges(vi.fn(async () => new Response('{}', { status: 401 })));
+  stubGameApiFetch(vi.fn(async () => new Response('{}', { status: 401 })));
   const user = userEvent.setup(); render(<App/>);
   await user.click(await screen.findByRole('button', { name: 'Sign in' }));
   expect(location.pathname).toBe('/account');
@@ -47,7 +47,7 @@ it('paginates practice with stable totals and saves selected recent words when l
     }
     return Response.json([]);
   });
-  stubFetchWithVocabularyRanges(fetchMock);
+  stubGameApiFetch(fetchMock);
   const user = userEvent.setup(); render(<App/>);
   await screen.findByRole('button', { name: 'Add apple to word list' });
   await waitFor(() => expect(screen.getByRole('button', { name: 'Add apple to word list' })).toBeEnabled());

@@ -215,6 +215,7 @@ model PracticeGame {
   attemptCount Int @default(0) @db.SmallInt @map("attempt_count")
   coinChange Int @map("coin_change")
   activeState Json? @map("active_state")
+    ladderState Json? @map("ladder_state")
   status String @default("active")
   finishedAt DateTime? @db.Timestamptz @map("finished_at")
   @@index([userId,finishedAt])

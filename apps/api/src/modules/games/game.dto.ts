@@ -6,6 +6,6 @@ export class StartGameDto {
   @IsOptional() @IsIn([3, 4, 5, 6, 7, 8, 9]) wordLength?: number;
   @IsOptional() @IsIn(['easy', 'medium', 'hard']) difficulty?: 'easy' | 'medium' | 'hard';
   @IsOptional() @IsBoolean() playWithMyWords?: boolean;
-  @IsOptional() @IsIn(['word-puzzle', 'wordle']) kind?: 'word-puzzle' | 'wordle';
+  @IsOptional() @IsIn(['word-puzzle', 'wordle', 'word-ladder']) kind?: 'word-puzzle' | 'wordle' | 'word-ladder';
 }
-export class HintDto { @IsString() @IsIn(['partOfSpeech', 'definition']) type!: 'partOfSpeech' | 'definition'; }
+export class HintDto { @IsString() @IsIn(['definition']) type!: 'definition'; }

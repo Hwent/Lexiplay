@@ -3,7 +3,8 @@ export type Difficulty = 'easy' | 'medium' | 'hard';
 export type GameStatus = 'active' | 'won' | 'lost' | 'cancelled';
 export const WORDLE_COST = 1;
 export const HINT_COST = 1;
-export type HintType = 'partOfSpeech' | 'definition';
+export const PUZZLE_ALREADY_STARTED = { code: 'PUZZLE_ALREADY_STARTED', message: 'Finish this puzzle or give up before choosing a new one.' };
+export type HintType = 'definition';
 export const DIFFICULTIES = {
   easy: { attemptLimit: 7, reward: 4 },
   medium: { attemptLimit: 6, reward: 5 },
@@ -15,7 +16,8 @@ export type Guess = {
 };
 export type Game = {
   pool?: { id: string; name: string; author: string };
-  id: string; startRequestId: string; kind: 'word-puzzle'; owner: string; answer: string;
+  id: string; startRequestId: string; kind: 'word-puzzle' | 'word-ladder'; owner: string; answer: string;
+  ladder?: { startWord: string; targetWords: number; startDefinition?: string };
   wordLength: number; difficulty: Difficulty; attemptLimit: number; guesses: Guess[];
   completed: boolean; status: GameStatus; startedAt: string; completedAt: string | null;
   hints: Record<HintType, number>; clues: Partial<Record<HintType, string>>; hintCoinsSpent: number;
@@ -26,7 +28,8 @@ export type Game = {
 };
 export function publicGame(game: Game) {
   const { owner: _owner, answer: _answer, answerDefinition: _definition, startRequestId: _request, ...result } = game;
-  return { ...result, ...(game.completed ? { answer: game.answer, answerDefinition: game.answerDefinition } : {}) };
+  return { ...result,
+    ...(game.completed ? { answer: game.answer, answerDefinition: game.answerDefinition } : {}) };
 }
 
 export function score(answer: string, guess: string): Feedback[] {

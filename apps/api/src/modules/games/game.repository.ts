@@ -1,6 +1,7 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
-import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, score } from './game.types';
+import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, PUZZLE_ALREADY_STARTED, score } from './game.types';
+import { LADDER_WORDS } from './word-ladder';
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
 type ActiveState = { guesses: string[]; hints: Partial<Game['hints']>; revealedAbsent: string[]; revealedPresent: string[];
@@ -9,6 +10,7 @@ type ActiveState = { guesses: string[]; hints: Partial<Game['hints']>; revealedA
 type GameRow = {
   id: string; start_request_id: string; answer: string; difficulty: Difficulty; attempt_count: number; coin_change: number;
   active_state: ActiveState | null; status: GameStatus; finished_at: Date | null;
+  ladder_state: { startWord: string; targetWords?: number; guesses?: string[] } | null;
   collection_id: string | null; collection_name: string; collection_author: string | null;
   coin_user_id: string | null; coin_guest_session_id: string | null;
 };
@@ -46,7 +48,7 @@ export class GameRepository implements OnModuleDestroy {
       const previous = (await client.query('SELECT id FROM practice_games WHERE start_request_id=$1', [game.startRequestId])).rows[0];
       if (previous) {
         const existing = await this.load(client, previous.id, game.owner);
-        if (existing.wordLength !== game.wordLength || existing.difficulty !== game.difficulty || (!existing.completed && existing.pool?.id !== game.pool?.id)) {
+        if (existing.kind !== game.kind || existing.wordLength !== game.wordLength || existing.difficulty !== game.difficulty || (!existing.completed && existing.pool?.id !== game.pool?.id)) {
           throw new ConflictException('This start request was already used for a different game.');
         }
         await client.query('COMMIT'); return existing;
@@ -54,7 +56,7 @@ export class GameRepository implements OnModuleDestroy {
       const wallet = await this.walletRow(client, game.owner, true);
       const answer = await this.resolveWord(client, game.answer);
       if (!answer) throw new BadRequestException('The dictionary changed. Choose a new game.');
-      // Replacing a puzzle refunds its original payer in this same transaction.
+      // Only untried puzzles can be replaced and refunded to their original payer.
       const unfinished = (await client.query(`SELECT g.id,g.coin_user_id,g.coin_guest_session_id,
         COALESCE((g.active_state->>'coinCost')::int,1) AS entry_cost FROM practice_games g
         LEFT JOIN guest_sessions s ON s.id=g.guest_session_id WHERE g.status='active'
@@ -64,6 +66,9 @@ export class GameRepository implements OnModuleDestroy {
         const payerTable = previous.coin_user_id ? 'account_users' : 'guest_sessions';
         const payerId = previous.coin_user_id ?? previous.coin_guest_session_id;
         await client.query(`SELECT id FROM ${payerTable} WHERE id=$1 FOR UPDATE`, [payerId]);
+        const current = (await client.query<{ status: GameStatus; attempt_count: number }>(
+          'SELECT status,attempt_count FROM practice_games WHERE id=$1 FOR UPDATE', [previous.id])).rows[0]!;
+        if (current.status === 'active' && current.attempt_count > 0) throw new ConflictException(PUZZLE_ALREADY_STARTED);
         const refunded = await client.query(`UPDATE practice_games SET status='cancelled',finished_at=now(),
           active_state=NULL,collection_id=NULL,coin_change=coin_change+$2 WHERE id=$1 AND status='active' RETURNING id`, [previous.id, previous.entry_cost]);
         if (refunded.rowCount) await client.query(`UPDATE ${payerTable} SET coin_balance=coin_balance+$2 WHERE id=$1`, [payerId, previous.entry_cost]);
@@ -76,9 +81,9 @@ export class GameRepository implements OnModuleDestroy {
         clues: game.clues, hintCoinsSpent: 0,
         coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
       await client.query(`INSERT INTO practice_games(id,start_request_id,user_id,guest_session_id,coin_user_id,coin_guest_session_id,
-        answer,collection_id,difficulty,coin_change,active_state) VALUES($1,$2,$3,$4,$3,$4,$5,$6,$7,$8,$9)`,
+        answer,collection_id,difficulty,coin_change,active_state,ladder_state) VALUES($1,$2,$3,$4,$3,$4,$5,$6,$7,$8,$9,$10)`,
         [game.id,game.startRequestId,wallet.kind === 'account' ? wallet.id : null,wallet.kind === 'guest' ? wallet.id : null,
-          game.answer,game.pool?.id ?? null,game.difficulty,-game.coinCost,JSON.stringify(state)]);
+          game.answer,game.pool?.id ?? null,game.difficulty,-game.coinCost,JSON.stringify(state),game.ladder ? JSON.stringify(game.ladder) : null]);
       const created = await this.load(client, game.id, game.owner);
       await client.query('COMMIT'); return created;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
@@ -128,8 +133,11 @@ export class GameRepository implements OnModuleDestroy {
           revealedAbsent: game.revealedAbsent, revealedPresent: game.revealedPresent,
           coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
         await client.query(`UPDATE practice_games SET status=$2,finished_at=$3,active_state=$4,
-          attempt_count=$5,coin_change=coin_change+$6,collection_id=CASE WHEN $7 THEN NULL ELSE collection_id END WHERE id=$1`,
-          [id,game.status,game.completedAt,state ? JSON.stringify(state) : null,game.guesses.length,credit-debit,game.completed]);
+          attempt_count=$5,coin_change=coin_change+$6,collection_id=CASE WHEN $7 THEN NULL ELSE collection_id END,
+          ladder_state=$8,answer=$9 WHERE id=$1`,
+          [id,game.status,game.completedAt,state ? JSON.stringify(state) : null,game.guesses.length,credit-debit,game.completed,
+            game.ladder ? JSON.stringify({ startWord: game.ladder.startWord, targetWords: game.ladder.targetWords,
+              ...(game.completed ? { guesses: game.guesses.map(guess => guess.guess) } : {}) }) : null,game.answer]);
       }
       await client.query('COMMIT'); return result;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
@@ -171,7 +179,7 @@ export class GameRepository implements OnModuleDestroy {
       WHERE g.id=ANY($1::uuid[]) AND (($2 LIKE 'user:%' AND g.user_id::text=substring($2 from 6))
         OR ($2 LIKE 'guest:%' AND s.token_hash=substring($2 from 7) AND s.claimed_at IS NULL AND s.expires_at>now()))
       ORDER BY g.finished_at DESC NULLS FIRST,g.id${lock ? ' FOR UPDATE OF g' : ''}`, [ids,owner]);
-    const terms = [...new Set(rows.flatMap(row => [row.answer,...(row.active_state?.guesses ?? [])]))];
+    const terms = [...new Set(rows.flatMap(row => [row.answer,...(row.ladder_state ? [row.ladder_state.startWord] : []),...(row.active_state?.guesses ?? row.ladder_state?.guesses ?? [])]))];
     const definitions = terms.length ? (await client.query<{term:string; definition:string}>(`SELECT chosen.term,
       string_agg(d.definition,'; ' ORDER BY e.part_of_speech,d.sense_order) definition FROM unnest($1::text[]) chosen(term)
       JOIN LATERAL (SELECT term FROM dictionary_entries WHERE lower(term COLLATE "default")=chosen.term
@@ -181,18 +189,22 @@ export class GameRepository implements OnModuleDestroy {
     const meanings = new Map(definitions.map(row => [row.term,row.definition]));
     return rows.map(row => {
       const state = row.active_state, rules = DIFFICULTIES[row.difficulty], completed = row.status !== 'active';
-      const guesses: Guess[] = (state?.guesses ?? []).map((guess,index) => ({ guess,feedback:score(row.answer,guess),
-        definition:meanings.get(guess) ?? '',attemptsRemaining:rules.attemptLimit-index-1,completed:false }));
-      return { id:row.id,startRequestId:row.start_request_id,kind:'word-puzzle',owner,answer:row.answer,
+      const ladder = row.ladder_state;
+      const attemptLimit = ladder ? ladder.targetWords ?? (row.attempt_count || LADDER_WORDS) : rules.attemptLimit;
+      const steps = state?.guesses ?? ladder?.guesses ?? [];
+      const guesses: Guess[] = steps.map((guess,index) => ({ guess,
+        feedback:ladder ? [] : score(row.answer,guess),
+        definition:meanings.get(guess) ?? '',attemptsRemaining:attemptLimit-index-1,completed:completed && index === steps.length - 1 }));
+      return { id:row.id,startRequestId:row.start_request_id,kind:ladder ? 'word-ladder' : 'word-puzzle',owner,answer:row.answer,
+        ...(ladder ? { ladder: { startWord: ladder.startWord, targetWords: attemptLimit, startDefinition: meanings.get(ladder.startWord) ?? '' } } : {}),
         answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
-        wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit:rules.attemptLimit,guesses,completed,status:row.status,
+        wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit,guesses,completed,status:row.status,
         startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
-        hints: { partOfSpeech: completed ? 0 : state?.hints.partOfSpeech ?? 1, definition: completed ? 0 : state?.hints.definition ?? 1 },
-        clues: { ...(state?.clues?.partOfSpeech ? { partOfSpeech: state.clues.partOfSpeech } : {}),
-          ...(state?.clues?.definition ? { definition: state.clues.definition } : {}) }, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
+        hints: { definition: completed ? 0 : state?.hints.definition ?? 1 },
+        clues: { ...(state?.clues?.definition ? { definition: state.clues.definition } : {}) }, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
         revealedAbsent:state?.revealedAbsent ?? [],revealedPresent:state?.revealedPresent ?? [],
         coinCost:state?.coinCost ?? (row.status === 'lost' ? -row.coin_change : 0),
-        winRewardCoins:state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',
+        winRewardCoins:ladder ? (ladder.targetWords ? row.answer.length : 5) : state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',
         ...(row.status === 'cancelled' ? {cancellationReason:'This unfinished game was refunded.'} : {}),
         ...(row.collection_id ? {pool:{id:row.collection_id,name:row.collection_name,author:row.collection_author ?? ''}} : {}) };
     });

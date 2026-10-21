@@ -1,0 +1,17 @@
+.puzzle-play-column > .next-game { display: flex; flex-wrap: wrap; justify-content: center; gap: .75rem; width: 100%; margin: 1.25rem 0 .5rem; }
+.next-game .guest-save-reminder { flex-basis: 100%; margin: .25rem 0 0; }
+.guest-game-backdrop { position: fixed; inset: 0; z-index: 200; display: grid; place-items: center; padding: 1rem; background: rgb(0 0 0 / 60%); }
+.guest-game-dialog { width: min(100%, 28rem); max-height: calc(100dvh - 2rem); overflow-y: auto; padding: clamp(1.5rem, 4vw, 2rem); border: 1px solid var(--line); border-radius: 1.25rem; background: var(--surface); color: var(--text); box-shadow: var(--account-shadow); }
+.guest-game-dialog h2 { margin: 0; font-size: clamp(1.6rem, 5vw, 2rem); letter-spacing: -.04em; line-height: 1.2; }
+.guest-game-dialog > p { margin: .75rem 0 1.5rem; color: var(--soft-text); font-size: 1rem; line-height: 1.6; }
+.guest-game-actions { display: grid; grid-template-columns: 1fr 1fr; gap: .75rem; margin-top: 1.5rem; }
+.guest-game-actions > button { min-height: 2.9rem; font: inherit; font-weight: 650; }
+.guest-game-actions > .account-link { grid-column: 1 / -1; justify-self: center; }
+.guest-game-dialog :focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; }
+.new-account-reward { display: flex; align-items: center; gap: 1rem; padding: 1.1rem 1.25rem; border: 1px solid var(--warning-400); border-radius: 1rem; background: var(--warning-soft); color: var(--warning-text); }
+.new-account-reward > .coin-icon { flex: 0 0 auto; width: 3.25rem; height: 3.25rem; }
+.new-account-reward strong { display: block; font-size: 2.25rem; line-height: 1.15; font-weight: 750; letter-spacing: -.04em; }
+.new-account-reward strong > span { font-size: 1.1rem; font-weight: 650; letter-spacing: normal; }
+.new-account-reward p { margin: .4rem 0 0; font-size: 1rem; line-height: 1.5; }
+.account-page-card > .new-account-reward { margin: 1.25rem 0; }
+@media (prefers-reduced-motion: no-preference) { .guest-game-dialog { animation: puzzle-arrive 180ms ease-out; } }

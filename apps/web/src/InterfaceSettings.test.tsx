@@ -14,7 +14,7 @@ beforeEach(() => {
     const path = String(input);
     if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
     if (path.includes('/word-lists/dictionary?q=')) return Response.json([{ term: 'apple', definition: 'A fruit grown on a tree.', partOfSpeech: ['noun'] }]);
-    if (path.endsWith('/games/options')) return Response.json([{ wordLength: 5, totalWords: 20, collections: [] }]);
+    if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 20, collections: [] }]);
     if (path.endsWith('/wallet')) return Response.json({ coinBalance: 10, kind: 'guest' });
     return Response.json([]);
   }));

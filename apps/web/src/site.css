@@ -31,7 +31,7 @@
 .game-price > span:last-child { color: var(--accent); }
 .hint-price { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); font-size: 1rem; }
 .puzzle-stage { display: grid; width: 100%; align-items: start; gap: 1rem; }
-.puzzle-stage.with-hints { grid-template-columns: minmax(11rem, 1fr) minmax(0, 2.5fr) minmax(11rem, 1fr); }
+.puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem); }
 .puzzle-hint { min-width: 0; border: 0; border-radius: .8rem; background: var(--surface-soft); }
 .puzzle-hint .friendly-hint { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'icon title price'; align-items: center; gap: .4rem; width: 100%; min-height: 3rem; padding: .75rem; border: 0; border-radius: .8rem; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
 .puzzle-hint .hint-icon { grid-area: icon; display: inline-flex; align-items: center; margin: 0; }
@@ -258,7 +258,7 @@
 .footer-links .ui-icon { width: .95rem; height: .95rem; }
 @media (prefers-reduced-motion: no-preference) {
   .confetti-piece { animation: confetti-burst 2.3s ease-out both; transform-origin: 300px 30px; }
-  .puzzle-won .guess-row:has(.correct):not(:has(.absent, .present)) { animation: solved-bounce .6s ease-in-out; }
+  .puzzle-won .guess-row:has(.correct):not(:has(.absent, .present, .neutral)), .puzzle-won .guess-row.ladder-solved { animation: solved-bounce .6s ease-in-out; }
   .coins-changed > .ui-icon { animation: coin-flip .6s ease-out; }
   .coin-change { animation: coin-delta 1.5s ease-out both; }
   @keyframes confetti-burst { 0% { opacity: 0; transform: translate(300px, 30px) scale(.3); } 12% { opacity: 1; } 65% { opacity: 1; } 100% { opacity: 0; transform: translate(calc(300px + var(--x)), var(--y)) rotate(var(--turn)); } }
@@ -292,17 +292,8 @@
   .practice-story .game-rules { grid-column: 1 / -1; }
   .practice-setup { padding: 1.5rem 0 0; border-left: 0; border-top: 1px solid var(--line); }
 }
-@media (max-width: 1100px) {
-  .puzzle-stage.with-hints { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  .puzzle-stage.with-hints .puzzle-hint { grid-row: 1; }
-  .puzzle-stage .puzzle-play-column { grid-column: 1 / -1; }
-  .puzzle-stage.with-hints .puzzle-play-column { grid-row: 2; }
-}
-@media (max-width: 480px) {
+@media (max-width: 740px) {
   .puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr); gap: .65rem; }
-  .puzzle-stage.with-hints .hint-partOfSpeech { grid-row: 1; }
-  .puzzle-stage.with-hints .hint-definition { grid-row: 2; }
-  .puzzle-stage.with-hints .puzzle-play-column { grid-row: 3; }
 }
 @media (max-width: 900px) {
   .app-shell { grid-template-columns: 4.5rem minmax(0, 1fr); }

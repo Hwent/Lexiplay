@@ -3,6 +3,7 @@ import { Pool } from 'pg';
 
 export type AccountUser = { id: string; email: string | null; username: string; emailVerified: boolean; coinBalance: number };
 export type AccountRecord = AccountUser & { passwordHash: string };
+export type CoinRanking = { rank: number; username: string; coinBalance: number };
 
 @Injectable()
 export class AccountRepository implements OnModuleDestroy {
@@ -33,6 +34,14 @@ export class AccountRepository implements OnModuleDestroy {
   async findById(id: string): Promise<AccountRecord | null> {
     const result = await this.pool.query<AccountRecord>('SELECT id, email, username, email_verified AS "emailVerified", coin_balance AS "coinBalance", password_hash AS "passwordHash" FROM account_users WHERE id = $1', [id]);
     return result.rows[0] ?? null;
+  }
+
+  async coinRankings(): Promise<CoinRanking[]> {
+    const result = await this.pool.query<CoinRanking>(`SELECT
+      rank() OVER (ORDER BY coin_balance DESC)::int AS rank,
+      left(username,1) || '***' AS username, coin_balance AS "coinBalance"
+      FROM account_users ORDER BY coin_balance DESC,id LIMIT 20`);
+    return result.rows;
   }
 
   async addEmail(id: string, email: string, expectedPasswordHash: string): Promise<AccountUser | null> {

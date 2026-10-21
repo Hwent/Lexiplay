@@ -111,10 +111,10 @@
 .word-with-pronunciation { display: flex; align-items: center; flex-wrap: wrap; gap: .4rem; }
 .word-with-pronunciation > strong { overflow-wrap: anywhere; }
 .pronunciation-control { display: inline-flex; align-items: center; flex-wrap: wrap; gap: .35rem; }
-.word-with-pronunciation .pronunciation-button { display: inline-grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; padding: .55rem; border: 1px solid transparent; border-radius: .65rem; background: transparent; color: var(--accent); cursor: pointer; }
+.pronunciation-control .pronunciation-button { display: inline-grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; padding: .55rem; border: 1px solid transparent; border-radius: .65rem; background: transparent; color: var(--accent); cursor: pointer; }
 .pronunciation-button svg { width: 1.3rem; height: 1.3rem; }
-.word-with-pronunciation .pronunciation-button:hover:not(:disabled), .word-with-pronunciation .pronunciation-button[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent); }
-.word-with-pronunciation .pronunciation-button:disabled { opacity: .4; cursor: default; }
+.pronunciation-control .pronunciation-button:hover:not(:disabled), .pronunciation-control .pronunciation-button[aria-pressed='true'] { background: var(--accent-soft); border-color: var(--accent); }
+.pronunciation-control .pronunciation-button:disabled { opacity: .4; cursor: default; }
 .pronunciation-control .pronunciation-error { max-width: 16rem; font-size: .85rem; color: var(--notice); line-height: 1.4; white-space: normal; }
 .paste-format-options { margin: 0 0 .5rem; padding: 0; border: 0; display: flex; flex-wrap: wrap; gap: .5rem 1.25rem; }
 .paste-format-options legend { margin-bottom: .5rem; font-size: 1rem; font-weight: 650; }
@@ -218,7 +218,8 @@
   .game-rules p { font-size: .9rem; }
   .rule-colors { gap: .65rem 1rem; }
   .puzzle-message { font-size: .95rem; padding: .65rem .75rem; }
-  .guess-board { --puzzle-tile-size: clamp(1.75rem, calc((100svh - 31rem) / var(--puzzle-attempts)), 3.6rem); }
+  /* Both games use the same scale, sized for Easy's seven rows. */
+  .guess-board { --puzzle-tile-size: clamp(1.75rem, calc((100svh - 31rem) / 7), 3.6rem); }
   .workspace .topbar { flex-wrap: wrap; padding-block: .75rem; gap: .75rem; }
   .header-actions { width: 100%; }
   .header-search { flex: 1; height: 2.75rem; }

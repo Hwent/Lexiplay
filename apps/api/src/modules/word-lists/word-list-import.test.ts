@@ -2,7 +2,7 @@ import { describe, expect, it } from 'vitest';
 import * as XLSX from 'xlsx';
 import { WordListImportService } from './word-list-import';
 
-describe('word-file parsing', () => {
+describe('word-list import parsing', () => {
   it('parses compounds and reports duplicate, invalid, and previously saved terms', async () => {
     const importer = new WordListImportService();
     const preview = await importer.preview({ originalname: 'words.txt', buffer: Buffer.from(

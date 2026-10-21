@@ -26,6 +26,12 @@ export class GameController {
 
   @Post()
   async start(@Headers('cookie') cookie: string | undefined, @Body() body: StartGameDto, @Res({ passthrough: true }) response: Response) {
+    if (body.kind === 'word-ladder') {
+      if (body.collectionId || body.wordListId || body.playWithMyWords || body.difficulty && body.difficulty !== 'medium') {
+        throw new BadRequestException('Word Ladder uses its own common-word pool and rewards one coin per letter.');
+      }
+      return this.games.startLadder(body.wordLength ?? 5, await this.owner(cookie, response), body.startRequestId);
+    }
     if (body.kind === 'wordle' && ((body.wordLength !== undefined && body.wordLength !== 5) || body.collectionId || body.wordListId || body.playWithMyWords)) {
       throw new BadRequestException('Original Wordle uses its own five-letter answer collection.');
     }
@@ -50,6 +56,11 @@ export class GameController {
   @Post(':gameId/abandon')
   async abandon(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string) {
     return this.games.abandon(id,await this.owner(cookie));
+  }
+
+  @Post(':gameId/give-up')
+  async giveUp(@Headers('cookie') cookie: string | undefined, @Param('gameId', new ParseUUIDPipe()) id: string) {
+    return this.games.giveUp(id, await this.owner(cookie));
   }
 
   private async owner(cookie: string | undefined, response?: Response) {

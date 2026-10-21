@@ -1,0 +1,4 @@
+.puzzle-type-options { display: flex; flex-wrap: wrap; gap: .6rem; width: min(100%, 68rem); margin: 0 auto 1rem; }
+.puzzle-type-options button { display: inline-flex; align-items: center; gap: .6rem; min-height: 3rem; padding: .7rem 1.2rem; border: 1px solid var(--line); border-radius: .75rem; background: var(--surface); color: var(--soft-text); font: inherit; font-weight: 650; cursor: pointer; transition: background .18s, border-color .18s; }
+.puzzle-type-options button[aria-pressed="true"] { border-color: var(--accent); background: var(--accent-soft); color: var(--accent); }
+.practice-options .ladder-length-options { grid-template-columns: repeat(2, minmax(0, 1fr)); }
