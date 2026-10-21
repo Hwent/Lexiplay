@@ -11,7 +11,7 @@ describe('completed games', () => {
     return { id: 'completion', kind, ...(kind === 'word-ladder' ? { ladder } : {}), wordLength: 4, attemptLimit: kind === 'word-ladder' ? 4 : 6,
       difficulty: 'medium', status, completed: status !== 'active', answer: status === 'active' ? undefined : 'warm', answerDefinition: 'At a comfortable temperature.',
       guesses: (status === 'won' && kind === 'word-ladder' ? ['cord', 'card', 'ward', 'warm'] : ['cord', 'card', 'ward']).map(guess => ({ guess, definition: `Definition of ${guess}.`, feedback: ['ABSENT','ABSENT','CORRECT','ABSENT'], completed: false })),
-      hints: { partOfSpeech: 1, definition: 1 }, revealedPresent: [], revealedAbsent: [] };
+      hints: { definition: 1 }, revealedPresent: [], revealedAbsent: [] };
   }
   function mockGame(kind: string, status: string, auth: 'guest' | 'account' | 'error' = 'guest') {
     localStorage.setItem('lexiplay-last-game', 'completion');

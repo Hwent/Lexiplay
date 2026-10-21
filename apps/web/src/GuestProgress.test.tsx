@@ -1,4 +1,4 @@
-import { stubFetchWithVocabularyRanges } from './vocabulary-range-test-fixtures';
+import { stubGameApiFetch } from './game-api-test-fixtures';
 import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -8,7 +8,7 @@ import { LAST_GAME_KEY, LOCAL_WORDS_KEY, TRANSFER_KEY } from './services/guest-p
 const account = { id: '00000000-0000-4000-8000-000000000001', username: 'learner', email: null, emailVerified: false };
 const gameId = '00000000-0000-4000-8000-000000000002';
 const word = { id: 'local-1', term: 'chair', definition: 'A seat.', status: 'KNOWN' };
-const game = { id: gameId, wordLength: 5, difficulty: 'medium', attemptLimit: 6, guesses: [{ guess: 'paper', feedback: ['PRESENT', 'ABSENT', 'PRESENT', 'ABSENT', 'ABSENT'], attemptsRemaining: 5, completed: false, definition: 'Writing material.' }], hints: { partOfSpeech: 1, definition: 1 }, revealedAbsent: [], revealedPresent: [] };
+const game = { id: gameId, wordLength: 5, difficulty: 'medium', attemptLimit: 6, guesses: [{ guess: 'paper', feedback: ['PRESENT', 'ABSENT', 'PRESENT', 'ABSENT', 'ABSENT'], attemptsRemaining: 5, completed: false, definition: 'Writing material.' }], hints: { definition: 1 }, revealedAbsent: [], revealedPresent: [] };
 describe('guest progress on authentication', () => {
   beforeEach(() => {
     window.localStorage.clear(); window.history.replaceState({}, '', '/account');
@@ -28,7 +28,7 @@ describe('guest progress on authentication', () => {
       if (path.includes('/word-lists/account-list/entries?')) return Response.json({ list:{id:'account-list',name:'My words',preferredLanguage:'en'},page:1,pageSize:25,total:1,words:[{id:'account-word',lemma:'chair',partOfSpeech:'noun',stage:'Core',definition:'A seat.',customDefinition:'A seat.',customLanguage:'en',language:'en',definitionSource:'custom',familiarity:5,nextReviewAt:null}] });
       if (path.endsWith('/word-lists')) return Response.json([{ id: 'account-list', name: 'My words', words: [{ ...word, id: 'account-word' }] }]);
       throw new Error(`Unexpected request: ${path}`);
-    }); stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
+    }); stubGameApiFetch( fetchMock); const user = userEvent.setup(); render(<App />);
     if (mode === 'Create account') { await user.click(await screen.findByRole('tab', { name: mode })); await user.type(screen.getByLabelText('Username'), 'learner'); }
     else await user.type(await screen.findByLabelText('Username or email'), 'learner');
     await user.type(screen.getByLabelText('Password'), 'password8'); await user.click(screen.getByRole('button', { name: mode }));
@@ -51,7 +51,7 @@ describe('guest progress on authentication', () => {
       if (path.endsWith('/progress/claim')) return ++attempts === 1 ? Response.json({ message: 'Temporarily unavailable.' }, { status: 503 }) : Response.json({ wordsAdded: 1, wordsAlreadySaved: 0, gamesTransferred: 1, resumeGameId: gameId });
       if (path.endsWith(`/games/${gameId}`)) return Response.json(game);
       throw new Error(`Unexpected request: ${path}`);
-    }); stubFetchWithVocabularyRanges( fetchMock); const user = userEvent.setup(); render(<App />);
+    }); stubGameApiFetch( fetchMock); const user = userEvent.setup(); render(<App />);
     await user.type(await screen.findByLabelText('Username or email'), 'learner'); await user.type(screen.getByLabelText('Password'), 'password8');
     await user.click(screen.getByRole('button', { name: 'Sign in' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('You’re signed in, but guest progress has not finished saving.');
@@ -64,7 +64,7 @@ describe('guest progress on authentication', () => {
   });
   it('resumes a pending transfer after reloading with an existing account session', async () => {
     window.localStorage.setItem(TRANSFER_KEY, JSON.stringify({ accountId: account.id, source: window.localStorage.getItem(LOCAL_WORDS_KEY), lastGameId: gameId, batches: [{ id: crypto.randomUUID(), words: [{ term: word.term, definition: word.definition, status: word.status, partOfSpeech: null }] }], next: 0, result: { wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null } }));
-    stubFetchWithVocabularyRanges( vi.fn(async (input: RequestInfo | URL) => {
+    stubGameApiFetch( vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return Response.json(account);
       if (path.endsWith('/progress/claim')) return Response.json({ wordsAdded: 1, wordsAlreadySaved: 0, gamesTransferred: 1, resumeGameId: gameId });

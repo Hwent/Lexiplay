@@ -70,7 +70,7 @@ describe('game HTTP endpoints and rules', () => {
     }
   });
 
-  it('uses dictionary-backed personal words without legacy ranges', async () => {
+  it('uses dictionary-backed personal words', async () => {
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'lucid', 'scope']);
     await startApp();
     const games = app!.get(GameService);
