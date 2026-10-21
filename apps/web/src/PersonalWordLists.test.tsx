@@ -1,4 +1,4 @@
-import { cleanup, render, screen, waitFor, within } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, expect, it, vi } from 'vitest';
 import PersonalWordLists from './PersonalWordLists';
@@ -60,7 +60,7 @@ it('hides previous entries while a new page loads and applies the header search'
   finish(Response.json({ ...page, page: 2, words: [{ ...word, lemma: 'analysis', definition: 'A careful examination.' }] }));
   await screen.findByText('A careful examination.');
 });
-it('hides entries during a review write and never sends custom definition fields', async () => {
+it('keeps entries visible during a review write and never sends custom definition fields', async () => {
   let finish!: (value: Response) => void;
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
     if (String(input).endsWith('/mine')) return Response.json([list]);
@@ -72,10 +72,69 @@ it('hides entries during a review write and never sends custom definition fields
   render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0}/>);
   await screen.findByText('To examine carefully.');
   await user.click(screen.getByRole('button', { name: 'Reviewed' }));
-  expect(screen.queryByText('To examine carefully.')).not.toBeInTheDocument();
+  expect(screen.getByText('To examine carefully.')).toBeInTheDocument();
+  expect(screen.getByText('Familiarity 5/5')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Reviewed' })).toBeDisabled();
   const patch = fetchMock.mock.calls.find(([, init]) => init?.method === 'PATCH')!;
   expect(JSON.parse(String(patch[1]?.body))).toMatchObject({ familiarity: 5, nextReviewAt: expect.any(String) });
-  finish(Response.json({ success: true }));
-  await screen.findByText('To examine carefully.');
+  await act(async () => { finish(Response.json({ success: true })); });
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Reviewed' })).toBeEnabled());
+  expect(fetchMock.mock.calls.filter(([path]) => String(path).includes('/entries?'))).toHaveLength(1);
   expect(screen.queryByText('Your review was saved.')).not.toBeInTheDocument();
+});
+
+it.each(['Reviewed', 'Review again'])('rolls back a failed %s without hiding the table', async action => {
+  let finish!: (value: Response) => void;
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'PATCH') return new Promise<Response>(resolve => { finish = resolve; });
+    return Response.json(String(input).endsWith('/mine') ? [list] : page);
+  }));
+  const user = userEvent.setup();
+  render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0}/>);
+  await screen.findByText('Familiarity 4/5');
+  await user.click(screen.getByRole('button', { name: action }));
+  expect(screen.getByText(action === 'Reviewed' ? 'Familiarity 5/5' : 'Familiarity 0/5')).toBeInTheDocument();
+  await act(async () => { finish(Response.json({ message: 'Offline' }, { status: 503 })); });
+  expect(await screen.findByRole('alert')).toHaveTextContent('Offline');
+  expect(screen.getByText('Familiarity 4/5')).toBeInTheDocument();
+  expect(screen.getByRole('table')).toBeInTheDocument();
+});
+
+it.each([true, false])('removes only the selected row, restoring it on failure (success=%s)', async success => {
+  let finish!: (value: Response) => void;
+  const other = { ...word, id: 'entry-2', lemma: 'cover' };
+  const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'DELETE') return new Promise<Response>(resolve => { finish = resolve; });
+    return Response.json(String(input).endsWith('/mine') ? [list] : { ...page, words: [word, other] });
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  const user = userEvent.setup();
+  render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0}/>);
+  const table = await screen.findByRole('table');
+  await user.click(screen.getByRole('button', { name: 'Remove analyse' }));
+  expect(screen.queryByRole('button', { name: 'Remove analyse' })).not.toBeInTheDocument();
+  expect(screen.getByRole('table')).toBe(table);
+  expect(screen.getByRole('button', { name: 'Remove cover' })).toBeEnabled();
+  await act(async () => { finish(Response.json(success ? { success: true } : { message: 'Offline' }, { status: success ? 200 : 503 })); });
+  if (success) expect(screen.queryByRole('button', { name: 'Remove analyse' })).not.toBeInTheDocument();
+  else expect(await screen.findByRole('button', { name: 'Remove analyse' })).toBeEnabled();
+  expect(fetchMock.mock.calls.filter(([path]) => String(path).includes('/entries?'))).toHaveLength(1);
+  expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/saved-terms'))).toBe(false);
+});
+
+it('keeps Previous available after removing the only word on the final page', async () => {
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+    if (init?.method === 'DELETE') return Response.json({ success: true });
+    if (String(input).endsWith('/mine')) return Response.json([list]);
+    return Response.json({ ...page, page: String(input).includes('page=2') ? 2 : 1 });
+  }));
+  const user = userEvent.setup();
+  render(<PersonalWordLists signedIn searchQuery="" initialId="list-1" revision={0}/>);
+  await screen.findByRole('table');
+  await user.click(screen.getAllByRole('button', { name: 'Next' })[0]!);
+  await screen.findByRole('table');
+  await user.click(screen.getByRole('button', { name: 'Remove analyse' }));
+  await waitFor(() => expect(screen.getAllByRole('button', { name: 'Previous' })[0]).toBeEnabled());
+  await user.click(screen.getAllByRole('button', { name: 'Previous' })[0]!);
+  expect(await screen.findByRole('table')).toBeInTheDocument();
 });

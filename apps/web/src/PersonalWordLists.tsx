@@ -1,5 +1,5 @@
 import { useTranslation } from './i18n';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { apiRequest as api } from './services/api-client';
 import { PersonalList, PersonalPage, PersonalWord, VocabularyCollection } from './collection-types';
 import PronunciationButton from './PronunciationButton';
@@ -16,13 +16,16 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
   const [refresh, setRefresh] = useState(0);
   const [loading, setLoading] = useState(true);
   const [busy, setBusy] = useState(false);
+  const [writing, setWriting] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState('');
   const [loadedKey, setLoadedKey] = useState('');
   const [listRetry, setListRetry] = useState(0);
   const [collections, setCollections] = useState<VocabularyCollection[]>([]);
   const query = searchQuery.trim();
   const requestKey = `${list?.id}|${page}|${query}|${refresh}|${revision}`;
-  const showEntries = !!data && loadedKey === requestKey && !loading && !busy;
+  const currentKey = useRef(requestKey);
+  useEffect(() => { currentKey.current = requestKey; }, [requestKey]);
+  const showEntries = !!data && loadedKey === requestKey && !loading;
 
   useEffect(() => {
     if (!signedIn) return;
@@ -66,43 +69,57 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
   }, [signedIn, list, requestKey, store]);
 
   async function review(word: PersonalWord, again = false) {
-    if (!list) return;
-    setBusy(true); setError('');
+    if (!list || writing.has(word.id)) return;
+    const startedKey = requestKey;
+    const update = { familiarity: again ? 0 : Math.min(5, word.familiarity + 1), nextReviewAt: new Date(again ? Date.now() : Date.now() + (word.familiarity >= 3 ? 7 : 1) * 86400000).toISOString() };
+    setWriting(ids => new Set([...ids, word.id])); setError('');
+    setData(value => value && ({ ...value, words: value.words.map(row => row.id === word.id ? { ...row, ...update } : row) }));
     try {
-      await api(`/word-lists/${list.id}/entries/${word.id}`, { method: 'PATCH', body: JSON.stringify({ familiarity: again ? 0 : Math.min(5, word.familiarity + 1), nextReviewAt: new Date(again ? Date.now() : Date.now() + (word.familiarity >= 3 ? 7 : 1) * 86400000).toISOString() }) });
+      await api(`/word-lists/${list.id}/entries/${word.id}`, { method: 'PATCH', body: JSON.stringify(update) });
       store.requests.invalidate(`/word-lists/${list.id}/entries`);
-      setLoading(true); setRefresh(value => value + 1);
-    } catch (error) { setError(error instanceof Error ? error.message : 'Could not save your review.'); }
-    finally { setBusy(false); }
+    } catch (error) {
+      if (currentKey.current === startedKey) setData(value => value && ({ ...value, words: value.words.map(row => row.id === word.id ? word : row) }));
+      setError(error instanceof Error ? error.message : 'Could not save your review.');
+    } finally { setWriting(ids => { const next = new Set(ids); next.delete(word.id); return next; }); }
   }
   async function remove(word: PersonalWord) {
-    if (!list) return;
-    setBusy(true); setError('');
+    if (!list || writing.has(word.id)) return;
+    const startedKey = requestKey;
+    const index = data?.words.findIndex(row => row.id === word.id) ?? 0;
+    setWriting(ids => new Set([...ids, word.id])); setError('');
+    setData(value => value && ({ ...value, total: value.total - 1, words: value.words.filter(row => row.id !== word.id) }));
     try {
       await api(`/word-lists/${list.id}/entries/${word.id}`, { method: 'DELETE' });
-      store.invalidateWords();
-      await store.loadSaved(true);
-      if (page > 1 && data?.words.length === 1) setPage(value => value - 1);
-      setLoading(true); setRefresh(value => value + 1);
-    } catch (error) { setError(error instanceof Error ? error.message : 'Could not remove this word.'); }
-    finally { setBusy(false); }
+      store.removeSaved(word.lemma);
+    } catch (error) {
+      setData(value => {
+        if (!value || currentKey.current !== startedKey) return value;
+        const words = [...value.words]; words.splice(index, 0, word);
+        return { ...value, total: value.total + 1, words };
+      });
+      setError(error instanceof Error ? error.message : 'Could not remove this word.');
+    } finally { setWriting(ids => { const next = new Set(ids); next.delete(word.id); return next; }); }
   }
 
   async function unsave(collection: VocabularyCollection) {
     setBusy(true); setError('');
+    const index = collections.findIndex(row => row.id === collection.id);
+    setCollections(rows => rows.filter(row => row.id !== collection.id));
     try {
       await api(`/collections/${collection.slug}/save`, { method: 'DELETE' });
       store.requests.invalidate('/word-lists/collections');
-      setCollections(rows => rows.filter(row => row.id !== collection.id));
-    } catch (error) { setError(error instanceof Error ? error.message : 'Could not remove this collection.'); }
+    } catch (error) {
+      setCollections(rows => { const next = [...rows]; next.splice(index, 0, collection); return next; });
+      setError(error instanceof Error ? error.message : 'Could not remove this collection.');
+    }
     finally { setBusy(false); }
   }
 
   function pagination(position: string) {
-    return data && data.total > data.pageSize && <nav className="word-pagination" aria-label={t('Personal list pages {0}', t(position))}><button type="button" disabled={page <= 1 || loading || busy} onClick={() => { setLoading(true); setPage(value => value - 1); }}>{t('Previous')}</button><span>{t('Page {0} of {1} · {2} {3}', page, Math.max(1, Math.ceil(data.total / data.pageSize)), data.total.toLocaleString(), (data.total === 1 ? t('word') : t('words')))}</span><button type="button" disabled={page * data.pageSize >= data.total || loading || busy} onClick={() => { setLoading(true); setPage(value => value + 1); }}>{t('Next')}</button></nav>;
+    return data && (data.total > data.pageSize || page > 1) && <nav className="word-pagination" aria-label={t('Personal list pages {0}', t(position))}><button type="button" disabled={page <= 1 || loading || busy || writing.size > 0} onClick={() => { setLoading(true); setPage(value => value - 1); }}>{t('Previous')}</button><span>{t('Page {0} of {1} · {2} {3}', page, Math.max(page, Math.ceil(data.total / data.pageSize)), data.total.toLocaleString(), (data.total === 1 ? t('word') : t('words')))}</span><button type="button" disabled={page * data.pageSize >= data.total || loading || busy || writing.size > 0} onClick={() => { setLoading(true); setPage(value => value + 1); }}>{t('Next')}</button></nav>;
   }
   if (!signedIn) return <EmptyState icon="library" title={t('My Word List')} action={<a className="primary-button" href="/account">{t('Sign in ')}<Icon name="arrow"/></a>}><p>{t('Sign in to save words and review your vocabulary.')}</p></EmptyState>;
-  return <section className="personal-word-lists" aria-label={t('My Word List')} aria-busy={loading || busy}>
+  return <section className="personal-word-lists" aria-label={t('My Word List')} aria-busy={loading || busy || writing.size > 0}>
     {!!collections.length && <section aria-label={t('My collections')} className="saved-collections">
       <h2>{t('My collections')}</h2>
       <ul className="saved-collection-list">{collections.map(collection => <li key={collection.id}>
@@ -118,7 +135,7 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
       <td><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech}</small></td>
       <td><p className="personal-definition">{word.definition ?? t('Dictionary definition not available yet.')}</p></td>
       <td><div className="word-familiarity"><small>{t('Familiarity {0}/5', word.familiarity)}</small><span className="familiarity-dots" aria-hidden="true">{Array.from({ length: 5 }, (_, index) => <i key={index} data-filled={index < word.familiarity}/>)}</span></div>
-      <div className="personal-entry-actions"><button type="button" onClick={() => void review(word)}>{t('Reviewed')}</button><button type="button" onClick={() => void review(word, true)}>{t('Review again')}</button><button type="button" onClick={() => void remove(word)}>{t('Remove {0}', word.lemma)}</button></div>
+      <div className="personal-entry-actions"><button type="button" disabled={writing.has(word.id)} onClick={() => void review(word)}>{t('Reviewed')}</button><button type="button" disabled={writing.has(word.id)} onClick={() => void review(word, true)}>{t('Review again')}</button><button type="button" disabled={writing.has(word.id)} onClick={() => void remove(word)}>{t('Remove {0}', word.lemma)}</button></div>
     </td></tr>)}</tbody></table></div>}{!data.words.length && <EmptyState icon="library" title={query ? t('No saved words match your search.') : t('Your word list is ready for a fresh start.')} action={<a className="primary-button" href="/dictionary">{t('Find words ')}<Icon name="arrow"/></a>}><p>{query ? t('Try a different word in the search above, or find something new in Dictionary.') : t('Save a word from Dictionary or explore a collection to build your list.')}</p></EmptyState>}</>}
     {showEntries && pagination('bottom')}
   </section>;
