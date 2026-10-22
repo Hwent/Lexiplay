@@ -76,6 +76,21 @@ describe('Word Ladder', () => {
     expect(container.querySelector('.correct, .present, .absent')).toBeNull();
   });
 
+  it.each([
+    { startWord: 'cold', words: ['cord', 'card', 'ward', 'warm'], columns: [2, 1, 0, 3] },
+    { startWord: 'stone', words: ['store', 'shore', 'share', 'spare'], columns: [3, 1, 2, 1] },
+  ])('underlines each accepted change from $startWord, matching the example', ({ startWord, words, columns }) => {
+    const view = render(<WordLadderBoard ladder={{ startWord, targetWords: 4 }} steps={words.map(guess => ({ guess }))} guess="" finished busy={false}/>);
+    expect(screen.getByRole('row', { name: startWord }).querySelector('.underlined')).toBeNull();
+    words.forEach((word, row) => {
+      const cells = within(screen.getByRole('row', { name: word })).getAllByRole('gridcell');
+      expect(cells.filter(cell => cell.classList.contains('underlined'))).toEqual([cells[columns[row]!]]);
+      expect(cells[columns[row]!]).toHaveAccessibleName(`${word[columns[row]!]}, Changed letter`);
+    });
+    view.rerender(<WordLadderBoard ladder={{ startWord, targetWords: 4 }} steps={[{ guess: words[0]! }]} guess={words[1]!} finished={false} busy={false}/>);
+    expect(screen.getByRole('row', { name: 'Next word' }).querySelector('.underlined')).toBeNull();
+  });
+
   it('uses the same rejection feedback for repeated words', async () => {
     localStorage.setItem('lexiplay-last-game', game.id);
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {

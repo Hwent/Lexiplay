@@ -1,7 +1,8 @@
 import { useTranslation } from './i18n';
 
-export default function PuzzleGuessRow({ word, wordLength, label, states = [], labels = [], className = '', rejectedAttempt = 0, checking = false, revealing = false, onRevealEnd }: {
+export default function PuzzleGuessRow({ word, wordLength, label, states = [], labels = [], underlinedColumn = -1, className = '', rejectedAttempt = 0, checking = false, revealing = false, onRevealEnd }: {
   word: string; wordLength: number; label: string; states?: readonly string[]; labels?: readonly string[];
+  underlinedColumn?: number;
   className?: string; rejectedAttempt?: number; checking?: boolean; revealing?: boolean; onRevealEnd?: (() => void) | undefined;
 }) {
   const t = useTranslation();
@@ -13,7 +14,7 @@ export default function PuzzleGuessRow({ word, wordLength, label, states = [], l
     {Array.from({ length: wordLength }, (_, column) => {
       const letter = word[column] ?? '', state = states[column] ?? '';
       return <span role="gridcell" aria-label={labels[column] ?? (letter ? `${letter}, ${t(state || 'not submitted')}` : t('Empty'))}
-        className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}`}
+        className={`letter-tile ${state} ${letter && !state ? 'filled' : ''}${column === underlinedColumn ? ' underlined' : ''}`}
         style={{ fontSize: `clamp(1rem, calc(64cqi / ${wordLength}), 2.25rem)` }} key={`${column}-${letter}`}>{letter}</span>;
     })}
   </div>;
