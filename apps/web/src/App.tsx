@@ -9,7 +9,7 @@ import HomePage from './HomePage';
 import PronunciationButton from './PronunciationButton';
 import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 import { ApiError, apiRequest as api } from './services/api-client';
-import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
+import { hasPracticePreferences, readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
 import WordLadderBoard, { Ladder } from './WordLadderBoard';
 import GameGuide from './GameGuide';
@@ -79,6 +79,7 @@ export default function App() {
   const interfacePreferences = useInterfacePreferences();
   const t = useMemo(() => createTranslator(interfacePreferences.language), [interfacePreferences.language]);
   const [preferences] = useState(readPracticePreferences);
+  const firstGuestVisit = useRef(!hasPracticePreferences());
   const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount, signedIn, progressSaving, progressError, progressMessage, retryProgress } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
   const [dismissedGuestReminder, setDismissedGuestReminder] = useState('');
@@ -122,6 +123,17 @@ export default function App() {
       return wordStore.requests.get<PersonalPage>(`/word-lists/${list.id}/entries?${params}`);
     }).catch(() => {});
   }, [accountLoading, accountRevision, wordStore]);
+  useEffect(() => {
+    if (!accountLoading && account) firstGuestVisit.current = false;
+    if (accountLoading || account || accountError || !firstGuestVisit.current) return;
+    let active = true;
+    void wordStore.requests.get<VocabularyCollection[]>('/collections', 300_000).then(collections => {
+      if (!active || !firstGuestVisit.current) return;
+      const a2 = collections.find(collection => collection.level === 'A2' && collection.status === 'available');
+      if (a2) { firstGuestVisit.current = false; setSelectedPoolId(a2.slug); }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [accountLoading, account, accountError, wordStore]);
   useEffect(() => {
     savePracticePreferences({ wordLength: selectedWordLength, difficulty, collectionId: selectedPoolId, playWithMyWords });
   }, [selectedWordLength, difficulty, selectedPoolId, playWithMyWords]);
@@ -575,6 +587,7 @@ export default function App() {
               </fieldset>
               {puzzleKind === 'word-puzzle' && <><fieldset className="difficulty-options"><legend>{t('Difficulty')}</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{t(option.label)}</strong></label>)}</div></fieldset>
               <CollectionPicker value={playWithMyWords ? 'my-words' : selectedPoolId} wordLength={selectedWordLength} disabled={busy} personalAvailable={!!account} onChange={id => {
+                firstGuestVisit.current = false;
                 setPlayWithMyWords(id === 'my-words');
                 if (id !== 'my-words') setSelectedPoolId(id);
               }} />
