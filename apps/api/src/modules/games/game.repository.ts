@@ -35,7 +35,13 @@ export class GameRepository implements OnModuleDestroy {
 
   async wallet(owner: string) {
     const client = await this.pool.connect();
-    try { const row = await this.walletRow(client, owner); return { coinBalance: row.coin_balance, kind: row.kind }; }
+    try {
+      const row = await this.walletRow(client, owner);
+      const active = (await client.query<{ id: string }>(`SELECT id FROM practice_games
+        WHERE status='active' AND ${row.kind === 'account' ? 'user_id' : 'guest_session_id'}=$1
+        ORDER BY attempt_count DESC,id LIMIT 1`, [row.id])).rows[0];
+      return { coinBalance: row.coin_balance, kind: row.kind, activeGameId: active?.id ?? null };
+    }
     finally { client.release(); }
   }
 

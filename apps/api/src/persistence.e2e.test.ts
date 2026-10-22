@@ -74,6 +74,27 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     return response.json();
   }
   async function balance(cookie: string) { return (await (await request('/games/wallet', 'GET', undefined, cookie)).json()).coinBalance; }
+  it('discovers a guest active game from its cookie after the application restarts', async () => {
+    const cookie = await guest();
+    const otherGuest = await guest();
+    const game = await start(cookie);
+    expect((await request(`/games/${game.id}/guesses`, 'POST', { guess: 'paper' }, cookie)).status).toBe(201);
+    await app.close();
+    app = await NestFactory.create(AppModule, { logger: false });
+    app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    await app.listen(0, '127.0.0.1');
+    url = (await app.getUrl()) + '/api/v1';
+    expect(await (await request('/games/wallet', 'GET', undefined, cookie)).json()).toMatchObject({ activeGameId: game.id, coinBalance: 9 });
+    expect(await (await request('/games/wallet', 'GET', undefined, otherGuest)).json()).toMatchObject({ activeGameId: null, coinBalance: 10 });
+    const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
+    expect(restored.guesses).toHaveLength(1);
+    expect((await request(`/games/${game.id}`, 'GET', undefined, otherGuest)).status).toBe(404);
+    expect((await request(`/games/${game.id}/give-up`, 'POST', {}, cookie)).status).toBe(201);
+    expect(await (await request('/games/wallet', 'GET', undefined, cookie)).json()).toMatchObject({ activeGameId: null, coinBalance: 9 });
+    await start(cookie);
+    expect(await balance(cookie)).toBe(8);
+  });
   async function entry(user: Account, term: string) {
     return (await pool.query(`SELECT u.* FROM user_words u JOIN dictionary_entries e ON e.id=u.dictionary_entry_id
       WHERE u.user_id=$1 AND e.term=$2 ORDER BY e.part_of_speech`, [user.id, term])).rows[0];

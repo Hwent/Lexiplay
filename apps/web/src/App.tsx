@@ -259,7 +259,9 @@ export default function App() {
       setRestoring(true);
       api<Game>(`/games/${encodeURIComponent(id)}`).then(result => { if (active) setGame(result); }).catch(error => {
         if (!active) return;
-        if (error instanceof ApiError && [401, 404].includes(error.status)) { try { window.localStorage.removeItem(LAST_GAME_KEY); } catch { /* Storage may be unavailable. */ } }
+        if (error instanceof ApiError && [401, 403, 404].includes(error.status)) {
+          try { if (window.localStorage.getItem(LAST_GAME_KEY) === id) window.localStorage.removeItem(LAST_GAME_KEY); } catch { /* Storage may be unavailable. */ }
+        }
         else setMessage('Could not restore your puzzle. Reload to try again.');
       }).finally(() => { if (active) setRestoring(false); });
     }
@@ -290,8 +292,27 @@ export default function App() {
   useEffect(() => {
     if (accountLoading) return;
     let active = true;
-    api<{coinBalance:number;kind:string}>('/games/wallet').then(value => {
-      if (active && Number.isInteger(value.coinBalance)) setWallet(value);
+    api<{coinBalance:number;kind:string;activeGameId?:string|null}>('/games/wallet').then(async value => {
+      if (!active || !Number.isInteger(value.coinBalance)) return;
+      setWallet(value);
+      if (value.activeGameId && value.activeGameId !== game?.id) {
+        setRestoring(true);
+        try {
+          const restored = await api<Game>(`/games/${encodeURIComponent(value.activeGameId)}`);
+          if (active) {
+            guessSession.current++;
+            setGuess(''); setMessage(''); setRejectedAttempt(0);
+            try { localStorage.setItem(LAST_GAME_KEY, restored.id); } catch { /* The server can recover this game again. */ }
+            setGame(restored);
+          }
+        } catch (error) {
+          if (active) {
+            if (!account && error instanceof ApiError && [401, 403, 404].includes(error.status)) resetGame();
+            else setMessage('Could not restore your puzzle. Reload to try again.');
+          }
+        }
+        finally { if (active) setRestoring(false); }
+      }
     }).catch(() => { if (active) setWallet(null); }).finally(() => {
       if (active) setWalletOwner(account?.id ?? 'guest');
     });
