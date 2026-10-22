@@ -89,6 +89,7 @@ export default function App() {
   const [walletOwner, setWalletOwner] = useState<string | null>(null);
   const startRequest = useRef<{ key: string; id: string } | null>(null);
   const [guess, setGuess] = useState('');
+  const [gameInputFocused, setGameInputFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [rejectedAttempt, setRejectedAttempt] = useState(0);
@@ -612,6 +613,7 @@ export default function App() {
               : finished ? game.ladder
                 ? game.status === 'won' ? t('{0} new words made.', game.guesses.length) : t('Challenge ended.')
                 : t('{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length)
+              : !gameInputFocused ? t('Click anywhere in the puzzle to resume typing.')
               : game.ladder ? t('Change one letter. Complete words check automatically.')
               : t('Type {0} letters to check your word automatically.', game.wordLength)
             }</p>
@@ -636,7 +638,7 @@ export default function App() {
             {finished && <div className="next-game" role="group" aria-label={t('Game actions')}><button ref={playAgainRef} className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Play again')}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>{t('Change settings')}</button>{!account && !accountLoading && !accountError && game.status !== 'cancelled' && <p className="guest-save-reminder"><a href={sectionPaths.account} onClick={event => { event.preventDefault(); navigateTo('account'); }}>{t('Sign in to save your game history.')}</a></p>}</div>}
             {!finished && <>
               <label className="sr-only" htmlFor="guess-input">{t('Type your {0} guess one letter at a time', t(lengthName(game.wordLength)))}</label>
-              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
+              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onFocus={() => setGameInputFocused(true)} onBlur={() => setGameInputFocused(false)} onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
             </>}
             </div>
             {hintPanel('definition')}

@@ -159,6 +159,7 @@ export const zhCN: Record<string, string> = {
   "Puzzle complete": "游戏完成",
   "{0} in {1} guesses.": "{0}，共猜测 {1} 次",
   "Type {0} letters to check your word automatically.": "输入 {0} 个字母后自动检查单词",
+  "Click anywhere in the puzzle to resume typing.": "点击拼图区任意位置，继续输入。",
   "Your entry cost was returned to the original wallet.": "入场金币已退回",
   "Collection": "词库",
   "Classic Wordle": "经典 Wordle",

@@ -8,6 +8,25 @@ describe('saved practice and account updates', () => {
   beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
+  it('reminds players to click the puzzle after losing keyboard focus and restores typing', async () => {
+    localStorage.setItem('lexiplay-last-game', emptyGame.id);
+    stubGameApiFetch(vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (String(input).endsWith(`/games/${emptyGame.id}`)) return Response.json(emptyGame);
+      return Response.json([]);
+    }));
+    const user = userEvent.setup(); render(<App/>);
+    const board = await screen.findByRole('grid', { name: '9-letter puzzle board' });
+    const input = screen.getByRole('textbox', { name: /Type your nine-letter guess/ });
+    await waitFor(() => expect(input).toHaveFocus());
+    await user.click(screen.getByRole('searchbox', { name: 'Quick dictionary search' }));
+    expect(screen.getByText('Click anywhere in the puzzle to resume typing.')).toBeInTheDocument();
+    await user.click(board);
+    expect(input).toHaveFocus();
+    expect(screen.queryByText('Click anywhere in the puzzle to resume typing.')).not.toBeInTheDocument();
+    await user.keyboard('a');
+    expect(input).toHaveValue('a');
+  });
   it.each([
     { signedIn: false, saved: false, expected: 'cefr-a2' },
     { signedIn: false, saved: true, expected: '' },

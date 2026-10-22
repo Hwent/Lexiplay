@@ -31,7 +31,10 @@
 .game-price > span:last-child { color: var(--accent); }
 .hint-price { display: inline-flex; align-items: center; gap: .35rem; color: var(--accent); font-size: 1rem; }
 .puzzle-stage { display: grid; width: 100%; align-items: start; gap: 1rem; }
-.puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr) minmax(12rem, 16rem); }
+.puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr) minmax(0, 1.8fr) minmax(0, 1fr); }
+.puzzle-stage.with-hints .puzzle-play-column { grid-column: 2; }
+.puzzle-stage.with-hints .puzzle-hint { grid-column: 3; }
+.puzzle:not(.ladder-puzzle) .guess-board { --puzzle-tile-size: 4.5rem; }
 .puzzle-hint { min-width: 0; border: 0; border-radius: .8rem; background: var(--surface-soft); }
 .puzzle-hint .friendly-hint { display: grid; grid-template-columns: auto minmax(0, 1fr) auto; grid-template-areas: 'icon title price'; align-items: center; gap: .4rem; width: 100%; min-height: 3rem; padding: .75rem; border: 0; border-radius: .8rem; background: transparent; color: var(--text); text-align: left; cursor: pointer; }
 .puzzle-hint .hint-icon { grid-area: icon; display: inline-flex; align-items: center; margin: 0; }
@@ -292,8 +295,17 @@
   .practice-story .game-rules { grid-column: 1 / -1; }
   .practice-setup { padding: 1.5rem 0 0; border-left: 0; border-top: 1px solid var(--line); }
 }
+@media (min-width: 741px) and (max-width: 1100px) {
+  .puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr) minmax(8.5rem, .45fr); }
+  .puzzle-stage.with-hints .puzzle-play-column { grid-column: 1; }
+  .puzzle-stage.with-hints .puzzle-hint { grid-column: 2; }
+}
 @media (max-width: 740px) {
-  .puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr); gap: .65rem; }
+  .puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
+  .puzzle-stage.with-hints .puzzle-play-column, .puzzle-stage.with-hints .puzzle-hint { grid-column: 1; }
+}
+@media (max-width: 560px) {
+  .puzzle:not(.ladder-puzzle) .guess-board { --puzzle-tile-size: clamp(2.75rem, 12vw, 3.6rem); }
 }
 @media (max-width: 900px) {
   .app-shell { grid-template-columns: 4.5rem minmax(0, 1fr); }
@@ -345,6 +357,11 @@
   .page-introduction h2 { font-size: 1.75rem; }
   .page-intro-icon { display: none; }
   .game-card { padding: 1rem; }
+  .keyboard-dock { width: calc(100% + 2rem); }
+  .keyboard-row { gap: .2rem; margin-bottom: .4rem; }
+  .keyboard-key { height: 4rem; min-height: 4rem; font-size: 1.2rem; border-radius: .55rem; }
+  .special-key { flex: 1.6; font-size: .85rem; }
+  .delete-key { font-size: 1.6rem; }
   .practice-story { grid-template-columns: 1fr; gap: 1rem; }
   .practice-story .game-rules { margin-top: 0; }
   .practice-story .sample-grid { grid-template-columns: repeat(5, 2.5rem); }
