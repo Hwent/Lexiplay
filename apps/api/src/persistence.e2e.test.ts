@@ -15,6 +15,8 @@ import { WORDLE_POOL } from './modules/word-lists/wordle-pool';
 import { WordListsService } from './modules/word-lists/word-lists.service';
 import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
+import { planInflections, applyInflections } from './modules/word-lists/inflection-import';
+import { definitionInflections } from './modules/word-lists/dictionary-inflections';
 
 const database = process.env.TEST_DATABASE_URL;
 const word = (term: string, positions = ['noun']): LibraryWord => ({
@@ -170,6 +172,43 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(['paris', 'alone', 'zzzzz'].some(term => allowed.has(term))).toBe(false);
   });
 
+  it('supplements independent forms for lookup and guessing without replacing existing meanings or merging ambiguous bases', async () => {
+    await publishDictionary(pool, [...dictionary, word('walk', ['verb']), word('mean', ['verb']), word('means'), word('axe'), word('axis')]);
+    const existing = (await pool.query('SELECT * FROM dictionary_definitions ORDER BY dictionary_entry_id,language_code,sense_order')).rows;
+    const input = [
+      ...definitionInflections('walked', 'verb', 'Past tense and participle of walk.'),
+      ...definitionInflections('means', 'verb', 'Third person singular of mean.'),
+      ...definitionInflections('axes', 'noun', 'Plural of axe.'),
+      ...definitionInflections('axes', 'noun', 'Plural of axis.'),
+    ];
+    expect(await applyInflections(pool, await planInflections(pool, input))).toEqual({ entriesAdded: 3, definitionsAdded: 3, linksAdded: 5 });
+    const repository = app.get(WordListRepository);
+    expect(await repository.isDictionaryGameWord('walked')).toBe(true);
+    expect(await repository.dictionaryGameWords(6)).toContain('walked');
+    expect((await repository.searchDictionary('walked'))[0]).toMatchObject({ term: 'walked' });
+    expect(await repository.getDictionaryDefinition('walked')).toContain('Definition of walk.');
+    expect(await repository.getDictionaryDefinition('axes')).toContain('Definition of axe.');
+    expect(await repository.getDictionaryDefinition('axes')).toContain('Definition of axis.');
+    expect((await repository.searchDictionary('means'))[0]!.partOfSpeech).toEqual(['noun', 'verb']);
+    const after = (await pool.query('SELECT * FROM dictionary_definitions WHERE dictionary_entry_id=ANY($1::uuid[]) ORDER BY dictionary_entry_id,language_code,sense_order', [existing.map(row => row.dictionary_entry_id)])).rows;
+    expect(after).toEqual(existing);
+    expect((await pool.query(`SELECT count(*)::int n FROM dictionary_inflections i JOIN dictionary_entries e ON e.id=i.form_entry_id WHERE e.term='axes'`)).rows[0].n).toBe(2);
+    expect(await applyInflections(pool, await planInflections(pool, input))).toEqual({ entriesAdded: 0, definitionsAdded: 0, linksAdded: 0 });
+  });
+
+  it('rejects stale inflection plans and skips missing bases and self references', async () => {
+    const plan = await planInflections(pool, [
+      ...definitionInflections('cats', 'noun', 'Plural of cat.'),
+      ...definitionInflections('cat', 'noun', 'Plural of cat.'),
+      ...definitionInflections('missingwords', 'noun', 'Plural of missingword.'),
+    ]);
+    expect(plan.links).toHaveLength(1);
+    expect(plan.skipped).toHaveLength(1);
+    await publishDictionary(pool, dictionary);
+    await expect(applyInflections(pool, plan)).rejects.toThrow('Dictionary changed');
+    expect(await app.get(WordListRepository).isDictionaryGameWord('cats')).toBe(false);
+  });
+
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
     expect(new Set(WORDLE_POOL.words).size).toBe(2315);
     expect(WORDLE_POOL.words.every(term => /^[a-z]{5}$/.test(term))).toBe(true);
@@ -317,9 +356,9 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
   });
 
-  it('uses 15 tables and enforces balances, ownership, and case-preserved identities', async () => {
+  it('uses 16 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
-    expect(tables).toHaveLength(15);
+    expect(tables).toHaveLength(16);
     expect(tables).toContainEqual({ tablename: 'message' });
     const user = await account();
     expect(user.coinBalance).toBe(100);

@@ -120,9 +120,24 @@ model DictionaryEntry {
   definitions DictionaryDefinition[]
   collections CollectionEntry[]
   personalEntries UserWord[]
+  inflections DictionaryInflection[] @relation("InflectionBase")
+  baseForms DictionaryInflection[] @relation("InflectionForm")
   @@unique([term,partOfSpeech])
   @@index([familyId])
   @@map("dictionary_entries")
+}
+
+model DictionaryInflection {
+  baseEntryId String @db.Uuid @map("base_entry_id")
+  formEntryId String @db.Uuid @map("form_entry_id")
+  kind String
+  source String
+  sourceRef String @map("source_ref")
+  baseEntry DictionaryEntry @relation("InflectionBase", fields:[baseEntryId], references:[id], onDelete:Cascade)
+  formEntry DictionaryEntry @relation("InflectionForm", fields:[formEntryId], references:[id], onDelete:Cascade)
+  @@id([baseEntryId,formEntryId,kind])
+  @@index([formEntryId], map: "dictionary_inflections_form_entry_idx")
+  @@map("dictionary_inflections")
 }
 
 model DictionaryDefinition {
