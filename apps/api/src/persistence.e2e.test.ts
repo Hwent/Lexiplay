@@ -17,6 +17,8 @@ import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
 import { planInflections, applyInflections } from './modules/word-lists/inflection-import';
 import { definitionInflections, websterInflections } from './modules/word-lists/dictionary-inflections';
+import { websterThesaurus } from './modules/word-lists/webster-thesaurus';
+import { planThesaurus, applyThesaurus } from './modules/word-lists/thesaurus-import';
 
 const database = process.env.TEST_DATABASE_URL;
 const word = (term: string, positions = ['noun']): LibraryWord => ({
@@ -212,6 +214,28 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await app.get(WordListRepository).isDictionaryGameWord('cats')).toBe(false);
   });
 
+  it('imports sense-specific synonyms and antonyms without changing the dictionary and exposes local lookup', async () => {
+    const source = websterThesaurus(['noun', 'verb'].map(pos => ({ meta: { id: 'cover', uuid: `cover-${pos}` }, hwi: { hw: 'cover' }, fl: pos,
+      def: [{ sseq: [[['sense', { sn: '1', dt: [['text', pos === 'noun' ? 'a protective layer' : 'to conceal']],
+        syn_list: [[{ wd: pos === 'noun' ? 'protective covering' : 'conceal', wsls: { wsl: 'formal' } }]],
+        ant_list: [[{ wd: 'uncover' }]], near_list: [[{ wd: 'reveal' }]] }]]] }] })), 'cover');
+    const before = (await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n;
+    const plan = await planThesaurus(pool, source);
+    expect(plan.senses.every(sense => sense.dictionaryEntryId)).toBe(true);
+    expect(await applyThesaurus(pool, plan)).toEqual({ sensesAdded: 2, relationsAdded: 6 });
+    expect((await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n).toBe(before);
+    const response = await request('/word-lists/dictionary/COVER/thesaurus');
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.senses).toHaveLength(2);
+    expect(body.senses.find((sense: { partOfSpeech: string }) => sense.partOfSpeech === 'verb')).toMatchObject({ definition: 'to conceal' });
+    expect(body.senses.flatMap((sense: { relations: { term: string; kind: string }[] }) => sense.relations))
+      .toContainEqual(expect.objectContaining({ term: 'reveal', kind: 'near_antonym' }));
+    expect(await applyThesaurus(pool, await planThesaurus(pool, source))).toEqual({ sensesAdded: 0, relationsAdded: 0 });
+    await expect(applyThesaurus(pool, plan)).rejects.toThrow('Dictionary changed');
+    expect(await (await request('/word-lists/dictionary/missingword/thesaurus')).json()).toEqual({ term: 'missingword', senses: [] });
+  });
+
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
     expect(new Set(WORDLE_POOL.words).size).toBe(2315);
     expect(WORDLE_POOL.words.every(term => /^[a-z]{5}$/.test(term))).toBe(true);
@@ -359,9 +383,9 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
   });
 
-  it('uses 16 tables and enforces balances, ownership, and case-preserved identities', async () => {
+  it('uses 18 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
-    expect(tables).toHaveLength(16);
+    expect(tables).toHaveLength(18);
     expect(tables).toContainEqual({ tablename: 'message' });
     const user = await account();
     expect(user.coinBalance).toBe(100);

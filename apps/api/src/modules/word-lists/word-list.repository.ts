@@ -36,6 +36,19 @@ export class WordListRepository implements OnModuleDestroy {
     return result.rows[0]?.definition ?? '';
   }
 
+  async getThesaurus(term: string) {
+    const { rows } = await this.pool.query(`SELECT s.id,s.term,s.part_of_speech AS "partOfSpeech",s.definition,
+      s.source,s.source_entry_id AS "sourceEntryId",s.sense_key AS "senseKey",s.metadata,
+      COALESCE(jsonb_agg(jsonb_build_object('term',r.target_term,'kind',r.kind,'sourceList',r.source_list,
+        'groupOrder',r.group_order,'sortOrder',r.sort_order,'metadata',r.metadata)
+        ORDER BY r.kind,r.source_list,r.group_order,r.sort_order) FILTER(WHERE r.sense_id IS NOT NULL),'[]'::jsonb) relations
+      FROM thesaurus_senses s LEFT JOIN thesaurus_relations r ON r.sense_id=s.id
+      WHERE s.term=(SELECT term FROM thesaurus_senses WHERE lower(term COLLATE "default")=lower($1)
+        ORDER BY (term=$1) DESC,term LIMIT 1)
+      GROUP BY s.id ORDER BY s.part_of_speech,s.source_entry_id,s.sense_key`, [term.trim()]);
+    return { term: term.trim(), senses: rows };
+  }
+
   async poolDictionaryEntries(terms: string[]): Promise<DictionaryEntry[]> {
     if (!terms.length) return [];
     const { rows } = await this.pool.query<{ id: string; term: string; senses: DictionarySense[] }>(`SELECT w.term AS id,w.term,s.senses

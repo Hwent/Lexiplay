@@ -76,7 +76,7 @@ export async function verifyDictionary(pool: Pool, words: LibraryWord[]) {
     }
   }
   const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations' ORDER BY tablename")).rows.map(row => row.tablename);
-  if (tables.length !== 16) throw new Error('Expected 16 application tables.');
+  if (tables.length !== 18) throw new Error('Expected 18 application tables.');
   if ((await pool.query("SELECT 1 FROM pg_constraint WHERE connamespace='public'::regnamespace AND NOT convalidated LIMIT 1")).rowCount) {
     throw new Error('An unvalidated database constraint remains.');
   }

@@ -122,6 +122,7 @@ model DictionaryEntry {
   personalEntries UserWord[]
   inflections DictionaryInflection[] @relation("InflectionBase")
   baseForms DictionaryInflection[] @relation("InflectionForm")
+  thesaurusSenses ThesaurusSense[]
   @@unique([term,partOfSpeech])
   @@index([familyId])
   @@map("dictionary_entries")
@@ -149,6 +150,38 @@ model DictionaryDefinition {
   sourceLabel String? @map("source_label")
   @@id([dictionaryEntryId,languageCode,senseOrder])
   @@map("dictionary_definitions")
+}
+
+model ThesaurusSense {
+  id String @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  source String
+  sourceEntryId String @map("source_entry_id")
+  senseKey String @map("sense_key")
+  term String
+  partOfSpeech String @map("part_of_speech")
+  definition String
+  metadata Json @default("{}")
+  dictionaryEntryId String? @db.Uuid @map("dictionary_entry_id")
+  entry DictionaryEntry? @relation(fields:[dictionaryEntryId], references:[id], onDelete:SetNull)
+  relations ThesaurusRelation[]
+  @@unique([source,sourceEntryId,senseKey])
+  @@index([term])
+  @@index([dictionaryEntryId])
+  @@map("thesaurus_senses")
+}
+
+model ThesaurusRelation {
+  senseId String @db.Uuid @map("sense_id")
+  targetTerm String @map("target_term")
+  kind String
+  sourceList String @map("source_list")
+  groupOrder Int @map("group_order")
+  sortOrder Int @map("sort_order")
+  metadata Json @default("{}")
+  sense ThesaurusSense @relation(fields:[senseId], references:[id], onDelete:Cascade)
+  @@id([senseId,kind,targetTerm])
+  @@index([targetTerm])
+  @@map("thesaurus_relations")
 }
 
 model VocabularyCollection {

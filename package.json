@@ -19,6 +19,7 @@
     "db:migrate:local": "node scripts/migrate-local-collections.mjs",
     "db:restructure": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/restructure-database.ts",
     "library:publish": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/publish-library.ts",
-    "dictionary:inflections": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/supplement-inflections.ts"
+    "dictionary:inflections": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/supplement-inflections.ts",
+    "dictionary:thesaurus": "node apps/api/node_modules/tsx/dist/cli.mjs scripts/build-thesaurus.ts"
   }
 }
