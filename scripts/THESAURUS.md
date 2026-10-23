@@ -2,6 +2,8 @@
 
 `DICTIONARYAPI2` supplies the Merriam-Webster Collegiate Thesaurus. It has its own cached
 responses and per-key request ledger, separate from the dictionary API.
+Select an additional Collegiate Thesaurus key with provider-approved quota using
+`--key-env DICTIONARYAPI4`. The default remains `DICTIONARYAPI2`; keys are not rotated automatically.
 
 After applying Prisma migrations, build a report (common CEFR headwords first), then import it:
 

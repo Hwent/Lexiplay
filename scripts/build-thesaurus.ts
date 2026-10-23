@@ -11,6 +11,7 @@ async function main() {
   const { values } = parseArgs({ options: {
     'database-env': { type: 'string', default: '.env' }, report: { type: 'string', default: '.local-backups/thesaurus/report.json' },
     terms: { type: 'string' }, limit: { type: 'string', default: '1000' }, apply: { type: 'string' },
+    'key-env': { type: 'string', default: 'DICTIONARYAPI2' },
   } });
   const env = parseEnv(await readFile(resolve(values['database-env']!), 'utf8'));
   const database = localDatabase(env.DATABASE_URL ?? '');
@@ -25,7 +26,10 @@ async function main() {
       console.log(JSON.stringify(await applyThesaurus(pool, fresh), null, 2));
       return;
     }
-    if (!env.DICTIONARYAPI2) throw new Error('DICTIONARYAPI2 must contain the Collegiate Thesaurus key.');
+    const keyName = values['key-env']!;
+    if (!['DICTIONARYAPI2', 'DICTIONARYAPI4'].includes(keyName)) throw new Error('--key-env must be DICTIONARYAPI2 or DICTIONARYAPI4.');
+    const key = env[keyName];
+    if (!key) throw new Error(`${keyName} must contain a Collegiate Thesaurus key.`);
     let terms: string[];
     if (values.terms) {
       terms = [...new Set((await readFile(resolve(values.terms), 'utf8')).split(/\r?\n/).map(term => term.trim()).filter(Boolean))];
@@ -43,7 +47,7 @@ async function main() {
           min(coalesce(f.band,99)),e.term`)).rows.map(row => row.term);
     }
     if (terms.some(term => term.length > 100 || /[\u0000-\u001f\u007f]/.test(term))) throw new Error('Invalid input term.');
-    const senses = await fetchWebster({ reference: 'thesaurus', key: env.DICTIONARYAPI2, terms, limit: Number(values.limit), parse: websterThesaurus });
+    const senses = await fetchWebster({ reference: 'thesaurus', key, terms, limit: Number(values.limit), parse: websterThesaurus });
     const plan = await planThesaurus(pool, senses);
     const path = resolve(values.report!);
     await mkdir(resolve(path, '..'), { recursive: true });

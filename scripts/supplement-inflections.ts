@@ -11,6 +11,7 @@ async function main() {
   const { values } = parseArgs({ options: {
     'database-env': { type: 'string', default: '.env' }, report: { type: 'string', default: '.local-backups/inflections/report.json' },
     apply: { type: 'string' }, fetch: { type: 'boolean' }, terms: { type: 'string' }, limit: { type: 'string', default: '100' },
+    'key-env': { type: 'string', default: 'DICTIONARYAPI1' },
   } });
   const env = parseEnv(await readFile(resolve(values['database-env']!), 'utf8'));
   const database = localDatabase(env.DATABASE_URL ?? '');
@@ -33,13 +34,16 @@ async function main() {
       ORDER BY e.term,e.part_of_speech,d.sense_order`)).rows;
     const links = rows.flatMap(row => definitionInflections(row.term, row.pos, row.definition));
     if (values.fetch) {
-      if (!env.DICTIONARYAPI1) throw new Error('DICTIONARYAPI1 must contain the Collegiate Dictionary key.');
+      const keyName = values['key-env']!;
+      if (!['DICTIONARYAPI1', 'DICTIONARYAPI3'].includes(keyName)) throw new Error('--key-env must be DICTIONARYAPI1 or DICTIONARYAPI3.');
+      const key = env[keyName];
+      if (!key) throw new Error(`${keyName} must contain a Collegiate Dictionary key.`);
       if (!values.terms) throw new Error('--fetch requires --terms <one-term-per-line.txt>.');
       const limit = Number(values.limit);
       if (!Number.isInteger(limit) || limit < 1 || limit > 1000) throw new Error('--limit must be between 1 and 1000.');
       const terms = [...new Set((await readFile(resolve(values.terms), 'utf8')).split(/\r?\n/).map(term => term.trim()).filter(Boolean))];
       if (terms.some(term => term.length > 100 || /[\u0000-\u001f]/.test(term))) throw new Error('Invalid input term.');
-      links.push(...await fetchWebster({ reference: 'collegiate', key: env.DICTIONARYAPI1, terms, limit, parse: websterInflections }));
+      links.push(...await fetchWebster({ reference: 'collegiate', key, terms, limit, parse: websterInflections }));
     }
     const plan = await planInflections(pool, links);
     const path = resolve(values.report!);

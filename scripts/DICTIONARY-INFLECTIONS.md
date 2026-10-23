@@ -27,6 +27,8 @@ rerun this supplement after replacing the dictionary.
 
 For Merriam-Webster, `DICTIONARYAPI1` is the **Collegiate Dictionary** key;
 `DICTIONARYAPI2` is the **Collegiate Thesaurus** key and is not used here.
+An additional Collegiate Dictionary key with provider-approved quota may be selected explicitly
+using `--key-env DICTIONARYAPI3`. The default remains `DICTIONARYAPI1`; keys are not rotated automatically.
 With appropriate permission for automated queries and local storage, use a UTF-8 file with one term per line:
 
 ```sh
