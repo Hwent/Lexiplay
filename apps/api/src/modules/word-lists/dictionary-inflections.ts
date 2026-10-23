@@ -4,7 +4,7 @@ export const inflectionLabels = {
   comparative: 'Comparative', superlative: 'Superlative', verb_form: 'Inflected form',
 } as const;
 export type InflectionKind = keyof typeof inflectionLabels;
-export type Inflection = { form: string; base: string; partOfSpeech: string; kind: InflectionKind; source: string; sourceRef: string };
+export type Inflection = { form: string; base: string; partOfSpeech: string; kind: InflectionKind; source: string; sourceRef: string; senseDefinitions?: string[] };
 
 const labels: Record<string, InflectionKind[]> = {
   plural: ['plural'], 'simple past': ['past'], past: ['past'], 'past tense': ['past'],
@@ -31,10 +31,11 @@ type WebsterEntry = {
   hwi?: { hw?: string };
   fl?: string;
   ins?: { if?: string; il?: string }[];
+  shortdef?: string[];
 };
 const spelling = (value: string) => value.replace(/\*/g, '').normalize('NFC').trim();
 
-// Stems also contain derivatives and idioms. Admit only attested regular inflections.
+// Classify complete forms supplied by the API; these rules do not generate entries.
 function regularForms(base: string, pos: string): Map<string, InflectionKind[]> {
   const forms = new Map<string, InflectionKind[]>();
   const third = /[^aeiou]y$/.test(base) ? base.slice(0, -1) + 'ies' : /(?:s|sh|ch|x|z)$/.test(base) ? base + 'es' : base + 's';
@@ -61,27 +62,33 @@ export function websterInflections(response: unknown, requestedTerm?: string): I
     const pos = entry.fl === 'transitive verb' || entry.fl === 'intransitive verb' ? 'verb' : entry.fl;
     if (!pos || !['noun', 'verb', 'adjective', 'adverb'].includes(pos) || !entry.hwi?.hw || !entry.meta?.id) continue;
     const base = spelling(entry.hwi.hw);
-    if (requestedTerm && base.toLowerCase() !== requestedTerm.toLowerCase()) continue;
+    if (requestedTerm && base !== requestedTerm) continue;
     const regular = regularForms(base, pos);
     const add = (form: string, kinds: InflectionKind[]) => {
       if (!form || form === base || form.length > 100 || /[\u0000-\u001f]/.test(form)) return;
       for (const kind of kinds) {
         const link = { form, base, partOfSpeech: pos, kind, source: 'merriam-webster-collegiate', sourceRef: entry.meta!.id! };
-        result.set(JSON.stringify([base, pos, form, kind]), link);
+        result.set(JSON.stringify([base, pos, form, kind]), { ...link,
+          ...(entry.shortdef?.length ? { senseDefinitions: entry.shortdef.slice(0, 2) } : {}) });
       }
     };
     for (const item of entry.ins ?? []) {
       if (!item.if) continue; // A cutback alone is not a complete spelling.
       const form = spelling(item.if);
       const label = item.il?.toLowerCase();
-      const kinds = (label ? labels[label] : undefined) ?? regular.get(form)
+      const labelled = label ? labels[label] ?? (/^past tense\b/.test(label) ? ['past'] as InflectionKind[]
+        : /^present tense\b.*third[- ]person singular/.test(label) ? ['third_person_singular'] as InflectionKind[] : undefined) : undefined;
+      const kinds = labelled ?? regular.get(form)
         ?? (pos === 'noun' ? ['plural'] : pos === 'verb' ? ['verb_form'] : []);
       add(form, kinds);
     }
+    const explicitThird = entry.ins?.find(item => /present tense.*third[- ]person singular/.test(item.il ?? ''));
     for (const stem of entry.meta.stems ?? []) {
       const form = spelling(stem), kinds = regular.get(form);
-      // A regular-looking past stem may belong to a run-on, even for irregular verbs (mean -> meaned).
-      if (kinds && !kinds.includes('past')) add(form, kinds);
+      // Search stems include mechanically formed nonstandard plurals (aircrafts, equipments).
+      // Only fill a regular third-person verb form supported by an explicit conjugation entry.
+      if (pos === 'verb' && entry.ins?.some(item => item.if) && kinds?.includes('third_person_singular')
+        && (!explicitThird?.if || spelling(explicitThird.if) === form)) add(form, kinds);
     }
   }
   return [...result.values()];

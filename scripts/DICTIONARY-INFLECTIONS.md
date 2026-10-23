@@ -4,7 +4,14 @@ Existing spellings, definitions, saved words, and collection membership are pres
 `dictionary_inflections` links each inflected entry to a base entry of the same part of speech.
 Missing forms receive independent entries with a form label and the base's first two English definitions,
 so existing dictionary search and guess validation work without external API calls.
+For API forms, use the returned homograph's short definitions, rather than unrelated local meanings
+of the same spelling (for example, the currency plural `bani` must not inherit the prohibition sense of `ban`).
 This does not merge learning progress or add forms to curated answer collections.
+
+Prioritize headwords whose inflected **spelling is absent from the whole local dictionary**,
+before headwords that only lack a part of speech or relationship. Count new spellings separately
+from new spelling/POS entries. Predictable suffix patterns may rank query candidates, but a prediction
+is never evidence for import: confirm each form in the API's explicit inflection data.
 
 Generate a report from existing explicit word-form definitions, then apply it:
 
@@ -28,8 +35,10 @@ pnpm dictionary:inflections --fetch --terms .local-backups/inflections/terms.txt
 
 The report combines existing dictionary links with API results. Inspect the report and cached
 JSON under `.local-backups/merriam-webster-collegiate/` before applying.
-Only explicit inflections and attested regular inflections are accepted; spelling suggestions,
-unrelated stems, derivatives, idioms, and incomplete inflection endings are excluded.
+Only explicit inflections and regular third-person verb stems supported by an explicit conjugation entry are accepted.
+Noun plurals require `ins`: search stems can include mechanical forms such as `equipments` and `aircrafts`.
+Spelling suggestions, differently capitalized headwords, unrelated stems, derivatives, idioms,
+and incomplete inflection endings are excluded.
 Unlabelled irregular verb forms retain the general `verb_form` type rather than guessing a tense.
 
 Responses are cached and reused on subsequent runs. A shared lock and usage ledger count requests

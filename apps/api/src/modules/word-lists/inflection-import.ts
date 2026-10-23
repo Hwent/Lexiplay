@@ -33,7 +33,9 @@ export async function planInflections(pool: Pool, input: Inflection[]): Promise<
       const base = exact.get(JSON.stringify([link.base, link.partOfSpeech])) ?? (candidates.length === 1 ? candidates[0] : undefined);
       if (!base?.definitions.length) { skipped.push({ link, reason: 'No unambiguous base entry with matching part of speech and English definition.' }); continue; }
       if (base.term === link.form) continue;
-      const selected = { ...link, base: base.term, baseId: base.id, baseDefinitions: base.definitions.slice(0, 2) };
+      const baseDefinitions = link.source === 'merriam-webster-collegiate' && link.senseDefinitions?.length
+        ? link.senseDefinitions.slice(0, 2) : base.definitions.slice(0, 2);
+      const selected = { ...link, base: base.term, baseId: base.id, baseDefinitions };
       const key = JSON.stringify([base.id, link.form, link.kind]);
       // Explicit existing dictionary labels take priority over unlabelled API forms.
       if (!links.has(key)) links.set(key, selected);

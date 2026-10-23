@@ -27,8 +27,23 @@ it('retains multiple bases and irregular noun forms, but never imports spelling 
 
 it('filters related headwords and does not mistake regular-looking run-on stems for irregular past forms', () => {
   const response = [
-    { meta: { id: 'mean:1', stems: ['mean', 'meaned', 'meaner', 'means', 'meaning'] }, hwi: { hw: 'mean' }, fl: 'verb', ins: [{ if: 'meant' }] },
+    { meta: { id: 'mean:1', stems: ['mean', 'meaned', 'meaner', 'means', 'meaning'] }, hwi: { hw: 'mean' }, fl: 'verb', ins: [{ if: 'meant' }, { if: 'mean*ing' }] },
     { meta: { id: 'mean distance', stems: ['mean distances'] }, hwi: { hw: 'mean distance' }, fl: 'noun' },
   ];
-  expect(websterInflections(response, 'mean').map(row => row.form)).toEqual(['meant', 'means', 'meaning']);
+  expect(websterInflections(response, 'mean').map(row => row.form)).toEqual(['meant', 'meaning', 'means']);
+});
+
+it('does not admit mechanical search plurals, conflicting present forms, or capitalized homographs', () => {
+  expect(websterInflections([{ meta: { id: 'equipment', stems: ['equipment', 'equipments'] }, hwi: { hw: 'equip*ment' }, fl: 'noun' }], 'equipment')).toEqual([]);
+  expect(websterInflections([{ meta: { id: 'aircraft', stems: ['aircraft', 'aircrafts'] }, hwi: { hw: 'air*craft' }, fl: 'noun', ins: [{ if: 'aircraft', il: 'plural' }] }], 'aircraft')).toEqual([]);
+  expect(websterInflections([{ meta: { id: 'be', stems: ['be', 'bes', 'is'] }, hwi: { hw: 'be' }, fl: 'verb', ins: [{ if: 'is', il: 'present tense third-person singular' }] }], 'be'))
+    .toMatchObject([{ form: 'is', kind: 'third_person_singular' }]);
+  expect(websterInflections([{ meta: { id: 'BASIC', stems: ['BASIC', 'BASICs'] }, hwi: { hw: 'BA*SIC' }, fl: 'noun' }], 'basic')).toEqual([]);
+  expect(websterInflections([{ meta: { id: 'ought:2', stems: ['oughting', 'oughts'] }, hwi: { hw: 'ought' }, fl: 'verb' }], 'ought')).toEqual([]);
+});
+
+it('retains the defining sense of a specific homograph for new form definitions', () => {
+  const links = websterInflections([{ meta: { id: 'ban:3' }, hwi: { hw: 'ban' }, fl: 'noun',
+    ins: [{ if: 'bani', il: 'plural' }], shortdef: ['a monetary unit'] }], 'ban');
+  expect(links).toMatchObject([{ form: 'bani', sourceRef: 'ban:3', senseDefinitions: ['a monetary unit'] }]);
 });

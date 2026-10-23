@@ -16,7 +16,7 @@ import { WordListsService } from './modules/word-lists/word-lists.service';
 import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
 import { planInflections, applyInflections } from './modules/word-lists/inflection-import';
-import { definitionInflections } from './modules/word-lists/dictionary-inflections';
+import { definitionInflections, websterInflections } from './modules/word-lists/dictionary-inflections';
 
 const database = process.env.TEST_DATABASE_URL;
 const word = (term: string, positions = ['noun']): LibraryWord => ({
@@ -173,15 +173,16 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
   });
 
   it('supplements independent forms for lookup and guessing without replacing existing meanings or merging ambiguous bases', async () => {
-    await publishDictionary(pool, [...dictionary, word('walk', ['verb']), word('mean', ['verb']), word('means'), word('axe'), word('axis')]);
+    await publishDictionary(pool, [...dictionary, word('walk', ['verb']), word('mean', ['verb']), word('means'), word('axe'), word('axis'), word('ban')]);
     const existing = (await pool.query('SELECT * FROM dictionary_definitions ORDER BY dictionary_entry_id,language_code,sense_order')).rows;
     const input = [
       ...definitionInflections('walked', 'verb', 'Past tense and participle of walk.'),
       ...definitionInflections('means', 'verb', 'Third person singular of mean.'),
       ...definitionInflections('axes', 'noun', 'Plural of axe.'),
       ...definitionInflections('axes', 'noun', 'Plural of axis.'),
+      ...websterInflections([{ meta: { id: 'ban:3' }, hwi: { hw: 'ban' }, fl: 'noun', ins: [{ if: 'bani', il: 'plural' }], shortdef: ['a monetary unit'] }], 'ban'),
     ];
-    expect(await applyInflections(pool, await planInflections(pool, input))).toEqual({ entriesAdded: 3, definitionsAdded: 3, linksAdded: 5 });
+    expect(await applyInflections(pool, await planInflections(pool, input))).toEqual({ entriesAdded: 4, definitionsAdded: 4, linksAdded: 6 });
     const repository = app.get(WordListRepository);
     expect(await repository.isDictionaryGameWord('walked')).toBe(true);
     expect(await repository.dictionaryGameWords(6)).toContain('walked');
@@ -189,6 +190,8 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await repository.getDictionaryDefinition('walked')).toContain('Definition of walk.');
     expect(await repository.getDictionaryDefinition('axes')).toContain('Definition of axe.');
     expect(await repository.getDictionaryDefinition('axes')).toContain('Definition of axis.');
+    expect(await repository.getDictionaryDefinition('bani')).toContain('a monetary unit');
+    expect(await repository.getDictionaryDefinition('bani')).not.toContain('Definition of ban.');
     expect((await repository.searchDictionary('means'))[0]!.partOfSpeech).toEqual(['noun', 'verb']);
     const after = (await pool.query('SELECT * FROM dictionary_definitions WHERE dictionary_entry_id=ANY($1::uuid[]) ORDER BY dictionary_entry_id,language_code,sense_order', [existing.map(row => row.dictionary_entry_id)])).rows;
     expect(after).toEqual(existing);
