@@ -479,6 +479,39 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await balance(user.cookie)).toBe(accountBalance + Math.max(guestBalance - 10, 0));
   });
 
+  it('charges one coin per ladder hint, restores it, and does not charge retries or failed purchases', async () => {
+    await publishDictionary(pool, [...dictionary, ...['stone', 'store', 'shore', 'share', 'spare'].map(term => word(term))]);
+    const cookie = await guest();
+    const started = await request('/games', 'POST', { kind: 'word-ladder', wordLength: 5 }, cookie);
+    expect(started.status).toBe(201);
+    const game = await started.json();
+    const path = `/games/${game.id}`;
+    const hint = () => request(path + '/hints', 'POST', { type: 'nextWord' }, cookie);
+    expect((await request(path + '/hints', 'POST', { type: 'definition' }, cookie)).status).toBe(400);
+    const purchases = await Promise.all([hint(), hint()]);
+    expect(purchases.map(reply => reply.status)).toEqual([201, 201]);
+    const clues = await Promise.all(purchases.map(reply => reply.json()));
+    expect(clues.map(clue => clue.cost).sort()).toEqual([0, 1]);
+    expect(clues[0].text).toBe(clues[1].text);
+    expect(await balance(cookie)).toBe(8);
+    expect(await (await request(path, 'GET', undefined, cookie)).json()).toMatchObject({ clues: { nextWord: clues[0].text }, hintCoinsSpent: 1 });
+    expect((await request(path + '/guesses', 'POST', { guess: clues[0].text }, cookie)).status).toBe(201);
+    expect(await (await request(path, 'GET', undefined, cookie)).json()).toMatchObject({ hints: { nextWord: 1 }, clues: {} });
+    await pool.query('UPDATE guest_sessions SET coin_balance=0 WHERE token_hash=$1', [guestOwner(cookie)!.slice(6)]);
+    expect((await hint()).status).toBe(400);
+    expect(await (await request(path, 'GET', undefined, cookie)).json()).toMatchObject({ hints: { nextWord: 1 }, clues: {}, hintCoinsSpent: 1 });
+    await pool.query('UPDATE guest_sessions SET coin_balance=8 WHERE token_hash=$1', [guestOwner(cookie)!.slice(6)]);
+    for (let step = 1; step < 4; step++) {
+      const clue = await (await hint()).json();
+      expect(clue.cost).toBe(1);
+      const accepted = await request(path + '/guesses', 'POST', { guess: clue.text }, cookie);
+      expect(accepted.status).toBe(201);
+      expect(await accepted.json()).toMatchObject({ completed: step === 3 });
+    }
+    expect(await balance(cookie)).toBe(10);
+    expect((await hint()).status).toBe(400);
+  });
+
   it('keeps guest payouts in the original wallet after a retry-safe progress transfer', async () => {
     const cookie = await guest(), game = await start(cookie), user = await account(), transferId = randomUUID();
     expect(await balance(cookie)).toBe(9);

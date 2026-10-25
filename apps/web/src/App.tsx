@@ -57,8 +57,8 @@ type GuessResult = {
   answerDefinition?: string;
   rewardCoins?: number;
 };
-type HintType = 'definition';
-type Game = { kind?: 'word-puzzle' | 'word-ladder'; ladder?: Ladder; answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: Record<HintType, number>; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
+type HintType = 'definition' | 'nextWord';
+type Game = { kind?: 'word-puzzle' | 'word-ladder'; ladder?: Ladder; answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { definition: number; nextWord?: number }; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
 const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, reward: 6 }] as const;
 
@@ -397,35 +397,44 @@ export default function App() {
   }
 
   async function useHint(type: HintType) {
-    if (!game || busy || progressSaving || finished) return;
+    if (!game || busy || submittingGuess.current || progressSaving || finished) return;
     const session = guessSession.current;
     setBusy(true);
     setMessage('');
     setRejectedAttempt(0);
+    if (type === 'nextWord') submittingGuess.current = true;
     try {
       const result = await api<{ type: HintType; text: string; hints: Game['hints']; cost: number }>(`/games/${game.id}/hints`, {
         method: 'POST', body: JSON.stringify({ type }),
       });
       if (session !== guessSession.current) return;
-      setGame({ ...game, hints: result.hints, clues: { ...game.clues, [type]: result.text }, hintCoinsSpent: (game.hintCoinsSpent ?? 0) + result.cost });
+      const updatedGame = { ...game, hints: result.hints, clues: { ...game.clues, [type]: result.text }, hintCoinsSpent: (game.hintCoinsSpent ?? 0) + result.cost };
+      setGame(updatedGame);
       if (activeSectionRef.current === 'play') gameAudio.play('hint');
       setMessage('');
+      if (type === 'nextWord') {
+        setGuess(result.text);
+        await checkGuess(updatedGame, result.text, session);
+        inputRef.current?.focus({ preventScroll: true });
+      }
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not use this hint.');
     } finally {
+      submittingGuess.current = false;
       setBusy(false);
     }
   }
 
   function hintPanel(type: HintType) {
-    if (!game || finished || game.ladder) return null;
-    const title = 'Definition';
+    if (!game || finished) return null;
+    const title = type === 'nextWord' ? 'Next word' : 'Definition';
     const clue = game.clues?.[type];
+    const revealed = !!clue && type === 'definition';
     return <aside className={`puzzle-hint hint-${type}`} aria-label={t('{0} hint', t(title))}>
-      <button className="friendly-hint" type="button" aria-label={t('{0} hint · {1}', t(title), (clue ? t('Revealed') : t('1 coin')))} onClick={() => void useHint(type)} disabled={busy || progressSaving || !!clue || game.hints[type] === 0}>
+      <button className="friendly-hint" type="button" aria-label={t('{0} hint · {1}', t(title), (clue ? t(revealed ? 'Revealed' : 'Fill word') : t('1 coin')))} onClick={() => void useHint(type)} disabled={busy || progressSaving || revealed || (!clue && game.hints[type] === 0)}>
         <span className="hint-icon" aria-hidden="true"><Icon name="library"/></span><strong>{t(title)}</strong><span className="hint-price">{clue ? <Icon name="check"/> : <><Icon name="coin"/>1</>}</span>
       </button>
-      {clue && <p className="hint-clue">{definitionHintText(clue)}</p>}
+      {revealed && <p className="hint-clue">{definitionHintText(clue)}</p>}
     </aside>;
   }
 
@@ -439,9 +448,13 @@ export default function App() {
   async function submitGuess(nextGuess = guess) {
     if (!game || busy || submittingGuess.current || progressSaving || finished || nextGuess.length !== game.wordLength) return;
     submittingGuess.current = true;
-    const session = guessSession.current;
     setBusy(true);
     setMessage('');
+    try { await checkGuess(game, nextGuess, guessSession.current); }
+    finally { submittingGuess.current = false; setBusy(false); }
+  }
+
+  async function checkGuess(game: Game, nextGuess: string, session: number) {
     try {
       const result = await api<GuessResult>(`/games/${game.id}/guesses`, {
         method: 'POST',
@@ -452,7 +465,9 @@ export default function App() {
       if (activeSectionRef.current === 'play') gameAudio.play(result.completed ? result.outcome === 'WON' ? 'win' : 'complete' : 'guess');
       if (result.answer && result.answerDefinition) rememberDictionaryDefinition(result.answer, result.answerDefinition);
       setRevealingGuess({ gameId: game.id, row: game.guesses.length });
-      setGame({ ...game, guesses: [...game.guesses, result], attemptCount: game.guesses.length + 1, completed: result.completed,
+      const clues = { ...game.clues };
+      if (game.ladder) delete clues.nextWord;
+      setGame({ ...game, clues, ...(game.ladder ? { hints: { definition: 0, nextWord: result.completed ? 0 : 1 } } : {}), guesses: [...game.guesses, result], attemptCount: game.guesses.length + 1, completed: result.completed,
         ...(result.completed ? { status: result.outcome === 'WON' ? 'won' : 'lost', answer: result.answer, answerDefinition: result.answerDefinition } : {}) });
       setGuess('');
       setRejectedAttempt(0);
@@ -474,9 +489,6 @@ export default function App() {
         if (activeSectionRef.current === 'play') gameAudio.play('invalid');
         setMessage(`${nextGuess.toUpperCase()} is not in the dictionary. Try another word.`);
       } else setMessage(error instanceof Error ? error.message : 'Could not submit your guess. Press Enter to retry.');
-    } finally {
-      submittingGuess.current = false;
-      setBusy(false);
     }
   }
 
@@ -643,7 +655,7 @@ export default function App() {
               {game.revealedAbsent.length > 0 && <span>{t('Ruled out: ')}<strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
             </div>}
             <div className="puzzle-columns">
-            <div className={`puzzle-stage${!finished && !game.ladder ? ' with-hints' : ''}`}>
+            <div className={`puzzle-stage${!finished ? ' with-hints' : ''}`}>
             <div className="puzzle-play-column">
             {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy && submittingGuess.current} rejectedAttempt={rejectedAttempt} revealingRow={revealingGuess?.gameId === game.id ? revealingGuess.row : undefined} onRevealEnd={() => setRevealingGuess(null)}/> : (!finished || game.guesses.length > 0) && <PuzzleGrid wordLength={game.wordLength} label={t('{0}-letter puzzle board', game.wordLength)}>
               {Array.from({ length: game.attemptLimit }, (_, row) => {
@@ -662,7 +674,7 @@ export default function App() {
               <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onFocus={() => setGameInputFocused(true)} onBlur={() => setGameInputFocused(false)} onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
             </>}
             </div>
-            {hintPanel('definition')}
+            {hintPanel(game.ladder ? 'nextWord' : 'definition')}
             </div>
 
             {!finished && <div className="keyboard-dock">

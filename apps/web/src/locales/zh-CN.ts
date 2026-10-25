@@ -586,5 +586,9 @@ export const zhCN: Record<string, string> = {
   "New accounts start with 100 coins.": "新用户注册即获 100 金币。",
   "Welcome reward for new accounts": "新用户注册奖励",
   "Continue as guest": "继续以访客身份游玩",
-  "coins": "金币"
+  "coins": "金币",
+  "Fill word": "填入单词",
+  "Fill in the next word with a hint for 1 coin.": "花费 1 金币，使用提示填入下一个单词。",
+  "Next-word hints are only available in Word Ladder.": "下一个单词提示仅适用于移字成词。",
+  "No next word is available. No coins were charged.": "没有可用的下一个单词，未扣除金币。"
 };

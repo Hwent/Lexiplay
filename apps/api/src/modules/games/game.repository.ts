@@ -206,8 +206,9 @@ export class GameRepository implements OnModuleDestroy {
         answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
         wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit,guesses,completed,status:row.status,
         startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
-        hints: { definition: completed ? 0 : state?.hints.definition ?? 1 },
-        clues: { ...(state?.clues?.definition ? { definition: state.clues.definition } : {}) }, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
+        hints: ladder ? { definition: 0, nextWord: completed || state?.clues?.nextWord ? 0 : 1 } : { definition: completed ? 0 : state?.hints.definition ?? 1 },
+        clues: ladder ? { ...(state?.clues?.nextWord ? { nextWord: state.clues.nextWord } : {}) }
+          : { ...(state?.clues?.definition ? { definition: state.clues.definition } : {}) }, hintCoinsSpent: state?.hintCoinsSpent ?? 0,
         revealedAbsent:state?.revealedAbsent ?? [],revealedPresent:state?.revealedPresent ?? [],
         coinCost:state?.coinCost ?? (row.status === 'lost' ? -row.coin_change : 0),
         winRewardCoins:ladder ? (ladder.targetWords ? row.answer.length : 5) : state?.winRewardCoins ?? 0,coinPayer:row.coin_user_id ? 'account' : 'guest',

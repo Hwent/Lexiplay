@@ -41,6 +41,7 @@ export default function GameGuide({ kind, wordLength, attempts }: { kind: 'word-
       {ladder ? <>
         <p>{t('Make four new words. Change exactly one letter from the previous word each time.')}</p>
         <p>{t('Use each word only once, including the starting word. Every new word comes with a definition.')}</p>
+        <p>{t('Fill in the next word with a hint for 1 coin.')}</p>
       </> : <>
         <p>{t('Find the hidden {0}-letter word in {1} guesses. Each full word checks automatically.', wordLength, attempts)}</p>
         <p>{t('Green means the letter is in the correct spot. Yellow means it belongs in another spot. Gray means it is not in the word.')}</p>

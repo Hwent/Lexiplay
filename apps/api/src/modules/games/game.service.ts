@@ -3,7 +3,7 @@ import { randomInt, randomUUID } from 'node:crypto';
 import { WordListsService } from '../word-lists/word-lists.service';
 import { defaultAnswerWords } from '../word-lists/default-answers';
 import { GameRepository } from './game.repository';
-import { createLadder, LADDER_WORDS } from './word-ladder';
+import { createLadder, LADDER_WORDS, nextLadderWord } from './word-ladder';
 import { DIFFICULTIES, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, PUZZLE_ALREADY_STARTED, WORDLE_COST, score } from './game.types';
 
 @Injectable()
@@ -47,7 +47,7 @@ export class GameService {
       ladder: { startWord: ladder.startWord, targetWords: LADDER_WORDS },
       wordLength, difficulty: 'medium', attemptLimit: LADDER_WORDS, guesses: [], completed: false,
       startedAt: new Date().toISOString(), completedAt: null,
-      hints: { definition: 0 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [],
+      hints: { definition: 0, nextWord: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [],
       status: 'active', coinCost: 1, winRewardCoins: wordLength, coinPayer: owner.startsWith('user:') ? 'account' : 'guest',
     };
     return publicGame(await this.games.create(game));
@@ -56,6 +56,23 @@ export class GameService {
   async hint(id: string, type: HintType, owner: string) {
     const current = await this.games.read(id, owner);
     this.requireActive(current);
+    if (type === 'nextWord') {
+      if (!current.ladder) throw new BadRequestException('Next-word hints are only available in Word Ladder.');
+      const words = await this.dictionary.dictionaryGameWords(current.wordLength);
+      return this.games.change(id, owner, game => {
+        this.requireActive(game);
+        const purchased = !!game.clues.nextWord;
+        const used = [game.ladder!.startWord, ...game.guesses.map(step => step.guess)];
+        const word = game.clues.nextWord ?? nextLadderWord(words, used, game.attemptLimit - game.guesses.length);
+        if (!word) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: 'No next word is available. No coins were charged.' });
+        if (!purchased) {
+          game.clues.nextWord = word;
+          game.hints.nextWord = 0;
+          game.hintCoinsSpent += HINT_COST;
+        }
+        return { type, text: word, hints: { ...game.hints }, cost: purchased ? 0 : HINT_COST };
+      });
+    }
     if (current.ladder) throw new BadRequestException('Word Ladder already includes word definitions.');
     // Resolve dictionary clues before taking wallet and game locks.
     const text = current.clues[type] ?? (current.answerDefinition || await this.dictionary.dictionaryDefinition(current.answer));
@@ -101,6 +118,10 @@ export class GameService {
         game.completedAt = new Date().toISOString();
       }
       game.guesses.push(result);
+      if (game.ladder) {
+        delete game.clues.nextWord;
+        game.hints.nextWord = completed ? 0 : 1;
+      }
       return result;
     });
   }

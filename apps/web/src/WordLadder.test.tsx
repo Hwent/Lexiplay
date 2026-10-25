@@ -46,7 +46,7 @@ describe('Word Ladder', () => {
     expect(screen.getByText(ladder.startDefinition)).toBeInTheDocument();
     expect(within(board).queryByText('Start')).not.toBeInTheDocument();
     expect(screen.getByText('0 / 4 words')).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /hint ·/ })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next word hint · 1 coin' })).toBeEnabled();
     await user.keyboard('warm');
     expect(await screen.findByText('Change exactly one letter from the previous word.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose a new puzzle' })).toBeEnabled();
@@ -67,6 +67,74 @@ describe('Word Ladder', () => {
     await user.keyboard('{Enter}');
     await waitFor(() => expect(submissions).toBe(4));
     expect(within(board).getByRole('row', { name: 'Next word' })).not.toBe(rejectedRow);
+  });
+
+  it('fills and checks the next word for one coin, refreshes the wallet, and completes the ladder', async () => {
+    localStorage.setItem('lexiplay-last-game', game.id);
+    const words = ['cord', 'card', 'ward', 'warm'];
+    const submitted: string[] = [];
+    let coins = 9;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: coins, kind: 'guest' });
+      if (path.endsWith('/games/ladder')) return Response.json(game);
+      if (path.endsWith('/hints')) {
+        expect(JSON.parse(String(init?.body))).toEqual({ type: 'nextWord' });
+        coins--;
+        return Response.json({ type: 'nextWord', text: words[submitted.length], hints: { definition: 0, nextWord: 0 }, cost: 1 });
+      }
+      if (path.endsWith('/guesses')) {
+        const { guess } = JSON.parse(String(init?.body));
+        submitted.push(guess);
+        const completed = submitted.length === 4;
+        if (completed) coins += 4;
+        return Response.json({ guess, feedback: [], definition: `Definition of ${guess}.`, completed, attemptsRemaining: 4 - submitted.length,
+          ...(completed ? { outcome: 'WON', answer: guess, rewardCoins: 4 } : {}) });
+      }
+      return Response.json([]);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup(); render(<App/>);
+    await screen.findByRole('row', { name: 'Next word' });
+    await user.keyboard('co');
+    for (let step = 0; step < 4; step++) {
+      await user.click(await screen.findByRole('button', { name: 'Next word hint · 1 coin' }));
+      expect(await screen.findByRole('row', { name: words[step]! })).toBeInTheDocument();
+    }
+    expect(submitted).toEqual(words);
+    expect(await screen.findByRole('button', { name: 'Play again' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Next word hint/ })).not.toBeInTheDocument();
+    expect(await screen.findByLabelText('Coin balance: 9')).toBeInTheDocument();
+  });
+
+  it('keeps failed hint purchases available and retries a purchased word without another fee', async () => {
+    localStorage.setItem('lexiplay-last-game', game.id);
+    let hintAttempts = 0, guessAttempts = 0;
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: 8, kind: 'guest' });
+      if (path.endsWith('/games/ladder')) return Response.json(game);
+      if (path.endsWith('/hints')) {
+        if (++hintAttempts === 1) return Response.json({ message: 'Hint service unavailable.' }, { status: 503 });
+        return Response.json({ type: 'nextWord', text: 'cord', hints: { definition: 0, nextWord: 0 }, cost: hintAttempts === 2 ? 1 : 0 });
+      }
+      if (path.endsWith('/guesses')) {
+        if (++guessAttempts === 1) return Response.json({ message: 'Try checking again.' }, { status: 503 });
+        return Response.json({ guess: 'cord', feedback: [], definition: 'A thin rope.', completed: false, attemptsRemaining: 3 });
+      }
+      return Response.json([]);
+    }));
+    const user = userEvent.setup(); render(<App/>);
+    await user.click(await screen.findByRole('button', { name: 'Next word hint · 1 coin' }));
+    expect(await screen.findByText('Hint service unavailable.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Next word hint · 1 coin' }));
+    expect(await screen.findByText('Try checking again.')).toBeInTheDocument();
+    expect(screen.getByRole('textbox', { name: /four-letter guess/i })).toHaveValue('cord');
+    await user.click(screen.getByRole('button', { name: 'Next word hint · Fill word' }));
+    expect(await screen.findByText('A thin rope.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Next word hint · 1 coin' })).toBeEnabled();
   });
 
   it('keeps all starting and submitted letters neutral', () => {
