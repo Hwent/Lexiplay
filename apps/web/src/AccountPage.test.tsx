@@ -47,16 +47,16 @@ describe('dedicated account page', () => {
     expect(await screen.findByLabelText('Username or email')).toBeInTheDocument();
     expect(screen.getByText(/^Guest/)).toBeInTheDocument();
   });
-  it('opens reset links on Account, removes the token, and updates an eight-character password', async () => {
+  it('opens reset links on Account, removes the token, and updates a six-character password', async () => {
     window.history.replaceState({}, '', '/account#action=reset&token=' + 'a'.repeat(43));
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me') ? new Response('{}', { status: 401 }) : Response.json({ message: 'Password updated. Sign in with your new password.' }));
     stubGameApiFetch(fetchMock); const user = userEvent.setup(); render(<App />);
     const input = await screen.findByLabelText('New password');
     expect(window.location.hash).toBe(''); expect(window.location.pathname).toBe('/account');
-    await user.type(input, 'newpass8'); await user.click(screen.getByRole('button', { name: 'Update password' }));
+    await user.type(input, 'new六位6'); await user.click(screen.getByRole('button', { name: 'Update password' }));
     expect(await screen.findByText('Password updated. Sign in with your new password.')).toBeInTheDocument();
     expect(screen.getByLabelText('Username or email')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/reset-password', expect.objectContaining({ body: JSON.stringify({ token: 'a'.repeat(43), password: 'newpass8' }) }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/reset-password', expect.objectContaining({ body: JSON.stringify({ token: 'a'.repeat(43), password: 'new六位6' }) }));
   });
   it('does not mark the current account verified when a link verifies a different account', async () => {
     window.history.replaceState({}, '', '/account#action=verify&token=' + 'b'.repeat(43));
@@ -66,18 +66,19 @@ describe('dedicated account page', () => {
     await waitFor(() => expect(screen.getByText('Email not verified · optional')).toBeInTheDocument());
     expect(screen.queryByText('Verified')).not.toBeInTheDocument();
   });
-  it('creates an account without email and toggles password visibility without submitting', async () => {
+  it('creates a Chinese username account with a six-character password and toggles password visibility without submitting', async () => {
     window.history.replaceState({}, '', '/account');
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
       ? new Response('{}', { status: 401 })
-      : String(input).endsWith('/progress/claim') ? Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }) : Response.json({ user: { id: 'user-1', username: 'learner', email: null, emailVerified: false }, verificationSent: false }));
+      : String(input).endsWith('/progress/claim') ? Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }) : Response.json({ user: { id: 'user-1', username: '学习者', email: null, emailVerified: false }, verificationSent: false }));
     stubGameApiFetch(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('tab', { name: 'Create account' }));
-    expect(screen.getByLabelText('Email optional')).not.toBeRequired();
-    expect(screen.getByRole('checkbox')).not.toBeChecked(); expect(screen.getByRole('checkbox')).toBeDisabled();
-    await user.type(screen.getByLabelText('Username'), 'learner');
-    const password = screen.getByLabelText('Password'); await user.type(password, 'password8');
+    expect(screen.queryByLabelText(/Email/)).not.toBeInTheDocument();
+    expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Username'), '学习者');
+    const password = screen.getByLabelText('Password'); await user.type(password, 'pass六位');
     expect(password).toHaveAttribute('type', 'password');
+    expect(password).toHaveAttribute('minlength', '6');
     await user.click(screen.getByRole('button', { name: 'Show password' }));
     expect(password).toHaveAttribute('type', 'text');
     expect(screen.getByRole('button', { name: 'Hide password' })).toHaveAttribute('aria-pressed', 'true');
@@ -85,24 +86,9 @@ describe('dedicated account page', () => {
     expect(password).toHaveAttribute('type', 'password'); expect(fetchMock).toHaveBeenCalledTimes(1);
     await user.click(screen.getByRole('button', { name: 'Create account' }));
     expect(await screen.findByText('Account created. You’re ready to practise.')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/register', expect.objectContaining({ body: JSON.stringify({ username: 'learner', password: 'password8', sendVerification: false }) }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/register', expect.objectContaining({ body: JSON.stringify({ username: '学习者', password: 'pass六位' }) }));
     expect(screen.getByText('Not added')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Send verification link' })).not.toBeInTheDocument();
-  });
-  it('offers verification only when explicitly selected during signup', async () => {
-    window.history.replaceState({}, '', '/account');
-    const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/auth/me')
-      ? new Response('{}', { status: 401 })
-      : String(input).endsWith('/progress/claim') ? Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null }) : Response.json({ user: { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false }, verificationSent: true }));
-    stubGameApiFetch(fetchMock); const user = userEvent.setup(); render(<App />);
-    await user.click(await screen.findByRole('tab', { name: 'Create account' }));
-    await user.type(screen.getByLabelText('Username'), 'learner');
-    await user.type(screen.getByLabelText('Email optional'), 'learner@example.test');
-    await user.type(screen.getByLabelText('Password'), 'password8');
-    expect(screen.getByRole('checkbox')).not.toBeChecked();
-    await user.click(screen.getByRole('checkbox')); await user.click(screen.getByRole('button', { name: 'Create account' }));
-    expect(await screen.findByText('Account created. Check your email for the optional verification link.')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/register', expect.objectContaining({ body: JSON.stringify({ email: 'learner@example.test', username: 'learner', password: 'password8', sendVerification: true }) }));
   });
   it('adds a recovery address with the current password and opens the recovery confirmation', async () => {
     window.history.replaceState({}, '', '/account');
@@ -111,15 +97,18 @@ describe('dedicated account page', () => {
       const path = String(input);
       if (path.endsWith('/auth/me')) return Response.json(account);
       if (path.endsWith('/auth/email')) return Response.json({ user: { ...account, email: 'learner@example.test' } });
+      if (path.endsWith('/auth/verification-request')) return Response.json({ message: 'Verification link requested. Check your email.' });
       if (path.endsWith('/auth/forgot-password')) return Response.json({ message: 'If that email has an account, a reset link will arrive shortly.' });
       throw new Error(`Unexpected request: ${path}`);
     });
     stubGameApiFetch(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.type(await screen.findByLabelText('Recovery email'), 'learner@example.test');
-    await user.type(screen.getByLabelText('Current password'), 'password8');
+    await user.type(screen.getByLabelText('Current password'), 'pass六位');
     await user.click(screen.getByRole('button', { name: 'Add recovery email' }));
     expect(await screen.findByText('Recovery email added. Verification is optional.')).toBeInTheDocument();
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/email', expect.objectContaining({ body: JSON.stringify({ email: 'learner@example.test', password: 'password8' }) }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/email', expect.objectContaining({ body: JSON.stringify({ email: 'learner@example.test', password: 'pass六位' }) }));
+    await user.click(screen.getByRole('button', { name: 'Send verification link' }));
+    expect(await screen.findByText('Verification link requested. Check your email.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Reset your password' }));
     expect(screen.getByLabelText('Email')).toHaveValue('learner@example.test');
     await user.click(screen.getByRole('button', { name: 'Send reset link' }));
@@ -141,14 +130,14 @@ describe('dedicated account page', () => {
     stubGameApiFetch(fetchMock); const user = userEvent.setup(); render(<App />);
     await user.click(await screen.findByRole('button', { name: 'Delete account' }));
     expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeDisabled();
-    await user.type(screen.getByLabelText('Current password'), 'password8');
+    await user.type(screen.getByLabelText('Current password'), 'pass六位');
     await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
     await user.click(screen.getByRole('button', { name: 'Keep my account' }));
     expect(attempts).toBe(0);
     await user.click(screen.getByRole('button', { name: 'Delete account' }));
     expect(screen.getByLabelText('Current password')).toHaveValue('');
     expect(screen.getByLabelText('Type DELETE to confirm')).toHaveValue('');
-    await user.type(screen.getByLabelText('Current password'), 'password8');
+    await user.type(screen.getByLabelText('Current password'), 'pass六位');
     await user.type(screen.getByLabelText('Type DELETE to confirm'), 'delete');
     expect(screen.getByRole('button', { name: 'Permanently delete account' })).toBeDisabled();
     await user.clear(screen.getByLabelText('Type DELETE to confirm')); await user.type(screen.getByLabelText('Type DELETE to confirm'), 'DELETE');
@@ -159,6 +148,6 @@ describe('dedicated account page', () => {
     expect(await screen.findByText('Your account and saved learning data have been deleted.')).toBeInTheDocument();
     expect(screen.getByText(/^Guest/)).toBeInTheDocument();
     expect(screen.getByLabelText('Password')).toHaveValue('');
-    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/account', expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ password: 'password8', confirmation: 'DELETE' }) }));
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/account', expect.objectContaining({ method: 'DELETE', body: JSON.stringify({ password: 'pass六位', confirmation: 'DELETE' }) }));
   });
 });

@@ -230,14 +230,13 @@ describe('practice puzzle', () => {
     await user.click(screen.getByText('Account'));
     await user.click(await screen.findByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
-    await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
     expect(await screen.findByText(/signed in as learner@example\.test/i)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/auth/register', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ email: 'learner@example.test', username: 'learner', password: 'wordpractice123', sendVerification: false }),
+      body: JSON.stringify({ username: 'learner', password: 'wordpractice123' }),
     }));
     await user.click(screen.getByRole('button', { name: /sign out/i }));
     expect(await screen.findByText(/you’re signed out/i)).toBeInTheDocument();
@@ -254,7 +253,6 @@ describe('practice puzzle', () => {
     await user.click(screen.getByText('Account'));
     await user.click(await screen.findByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
-    await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 

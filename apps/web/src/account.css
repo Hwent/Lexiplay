@@ -20,10 +20,6 @@
 .password-toggle svg { width: 1.15rem; height: 1.15rem; }
 .password-toggle:hover { color: var(--text); background: var(--surface-soft); }
 .password-toggle:focus-visible { outline: 2px solid var(--accent); outline-offset: 1px; }
-.account-page .verification-choice { display: flex; align-items: flex-start; gap: .65rem; margin: .8rem 0 .2rem; padding: .8rem; border: 1px solid var(--line); border-radius: .7rem; cursor: pointer; }
-.account-page .verification-choice input { flex: none; width: 1rem; height: 1rem; min-height: 0; padding: 0; margin: .1rem 0 0; accent-color: var(--accent); }
-.verification-choice > span { font-weight: 500; font-size: .875rem; line-height: 1.5; }
-.verification-choice small { display: block; margin-top: .25rem; color: var(--muted); font-weight: 400; font-size: .875rem; }
 .account-page .account-action { display: flex; align-items: center; justify-content: space-between; width: 100%; min-height: 2.85rem; padding: .65rem .9rem; margin-top: .8rem; border: 1px solid var(--accent); background: var(--accent); color: var(--surface); border-radius: .65rem; font-family: inherit; font-weight: 650; font-size: .875rem; cursor: pointer; }
 .account-page button:disabled { opacity: .5; cursor: default; }
 .account-secondary { border: 1px solid var(--line); background: var(--surface-soft); color: var(--text); border-radius: .6rem; min-height: 2.5rem; padding: .55rem .8rem; font-family: inherit; font-weight: 600; font-size: .875rem; cursor: pointer; }
