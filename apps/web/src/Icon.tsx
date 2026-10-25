@@ -20,6 +20,8 @@ const paths = {
   type: 'M4 6V4h16v2M12 4v16M8 20h8',
   language: 'M3 5h12M9 3v2M6 5c0 5 3 8 7 10M12 5c0 5-4 9-9 11M14 21l4-11 4 11M16 17h4',
   sound: 'M3 9h4l5-4v14l-5-4H3zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14',
+  share: 'M12 16V3M7 8l5-5 5 5M7 12H4v9h16v-9h-3',
+  chevron: 'm6 9 6 6 6-6',
 } as const;
 export type IconName = keyof typeof paths | 'coin';
 export default function Icon({ name }: { name: IconName }) {

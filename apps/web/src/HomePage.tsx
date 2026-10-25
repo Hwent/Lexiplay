@@ -14,6 +14,15 @@ export default function HomePage({ onNavigate }: { onNavigate: (section: 'librar
       <h2>{t('Your words.')} <span>{t('Your next challenge.')}</span></h2>
       <div className="home-hero-copy">
         <div className="home-hero-actions"><button className="primary-button" type="button" onClick={() => onNavigate('play')}>{t('Start a puzzle ')}<Icon name="arrow" /></button><button className="quiet-button" type="button" onClick={() => onNavigate('library')}>{t('Explore vocabulary ')}<Icon name="arrow" /></button></div>
+        <details className="home-install-guide">
+          <summary><Icon name="share"/><span>{t('Add to Home Screen')}</span><Icon name="chevron"/></summary>
+          <ol>
+            <li>{t('Open this page in Safari on your iPhone.')}</li>
+            <li>{t('Tap Share. If it is hidden, open the page menu first.')}</li>
+            <li>{t('Choose Add to Home Screen.')}</li>
+            <li>{t('Turn on Open as Web App, then tap Add.')}</li>
+          </ol>
+        </details>
       </div>
       <div className="home-word-art" aria-hidden="true">
         <div className="word-art-note"><Icon name="explore" /></div>
@@ -24,7 +33,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (section: 'librar
     <div className="home-section-heading"><h3>{t('Explore LexiPlay')}</h3></div>
     <div className="learning-cards">{destinations.map((item, index) => <button type="button" key={item.section} onClick={() => onNavigate(item.section)}>
       <div className="learning-card-top"><span className={`feature-icon feature-tone-${index}`}><Icon name={item.icon} /></span><span className="learning-card-number">0{index + 1}</span></div>
-      <h4>{t(item.title)}</h4><p>{t(item.copy)}</p><span className="learning-card-action">{t(item.action)}<Icon name="arrow" /></span>
+      <h4>{t(item.title)}</h4><p>{t(item.copy)}</p><span className="learning-card-action"><span>{t(item.action)}</span><Icon name="arrow" /></span>
     </button>)}</div>
   </section>;
 }
