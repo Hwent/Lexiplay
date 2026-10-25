@@ -15,6 +15,10 @@ import { WORDLE_POOL } from './modules/word-lists/wordle-pool';
 import { WordListsService } from './modules/word-lists/word-lists.service';
 import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
+import { planInflections, applyInflections } from './modules/word-lists/inflection-import';
+import { definitionInflections, websterInflections } from './modules/word-lists/dictionary-inflections';
+import { websterThesaurus } from './modules/word-lists/webster-thesaurus';
+import { planThesaurus, applyThesaurus } from './modules/word-lists/thesaurus-import';
 
 const database = process.env.TEST_DATABASE_URL;
 const word = (term: string, positions = ['noun']): LibraryWord => ({
@@ -74,6 +78,27 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     return response.json();
   }
   async function balance(cookie: string) { return (await (await request('/games/wallet', 'GET', undefined, cookie)).json()).coinBalance; }
+  it('discovers a guest active game from its cookie after the application restarts', async () => {
+    const cookie = await guest();
+    const otherGuest = await guest();
+    const game = await start(cookie);
+    expect((await request(`/games/${game.id}/guesses`, 'POST', { guess: 'paper' }, cookie)).status).toBe(201);
+    await app.close();
+    app = await NestFactory.create(AppModule, { logger: false });
+    app.setGlobalPrefix('api/v1');
+    app.useGlobalPipes(new ValidationPipe({ whitelist: true, forbidNonWhitelisted: true, transform: true }));
+    await app.listen(0, '127.0.0.1');
+    url = (await app.getUrl()) + '/api/v1';
+    expect(await (await request('/games/wallet', 'GET', undefined, cookie)).json()).toMatchObject({ activeGameId: game.id, coinBalance: 9 });
+    expect(await (await request('/games/wallet', 'GET', undefined, otherGuest)).json()).toMatchObject({ activeGameId: null, coinBalance: 10 });
+    const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
+    expect(restored.guesses).toHaveLength(1);
+    expect((await request(`/games/${game.id}`, 'GET', undefined, otherGuest)).status).toBe(404);
+    expect((await request(`/games/${game.id}/give-up`, 'POST', {}, cookie)).status).toBe(201);
+    expect(await (await request('/games/wallet', 'GET', undefined, cookie)).json()).toMatchObject({ activeGameId: null, coinBalance: 9 });
+    await start(cookie);
+    expect(await balance(cookie)).toBe(8);
+  });
   async function entry(user: Account, term: string) {
     return (await pool.query(`SELECT u.* FROM user_words u JOIN dictionary_entries e ON e.id=u.dictionary_entry_id
       WHERE u.user_id=$1 AND e.term=$2 ORDER BY e.part_of_speech`, [user.id, term])).rows[0];
@@ -89,19 +114,19 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(response.status).toBe(200);
     const rankings = await response.json();
     expect(rankings).toHaveLength(20);
-    expect(rankings[0]).toEqual({ rank: 1, username: 'a***', coinBalance: 320 });
+    expect(rankings[0]).toEqual({ rank: 1, username: 'al**', coinBalance: 320 });
     expect(rankings.slice(1,3)).toEqual(expect.arrayContaining([
-      { rank: 2, username: 'b***', coinBalance: 250 },
-      { rank: 2, username: 'c***', coinBalance: 250 },
+      { rank: 2, username: 'bo**', coinBalance: 250 },
+      { rank: 2, username: 'ch**', coinBalance: 250 },
     ]));
-    expect(rankings[3]).toEqual({ rank: 4, username: 'r***', coinBalance: 99 });
+    expect(rankings[3]).toEqual({ rank: 4, username: 'ra**', coinBalance: 99 });
     for (const row of rankings) {
       expect(Object.keys(row).sort()).toEqual(['coinBalance','rank','username']);
-      expect(row.username).toMatch(/^[a-z]\*{3}$/);
+      expect(row.username).toMatch(/^[a-z]{1,2}\*{2}$/);
       expect(typeof row.coinBalance).toBe('number');
     }
     await pool.query("UPDATE account_users SET coin_balance=500 WHERE username='bob'");
-    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'b***', coinBalance: 500 });
+    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'bo**', coinBalance: 500 });
   });
 
   it('counts distinct playable words by length and excludes names while preserving ordinary homographs', async () => {
@@ -147,6 +172,68 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
     expect(allowed.has('apple')).toBe(true);
     expect(['paris', 'alone', 'zzzzz'].some(term => allowed.has(term))).toBe(false);
+  });
+
+  it('supplements independent forms for lookup and guessing without replacing existing meanings or merging ambiguous bases', async () => {
+    await publishDictionary(pool, [...dictionary, word('walk', ['verb']), word('mean', ['verb']), word('means'), word('axe'), word('axis'), word('ban')]);
+    const existing = (await pool.query('SELECT * FROM dictionary_definitions ORDER BY dictionary_entry_id,language_code,sense_order')).rows;
+    const input = [
+      ...definitionInflections('walked', 'verb', 'Past tense and participle of walk.'),
+      ...definitionInflections('means', 'verb', 'Third person singular of mean.'),
+      ...definitionInflections('axes', 'noun', 'Plural of axe.'),
+      ...definitionInflections('axes', 'noun', 'Plural of axis.'),
+      ...websterInflections([{ meta: { id: 'ban:3' }, hwi: { hw: 'ban' }, fl: 'noun', ins: [{ if: 'bani', il: 'plural' }], shortdef: ['a monetary unit'] }], 'ban'),
+    ];
+    expect(await applyInflections(pool, await planInflections(pool, input))).toEqual({ entriesAdded: 4, definitionsAdded: 4, linksAdded: 6 });
+    const repository = app.get(WordListRepository);
+    expect(await repository.isDictionaryGameWord('walked')).toBe(true);
+    expect(await repository.dictionaryGameWords(6)).toContain('walked');
+    expect((await repository.searchDictionary('walked'))[0]).toMatchObject({ term: 'walked' });
+    expect(await repository.getDictionaryDefinition('walked')).toContain('Definition of walk.');
+    expect(await repository.getDictionaryDefinition('axes')).toContain('Definition of axe.');
+    expect(await repository.getDictionaryDefinition('axes')).toContain('Definition of axis.');
+    expect(await repository.getDictionaryDefinition('bani')).toContain('a monetary unit');
+    expect(await repository.getDictionaryDefinition('bani')).not.toContain('Definition of ban.');
+    expect((await repository.searchDictionary('means'))[0]!.partOfSpeech).toEqual(['noun', 'verb']);
+    const after = (await pool.query('SELECT * FROM dictionary_definitions WHERE dictionary_entry_id=ANY($1::uuid[]) ORDER BY dictionary_entry_id,language_code,sense_order', [existing.map(row => row.dictionary_entry_id)])).rows;
+    expect(after).toEqual(existing);
+    expect((await pool.query(`SELECT count(*)::int n FROM dictionary_inflections i JOIN dictionary_entries e ON e.id=i.form_entry_id WHERE e.term='axes'`)).rows[0].n).toBe(2);
+    expect(await applyInflections(pool, await planInflections(pool, input))).toEqual({ entriesAdded: 0, definitionsAdded: 0, linksAdded: 0 });
+  });
+
+  it('rejects stale inflection plans and skips missing bases and self references', async () => {
+    const plan = await planInflections(pool, [
+      ...definitionInflections('cats', 'noun', 'Plural of cat.'),
+      ...definitionInflections('cat', 'noun', 'Plural of cat.'),
+      ...definitionInflections('missingwords', 'noun', 'Plural of missingword.'),
+    ]);
+    expect(plan.links).toHaveLength(1);
+    expect(plan.skipped).toHaveLength(1);
+    await publishDictionary(pool, dictionary);
+    await expect(applyInflections(pool, plan)).rejects.toThrow('Dictionary changed');
+    expect(await app.get(WordListRepository).isDictionaryGameWord('cats')).toBe(false);
+  });
+
+  it('imports sense-specific synonyms and antonyms without changing the dictionary and exposes local lookup', async () => {
+    const source = websterThesaurus(['noun', 'verb'].map(pos => ({ meta: { id: 'cover', uuid: `cover-${pos}` }, hwi: { hw: 'cover' }, fl: pos,
+      def: [{ sseq: [[['sense', { sn: '1', dt: [['text', pos === 'noun' ? 'a protective layer' : 'to conceal']],
+        syn_list: [[{ wd: pos === 'noun' ? 'protective covering' : 'conceal', wsls: { wsl: 'formal' } }]],
+        ant_list: [[{ wd: 'uncover' }]], near_list: [[{ wd: 'reveal' }]] }]]] }] })), 'cover');
+    const before = (await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n;
+    const plan = await planThesaurus(pool, source);
+    expect(plan.senses.every(sense => sense.dictionaryEntryId)).toBe(true);
+    expect(await applyThesaurus(pool, plan)).toEqual({ sensesAdded: 2, relationsAdded: 6 });
+    expect((await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n).toBe(before);
+    const response = await request('/word-lists/dictionary/COVER/thesaurus');
+    expect(response.status).toBe(200);
+    const body = await response.json();
+    expect(body.senses).toHaveLength(2);
+    expect(body.senses.find((sense: { partOfSpeech: string }) => sense.partOfSpeech === 'verb')).toMatchObject({ definition: 'to conceal' });
+    expect(body.senses.flatMap((sense: { relations: { term: string; kind: string }[] }) => sense.relations))
+      .toContainEqual(expect.objectContaining({ term: 'reveal', kind: 'near_antonym' }));
+    expect(await applyThesaurus(pool, await planThesaurus(pool, source))).toEqual({ sensesAdded: 0, relationsAdded: 0 });
+    await expect(applyThesaurus(pool, plan)).rejects.toThrow('Dictionary changed');
+    expect(await (await request('/word-lists/dictionary/missingword/thesaurus')).json()).toEqual({ term: 'missingword', senses: [] });
   });
 
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
@@ -296,9 +383,9 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
   });
 
-  it('uses 15 tables and enforces balances, ownership, and case-preserved identities', async () => {
+  it('uses 18 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
-    expect(tables).toHaveLength(15);
+    expect(tables).toHaveLength(18);
     expect(tables).toContainEqual({ tablename: 'message' });
     const user = await account();
     expect(user.coinBalance).toBe(100);

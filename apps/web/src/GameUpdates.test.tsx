@@ -8,6 +8,51 @@ describe('saved practice and account updates', () => {
   beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
+  it('reminds players to click the puzzle after losing keyboard focus and restores typing', async () => {
+    localStorage.setItem('lexiplay-last-game', emptyGame.id);
+    stubGameApiFetch(vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (String(input).endsWith(`/games/${emptyGame.id}`)) return Response.json(emptyGame);
+      return Response.json([]);
+    }));
+    const user = userEvent.setup(); render(<App/>);
+    const board = await screen.findByRole('grid', { name: '9-letter puzzle board' });
+    const input = screen.getByRole('textbox', { name: /Type your nine-letter guess/ });
+    await waitFor(() => expect(input).toHaveFocus());
+    await user.click(screen.getByRole('searchbox', { name: 'Quick dictionary search' }));
+    expect(screen.getByText('Click anywhere in the puzzle to resume typing.')).toBeInTheDocument();
+    await user.click(board);
+    expect(input).toHaveFocus();
+    expect(screen.queryByText('Click anywhere in the puzzle to resume typing.')).not.toBeInTheDocument();
+    await user.keyboard('a');
+    expect(input).toHaveValue('a');
+  });
+  it.each([
+    { signedIn: false, saved: false, expected: 'cefr-a2' },
+    { signedIn: false, saved: true, expected: '' },
+    { signedIn: true, saved: false, expected: '' },
+  ])('defaults only new guests to A2 (signedIn=$signedIn, saved=$saved)', async ({ signedIn, saved, expected }) => {
+    if (saved) localStorage.setItem('lexiplay-practice-preferences', JSON.stringify({ wordLength: 5, difficulty: 'medium', collectionId: '', playWithMyWords: false }));
+    const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return signedIn ? Response.json({ id: 'learner', username: 'learner' }) : new Response('{}', { status: 401 });
+      if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: 100, kind: signedIn ? 'account' : 'guest' });
+      if (path.endsWith('/collections/game-options/all')) return Response.json([{ wordLength: 5, totalWords: 100, collections: [{ id: 'a2', slug: 'cefr-a2', name: 'Oxford A2', wordCount: 12 }] }]);
+      if (path.endsWith('/collections')) return Response.json([{ id: 'a2', slug: 'cefr-a2', name: 'Oxford A2', level: 'A2', status: 'available' }]);
+      if (path.endsWith('/games') && init?.method === 'POST') return Response.json({ ...emptyGame, wordLength: 5 });
+      if (path.endsWith('/saved-terms')) return Response.json({ terms: [] });
+      return Response.json([]);
+    });
+    vi.stubGlobal('fetch', fetchMock);
+    const user = userEvent.setup();
+    render(<App/>);
+    await screen.findByRole('option', { name: /Oxford A2/ });
+    await waitFor(() => expect(screen.getByLabelText('Collection')).toHaveValue(expected));
+    await waitFor(() => expect(screen.getByRole('button', { name: /start practice/i })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: /start practice/i }));
+    const start = fetchMock.mock.calls.find(([path, init]) => String(path).endsWith('/games') && init?.method === 'POST');
+    expect(JSON.parse(String(start?.[1]?.body)).collectionId).toBe(expected || undefined);
+  });
   it.each([
     { signedIn: false, status: 'won', reminder: true },
     { signedIn: false, status: 'lost', reminder: true },

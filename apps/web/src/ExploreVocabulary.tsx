@@ -225,6 +225,14 @@ export default function ExploreVocabulary({
     setPage(nextPage);
   }
 
+  function refreshSavedWords() {
+    void store.loadSaved(true).then(() => {
+      const ids = new Set(store.requests.peek<{ entryIds?: string[] }>('/word-lists/saved-terms')?.entryIds ?? []);
+      setSavedIds(ids);
+      setData(value => value && ({ ...value, words: value.words.map(word => ({ ...word, inMyWordList: ids.has(word.id) })) }));
+    }).catch(() => {});
+  }
+
   function renderWordRow(word: CollectionPage['words'][number]) {
     return (
       <tr key={word.id}>
@@ -359,14 +367,15 @@ export default function ExploreVocabulary({
                     }
 
                     setSaving(true);
+                    setSaved((values) => new Set([...values, current.slug]));
                     void api(`/collections/${current.slug}/save`, { method: 'POST' })
                       .then(() => {
                         store.requests.invalidate('/word-lists/collections');
                         store.invalidateWords();
-                        void store.loadSaved(true).then(() => setRevision(value => value + 1)).catch(() => {});
-                        setSaved((values) => new Set([...values, current.slug]));
+                        refreshSavedWords();
                       })
                       .catch((requestError) => {
+                        setSaved(values => { const next = new Set(values); next.delete(current.slug); return next; });
                         setError(
                           requestError instanceof Error
                             ? requestError.message
@@ -550,7 +559,7 @@ export default function ExploreVocabulary({
           onSignIn={onSignIn}
           onAdded={() => {
             setSelected(new Set());
-            setRevision((value) => value + 1);
+            refreshSavedWords();
           }}
           onClose={() => setImporting(null)}
           onImported={(id) => {

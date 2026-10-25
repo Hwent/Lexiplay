@@ -90,6 +90,13 @@ export class PendingWords {
     this.requests.invalidate('/word-lists');
     this.requests.invalidate('/collections/');
   }
+  removeSaved(term: string) {
+    const saved = new Set(this.state.saved);
+    saved.delete(normalize(term));
+    this.savedRevision++;
+    this.invalidateWords();
+    this.publish({ saved });
+  }
   flush(keepalive = false): Promise<void> {
     if (this.saving) return this.saving;
     if (!this.words.size) return Promise.resolve();

@@ -56,6 +56,7 @@ it('browses, selects a word, previews duplicate skipping and imports only the se
   expect(fetchMock.mock.calls.some(([input])=>String(input).endsWith('/import-collection'))).toBe(false);
   await user.click(screen.getByRole('button',{name:'Add to My Word List'}));
   await screen.findByRole('button',{name:'Open My Word List'});expect(screen.queryByText('1 word added.')).not.toBeInTheDocument();
+  expect(fetchMock.mock.calls.filter(([input])=>String(input).includes('/collections/cefr-a2/words?'))).toHaveLength(1);
   expect(screen.getByRole('button',{name:'Done'})).toBeEnabled();
   expect(fetchMock).toHaveBeenCalledWith('/api/v1/word-lists/my-list/import-collection',expect.objectContaining({body:JSON.stringify({collectionId:'cefr-a2',selectedWordIds:['word-cover'],duplicatePolicy:'skip'})}));
   await user.click(screen.getByRole('button',{name:'Open My Word List'}));expect(onImported).toHaveBeenCalledWith('my-list');
@@ -65,9 +66,11 @@ it('saves an official collection by reference without creating a personal list o
   vi.stubGlobal('fetch',fetchMock);const user=userEvent.setup();render(<ExploreVocabulary signedIn onImported={()=>{}} onSignIn={()=>{}}/>);
   await user.click(await screen.findByRole('button',{name:'Explore CEFR A2'}));await user.click(await screen.findByRole('button',{name:'Save collection'}));
   expect(await screen.findByRole('button',{name:'Collection saved'})).toBeDisabled();
+  expect(fetchMock.mock.calls.filter(([input])=>String(input).includes('/collections/cefr-a2/words?'))).toHaveLength(1);
   expect(fetchMock).toHaveBeenCalledWith('/api/v1/collections/cefr-a2/save',expect.objectContaining({method:'POST'}));
   expect(fetchMock.mock.calls.some(([input])=>String(input).includes('/import-collection'))).toBe(false);
   expect(screen.queryByRole('combobox')).not.toBeInTheDocument();
+  expect(fetchMock.mock.calls.filter(([input])=>String(input).includes('/collections/cefr-a2/words?'))).toHaveLength(1);
 });
 it('keeps missing exam data explicit instead of inventing counts or mapping exam stages to CEFR',async()=>{
   vi.stubGlobal('fetch',vi.fn(async()=>Response.json([{...collection,id:'ielts',slug:'ielts-core',name:'IELTS Core Vocabulary',category:'IELTS',level:null,wordCount:0,status:'awaiting_data'}])));

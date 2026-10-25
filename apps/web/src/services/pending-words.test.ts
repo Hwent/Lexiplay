@@ -10,6 +10,18 @@ function mockApi() {
     return Response.json({ added: JSON.parse(String(init?.body)).terms.length, skipped: 0, missing: [] });
   }); vi.stubGlobal('fetch', fetchMock); return fetchMock;
 }
+it('updates removed membership locally and defers reconciliation until the next read', async () => {
+  const fetchMock = mockApi(), store = new PendingWords('user-one');
+  await store.loadSaved();
+  await store.requests.get('/word-lists/my-list/entries?page=1');
+  const reads = fetchMock.mock.calls.length;
+  store.removeSaved('saved');
+  expect(store.getSnapshot().saved.has('saved')).toBe(false);
+  expect(store.requests.peek('/word-lists/my-list/entries?page=1')).toBeUndefined();
+  expect(fetchMock).toHaveBeenCalledTimes(reads);
+  await store.loadSaved();
+  expect(fetchMock).toHaveBeenCalledTimes(reads + 1);
+});
 it('adds and cancels dictionary and game selections without any writes, then saves one batch on exit', async () => {
   const fetchMock = mockApi(), store = new PendingWords('user-one'); await store.loadSaved();
   store.toggle('cover', '', 'my-list'); store.toggle(' cover '); store.toggle('paper', 'Writing material.'); store.toggle('cover', '', 'my-list');

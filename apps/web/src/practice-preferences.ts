@@ -8,6 +8,10 @@ export type PracticePreferences = {
 const KEY = 'lexiplay-practice-preferences';
 const defaults: PracticePreferences = { wordLength: 5, difficulty: 'medium', collectionId: '', playWithMyWords: false };
 
+export function hasPracticePreferences(): boolean {
+  try { return localStorage.getItem(KEY) !== null; } catch { return false; }
+}
+
 export function readPracticePreferences(): PracticePreferences {
   try {
     const saved = JSON.parse(localStorage.getItem(KEY) ?? 'null');

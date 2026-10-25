@@ -9,7 +9,7 @@ import HomePage from './HomePage';
 import PronunciationButton from './PronunciationButton';
 import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 import { ApiError, apiRequest as api } from './services/api-client';
-import { readPracticePreferences, savePracticePreferences } from './practice-preferences';
+import { hasPracticePreferences, readPracticePreferences, savePracticePreferences } from './practice-preferences';
 import PuzzleCelebration from './PuzzleCelebration';
 import WordLadderBoard, { Ladder } from './WordLadderBoard';
 import GameGuide from './GameGuide';
@@ -79,6 +79,7 @@ export default function App() {
   const interfacePreferences = useInterfacePreferences();
   const t = useMemo(() => createTranslator(interfacePreferences.language), [interfacePreferences.language]);
   const [preferences] = useState(readPracticePreferences);
+  const firstGuestVisit = useRef(!hasPracticePreferences());
   const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount, signedIn, progressSaving, progressError, progressMessage, retryProgress } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
   const [dismissedGuestReminder, setDismissedGuestReminder] = useState('');
@@ -88,6 +89,7 @@ export default function App() {
   const [walletOwner, setWalletOwner] = useState<string | null>(null);
   const startRequest = useRef<{ key: string; id: string } | null>(null);
   const [guess, setGuess] = useState('');
+  const [gameInputFocused, setGameInputFocused] = useState(false);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState('');
   const [rejectedAttempt, setRejectedAttempt] = useState(0);
@@ -122,6 +124,17 @@ export default function App() {
       return wordStore.requests.get<PersonalPage>(`/word-lists/${list.id}/entries?${params}`);
     }).catch(() => {});
   }, [accountLoading, accountRevision, wordStore]);
+  useEffect(() => {
+    if (!accountLoading && account) firstGuestVisit.current = false;
+    if (accountLoading || account || accountError || !firstGuestVisit.current) return;
+    let active = true;
+    void wordStore.requests.get<VocabularyCollection[]>('/collections', 300_000).then(collections => {
+      if (!active || !firstGuestVisit.current) return;
+      const a2 = collections.find(collection => collection.level === 'A2' && collection.status === 'available');
+      if (a2) { firstGuestVisit.current = false; setSelectedPoolId(a2.slug); }
+    }).catch(() => {});
+    return () => { active = false; };
+  }, [accountLoading, account, accountError, wordStore]);
   useEffect(() => {
     savePracticePreferences({ wordLength: selectedWordLength, difficulty, collectionId: selectedPoolId, playWithMyWords });
   }, [selectedWordLength, difficulty, selectedPoolId, playWithMyWords]);
@@ -246,7 +259,9 @@ export default function App() {
       setRestoring(true);
       api<Game>(`/games/${encodeURIComponent(id)}`).then(result => { if (active) setGame(result); }).catch(error => {
         if (!active) return;
-        if (error instanceof ApiError && [401, 404].includes(error.status)) { try { window.localStorage.removeItem(LAST_GAME_KEY); } catch { /* Storage may be unavailable. */ } }
+        if (error instanceof ApiError && [401, 403, 404].includes(error.status)) {
+          try { if (window.localStorage.getItem(LAST_GAME_KEY) === id) window.localStorage.removeItem(LAST_GAME_KEY); } catch { /* Storage may be unavailable. */ }
+        }
         else setMessage('Could not restore your puzzle. Reload to try again.');
       }).finally(() => { if (active) setRestoring(false); });
     }
@@ -277,8 +292,27 @@ export default function App() {
   useEffect(() => {
     if (accountLoading) return;
     let active = true;
-    api<{coinBalance:number;kind:string}>('/games/wallet').then(value => {
-      if (active && Number.isInteger(value.coinBalance)) setWallet(value);
+    api<{coinBalance:number;kind:string;activeGameId?:string|null}>('/games/wallet').then(async value => {
+      if (!active || !Number.isInteger(value.coinBalance)) return;
+      setWallet(value);
+      if (value.activeGameId && value.activeGameId !== game?.id) {
+        setRestoring(true);
+        try {
+          const restored = await api<Game>(`/games/${encodeURIComponent(value.activeGameId)}`);
+          if (active) {
+            guessSession.current++;
+            setGuess(''); setMessage(''); setRejectedAttempt(0);
+            try { localStorage.setItem(LAST_GAME_KEY, restored.id); } catch { /* The server can recover this game again. */ }
+            setGame(restored);
+          }
+        } catch (error) {
+          if (active) {
+            if (!account && error instanceof ApiError && [401, 403, 404].includes(error.status)) resetGame();
+            else setMessage('Could not restore your puzzle. Reload to try again.');
+          }
+        }
+        finally { if (active) setRestoring(false); }
+      }
     }).catch(() => { if (active) setWallet(null); }).finally(() => {
       if (active) setWalletOwner(account?.id ?? 'guest');
     });
@@ -575,6 +609,7 @@ export default function App() {
               </fieldset>
               {puzzleKind === 'word-puzzle' && <><fieldset className="difficulty-options"><legend>{t('Difficulty')}</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{t(option.label)}</strong></label>)}</div></fieldset>
               <CollectionPicker value={playWithMyWords ? 'my-words' : selectedPoolId} wordLength={selectedWordLength} disabled={busy} personalAvailable={!!account} onChange={id => {
+                firstGuestVisit.current = false;
                 setPlayWithMyWords(id === 'my-words');
                 if (id !== 'my-words') setSelectedPoolId(id);
               }} />
@@ -599,6 +634,7 @@ export default function App() {
               : finished ? game.ladder
                 ? game.status === 'won' ? t('{0} new words made.', game.guesses.length) : t('Challenge ended.')
                 : t('{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length)
+              : !gameInputFocused ? t('Click anywhere in the puzzle to resume typing.')
               : game.ladder ? t('Change one letter. Complete words check automatically.')
               : t('Type {0} letters to check your word automatically.', game.wordLength)
             }</p>
@@ -623,7 +659,7 @@ export default function App() {
             {finished && <div className="next-game" role="group" aria-label={t('Game actions')}><button ref={playAgainRef} className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Play again')}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>{t('Change settings')}</button>{!account && !accountLoading && !accountError && game.status !== 'cancelled' && <p className="guest-save-reminder"><a href={sectionPaths.account} onClick={event => { event.preventDefault(); navigateTo('account'); }}>{t('Sign in to save your game history.')}</a></p>}</div>}
             {!finished && <>
               <label className="sr-only" htmlFor="guess-input">{t('Type your {0} guess one letter at a time', t(lengthName(game.wordLength)))}</label>
-              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
+              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onFocus={() => setGameInputFocused(true)} onBlur={() => setGameInputFocused(false)} onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
             </>}
             </div>
             {hintPanel('definition')}

@@ -17,9 +17,12 @@ export default function WordLadderBoard({ ladder, steps, guess, finished, busy, 
     {Array.from({ length: Math.max(ladder.targetWords, steps.length) }, (_, row) => {
       const step = steps[row];
       const active = !finished && row === steps.length;
+      const previous = steps[row - 1]?.guess ?? ladder.startWord;
+      const changed = step ? [...step.guess].findIndex((letter, column) => letter.toLowerCase() !== previous[column]?.toLowerCase()) : -1;
       return <PuzzleGuessRow key={row} className={step && row === ladder.targetWords - 1 ? 'ladder-solved' : ''}
         word={step?.guess ?? (active ? guess : '')} wordLength={length} label={step?.guess ?? t(active ? 'Next word' : 'Empty word')}
-        states={step ? neutral : []} labels={step ? [...step.guess] : []}
+        states={step ? neutral : []} labels={step ? [...step.guess].map((letter, column) => column === changed ? `${letter}, ${t('Changed letter')}` : letter) : []}
+        underlinedColumn={changed}
         rejectedAttempt={active ? rejectedAttempt : 0} checking={active && busy}
         revealing={!!step && revealingRow === row} onRevealEnd={onRevealEnd}/>;
     })}
