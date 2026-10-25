@@ -110,9 +110,17 @@
 .home-install-guide summary > .ui-icon:last-child { transition: transform .18s; }
 .home-install-guide[open] summary > .ui-icon:last-child { transform: rotate(180deg); }
 .home-install-guide summary:focus-visible { outline: 2px solid var(--focus); outline-offset: 3px; border-radius: .75rem; }
-.home-install-guide ol { display: grid; gap: .75rem; margin: 0; padding: .25rem 1.25rem 1.25rem 2.5rem; color: var(--soft-text); line-height: 1.6; }
-.home-install-guide li { padding-left: .25rem; }
-.home-install-guide li::marker { color: var(--accent); font-weight: 650; }
+.install-walkthrough { padding: 0 .85rem .85rem; }
+.install-step-title { display: flex; align-items: center; min-height: 3.5rem; margin: 0; padding: .5rem .15rem .85rem; color: var(--text); font-weight: 600; line-height: 1.5; }
+.install-screenshot { aspect-ratio: 1.15; overflow: hidden; border: 1px solid var(--line); border-radius: .6rem; background: #131b14; }
+.install-screenshot svg { display: block; width: 100%; height: 100%; }
+.install-highlight { fill: none; stroke: #ff3838; stroke-width: 3px; }
+.install-step-controls { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-top: .85rem; }
+.install-step-controls button { display: grid; place-items: center; min-width: 2.75rem; min-height: 2.75rem; padding: .6rem; border: 1px solid var(--line); border-radius: .65rem; background: var(--surface-soft); color: var(--accent); cursor: pointer; }
+.install-step-controls button:hover:enabled { background: var(--accent-soft); }
+.install-step-controls button:disabled { opacity: .35; cursor: default; }
+.install-step-controls button:last-child .ui-icon { transform: rotate(180deg); }
+.install-step-controls > span { color: var(--muted); font-variant-numeric: tabular-nums; }
 .home-word-art { position: relative; width: min(100%, 15rem); margin: 0 auto; padding: 1rem 0; }
 .word-art-card { position: relative; padding: 1.4rem; border: 1px solid var(--line); border-radius: 1.15rem; background: var(--surface); transform: rotate(-5deg); box-shadow: 9px 9px 0 var(--accent-soft), 10px 10px 0 var(--line); }
 .word-art-label { color: var(--muted); font-size: .65rem; font-weight: 650; letter-spacing: .15em; }
@@ -312,6 +320,8 @@
   .puzzle-stage.with-hints .puzzle-hint { grid-column: 2; }
 }
 @media (max-width: 740px) {
+  .home-hero { grid-template-columns: 1fr; }
+  .home-word-art { display: none; }
   .puzzle-stage.with-hints { grid-template-columns: minmax(0, 1fr); gap: .75rem; }
   .puzzle-stage.with-hints .puzzle-play-column, .puzzle-stage.with-hints .puzzle-hint { grid-column: 1; }
 }

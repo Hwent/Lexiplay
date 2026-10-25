@@ -1,5 +1,6 @@
 import { useTranslation } from './i18n';
 import Icon, { IconName } from './Icon';
+import SafariInstallGuide from './SafariInstallGuide';
 
 const destinations: { section: 'library' | 'play' | 'progress'; icon: IconName; title: string; copy: string; action: string }[] = [
   { section: 'library', icon: 'library', title: 'Vocabulary', copy: 'Browse collections and save words to your list.', action: 'Explore the library' },
@@ -14,15 +15,7 @@ export default function HomePage({ onNavigate }: { onNavigate: (section: 'librar
       <h2>{t('Your words.')} <span>{t('Your next challenge.')}</span></h2>
       <div className="home-hero-copy">
         <div className="home-hero-actions"><button className="primary-button" type="button" onClick={() => onNavigate('play')}>{t('Start a puzzle ')}<Icon name="arrow" /></button><button className="quiet-button" type="button" onClick={() => onNavigate('library')}>{t('Explore vocabulary ')}<Icon name="arrow" /></button></div>
-        <details className="home-install-guide">
-          <summary><Icon name="share"/><span>{t('Add to Home Screen')}</span><Icon name="chevron"/></summary>
-          <ol>
-            <li>{t('Open this page in Safari on your iPhone.')}</li>
-            <li>{t('Tap Share. If it is hidden, open the page menu first.')}</li>
-            <li>{t('Choose Add to Home Screen.')}</li>
-            <li>{t('Turn on Open as Web App, then tap Add.')}</li>
-          </ol>
-        </details>
+        <SafariInstallGuide/>
       </div>
       <div className="home-word-art" aria-hidden="true">
         <div className="word-art-note"><Icon name="explore" /></div>
