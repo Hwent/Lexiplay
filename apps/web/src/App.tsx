@@ -571,7 +571,7 @@ export default function App() {
       </aside>
       <div className="workspace">
       <header className="topbar">
-        <div className="page-title"><h1>{sectionTitle[activeNavigationSection]}</h1></div>
+        <h1 className="sr-only">{sectionTitle[activeNavigationSection]}</h1>
         <div className="header-actions">
           <form className="header-search" role="search" onSubmit={event => { event.preventDefault(); navigateTo('dictionary', quickSearch); }}>
             <label className="sr-only" htmlFor="quick-search">{t('Quick dictionary search')}</label>
@@ -580,9 +580,7 @@ export default function App() {
             <button type="submit" aria-label={t('Search dictionary')}><Icon name="search"/></button>
           </form>
           <AccountStatus coinBalance={walletOwner === (account?.id ?? 'guest') ? wallet?.coinBalance : account?.coinBalance} account={account} loading={accountLoading} error={accountError} onOpen={() => navigateTo('account')} />
-          <button className="theme-toggle" type="button" aria-label={t('Switch to {0} mode', (theme === 'dark' ? t('light') : t('dark')))} onClick={() => setTheme(current => current === 'dark' ? 'light' : 'dark')}>
-            <Icon name={theme === 'dark' ? 'sun' : 'moon'}/> {theme === 'dark' ? t('Light mode') : t('Dark mode')}
-          </button>
+          <a className="header-home" href="/" aria-label={t('Home')} title={t('Home')} onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark" aria-hidden="true">L</span></a>
         </div>
       </header>
       {wordSelection.error && <p className="word-selection-error" role="alert">{t(wordSelection.error)}</p>}
