@@ -427,7 +427,7 @@ export default function App() {
 
   function hintPanel(type: HintType) {
     if (!game || finished) return null;
-    const title = type === 'nextWord' ? 'Next word' : 'Definition';
+    const title = type === 'nextWord' ? 'Auto-fill a word' : 'Definition';
     const clue = game.clues?.[type];
     const revealed = !!clue && type === 'definition';
     return <aside className={`puzzle-hint hint-${type}`} aria-label={t('{0} hint', t(title))}>

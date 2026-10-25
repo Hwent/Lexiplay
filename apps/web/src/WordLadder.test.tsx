@@ -46,7 +46,7 @@ describe('Word Ladder', () => {
     expect(screen.getByText(ladder.startDefinition)).toBeInTheDocument();
     expect(within(board).queryByText('Start')).not.toBeInTheDocument();
     expect(screen.getByText('0 / 4 words')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next word hint · 1 coin' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Auto-fill a word hint · 1 coin' })).toBeEnabled();
     await user.keyboard('warm');
     expect(await screen.findByText('Change exactly one letter from the previous word.')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Choose a new puzzle' })).toBeEnabled();
@@ -99,12 +99,12 @@ describe('Word Ladder', () => {
     await screen.findByRole('row', { name: 'Next word' });
     await user.keyboard('co');
     for (let step = 0; step < 4; step++) {
-      await user.click(await screen.findByRole('button', { name: 'Next word hint · 1 coin' }));
+      await user.click(await screen.findByRole('button', { name: 'Auto-fill a word hint · 1 coin' }));
       expect(await screen.findByRole('row', { name: words[step]! })).toBeInTheDocument();
     }
     expect(submitted).toEqual(words);
     expect(await screen.findByRole('button', { name: 'Play again' })).toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Next word hint/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Auto-fill a word hint/ })).not.toBeInTheDocument();
     expect(await screen.findByLabelText('Coin balance: 9')).toBeInTheDocument();
   });
 
@@ -127,14 +127,14 @@ describe('Word Ladder', () => {
       return Response.json([]);
     }));
     const user = userEvent.setup(); render(<App/>);
-    await user.click(await screen.findByRole('button', { name: 'Next word hint · 1 coin' }));
+    await user.click(await screen.findByRole('button', { name: 'Auto-fill a word hint · 1 coin' }));
     expect(await screen.findByText('Hint service unavailable.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Next word hint · 1 coin' }));
+    await user.click(screen.getByRole('button', { name: 'Auto-fill a word hint · 1 coin' }));
     expect(await screen.findByText('Try checking again.')).toBeInTheDocument();
     expect(screen.getByRole('textbox', { name: /four-letter guess/i })).toHaveValue('cord');
-    await user.click(screen.getByRole('button', { name: 'Next word hint · Fill word' }));
+    await user.click(screen.getByRole('button', { name: 'Auto-fill a word hint · Fill word' }));
     expect(await screen.findByText('A thin rope.')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Next word hint · 1 coin' })).toBeEnabled();
+    expect(screen.getByRole('button', { name: 'Auto-fill a word hint · 1 coin' })).toBeEnabled();
   });
 
   it('keeps all starting and submitted letters neutral', () => {

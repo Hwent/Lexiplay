@@ -574,6 +574,7 @@ export const zhCN: Record<string, string> = {
   "Start": "起点",
   "Word ladder board": "面板",
   "Next word": "下一个单词",
+  "Auto-fill a word": "自动填入一个单词",
   "Change one letter. Complete words check automatically.": "替换一个字母。输入完整单词后会自动检查。",
   "Change exactly one letter from the previous word.": "请在上一个单词的基础上仅替换一个字母。",
   "No connected word ladder is available at this length yet.": "此长度暂时没有可玩的移字成词。",
