@@ -96,11 +96,11 @@
 :root[data-theme='light'] .feature-tone-1 { background: #f0e9f7; color: #795898; }
 :root[data-theme='light'] .feature-tone-2 { background: #f5efdf; color: #81672e; }
 .home-page { width: 100%; max-width: 88rem; margin: 0 auto; padding-bottom: 2.5rem; }
-.home-hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(15rem, .8fr); align-items: center; gap: 2rem; padding: clamp(2rem, 5vw, 4.5rem) 0; }
-.home-hero h2 { margin: 0; font-size: clamp(2rem, 4vw, 3.25rem); font-weight: 650; letter-spacing: -.065em; line-height: 1.07; }
-.home-hero-copy > p:last-of-type { max-width: 28rem; margin: 1.4rem 0 1.6rem; color: var(--muted); font-size: 1rem; line-height: 1.8; }
-.home-hero-actions { display: flex; flex-wrap: wrap; gap: .5rem; }
-.home-hero-copy .home-hero-actions { margin-top: 2rem; }
+.home-hero { display: grid; grid-template-columns: minmax(0, 1.3fr) minmax(15rem, .8fr); align-items: center; gap: 1.5rem 2rem; padding: 0 0 clamp(2rem, 5vw, 4.5rem); }
+.home-hero h2 { grid-column: 1 / -1; margin: 0; font-size: clamp(1.8rem, 3.3vw, 2.75rem); font-weight: 650; letter-spacing: -.055em; line-height: 1.2; }
+.home-hero-actions { display: flex; flex-wrap: wrap; gap: .85rem; }
+.home-hero-actions > button { min-height: 4rem; padding: 1rem 1.5rem; font-size: 1.15rem; }
+.home-hero-actions > .quiet-button { border-color: var(--line); }
 .home-word-art { position: relative; width: min(100%, 19rem); margin: 1rem auto; padding: 1.8rem 0; }
 .word-art-card { position: relative; padding: 1.8rem; border: 1px solid var(--line); border-radius: 1.15rem; background: var(--surface); transform: rotate(-5deg); box-shadow: 9px 9px 0 var(--accent-soft), 10px 10px 0 var(--line); }
 .word-art-label { color: var(--muted); font-size: .65rem; font-weight: 650; letter-spacing: .15em; }
@@ -322,8 +322,8 @@
   .learning-card-action { grid-column: 2; margin-top: .5rem; }
 }
 @media (max-width: 650px) {
-  .home-hero { grid-template-columns: 1fr; padding: 2.5rem 0; gap: 1.5rem; }
-  .home-hero h2 { font-size: clamp(1.8rem, 7vw, 2.3rem); }
+  .home-hero { grid-template-columns: 1fr; padding: 0 0 2.5rem; gap: 1.5rem; }
+  .home-hero h2 { font-size: clamp(1.15rem, 4.5vw, 1.8rem); }
   .home-hero-actions { flex-direction: row; align-items: center; }
   .home-word-art { display: none; }
   .home-section-heading > span { display: none; }

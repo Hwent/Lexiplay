@@ -11,9 +11,8 @@ export default function HomePage({ onNavigate }: { onNavigate: (section: 'librar
   const t = useTranslation();
   return <section className="home-page" aria-label={t('Your learning home')}>
     <div className="home-hero">
+      <h2>{t('Your words.')} <span>{t('Your next challenge.')}</span></h2>
       <div className="home-hero-copy">
-        <p className="page-eyebrow">{t('LEXIPLAY')}</p>
-        <h2>{t('Your words.')}<br /><span>{t('Your next challenge.')}</span></h2>
         <div className="home-hero-actions"><button className="primary-button" type="button" onClick={() => onNavigate('play')}>{t('Start a puzzle ')}<Icon name="arrow" /></button><button className="quiet-button" type="button" onClick={() => onNavigate('library')}>{t('Explore vocabulary ')}<Icon name="arrow" /></button></div>
       </div>
       <div className="home-word-art" aria-hidden="true">
