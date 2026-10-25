@@ -290,7 +290,7 @@ export default function App() {
   const showGuestReminder = !!(activeSection === 'play' && game && finished && game.status !== 'cancelled' && !account && !accountLoading && !accountError && dismissedGuestReminder !== game.id);
 
   useEffect(() => {
-    if (accountLoading) return;
+    if (accountLoading || progressSaving) return;
     let active = true;
     api<{coinBalance:number;kind:string;activeGameId?:string|null}>('/games/wallet').then(async value => {
       if (!active || !Number.isInteger(value.coinBalance)) return;
@@ -317,7 +317,7 @@ export default function App() {
       if (active) setWalletOwner(account?.id ?? 'guest');
     });
     return () => { active = false; };
-  }, [account?.id, accountLoading, game?.id, game?.guesses.length, game?.hintCoinsSpent]);
+  }, [account?.id, accountLoading, progressSaving, game?.id, game?.guesses.length, game?.hintCoinsSpent]);
 
   useEffect(() => {
     let active = true;

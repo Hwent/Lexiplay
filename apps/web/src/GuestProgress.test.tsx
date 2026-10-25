@@ -16,6 +16,32 @@ describe('guest progress on authentication', () => {
     window.localStorage.setItem(LAST_GAME_KEY, gameId);
   });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+  it.each(['Sign in', 'Create account'])('refreshes credited coins after %s with no saved words or games', async mode => {
+    localStorage.clear();
+    let signedIn = false, claimed = false;
+    let finishClaim!: () => void;
+    const claimPending = new Promise<void>(resolve => { finishClaim = resolve; });
+    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+      const path = String(input);
+      if (path.endsWith('/auth/me')) return new Response('{}', { status: 401 });
+      if (path.endsWith('/auth/login') || path.endsWith('/auth/register')) { signedIn = true; return Response.json({ user: account }); }
+      if (path.endsWith('/games/wallet')) return Response.json({ coinBalance: signedIn ? claimed ? 104 : 100 : 14, kind: signedIn ? 'account' : 'guest' });
+      if (path.endsWith('/progress/claim')) {
+        await claimPending;
+        claimed = true;
+        return Response.json({ wordsAdded: 0, wordsAlreadySaved: 0, gamesTransferred: 0, resumeGameId: null });
+      }
+      return Response.json([]);
+    }));
+    const user = userEvent.setup(); render(<App/>);
+    expect(await screen.findByLabelText('Coin balance: 14')).toBeInTheDocument();
+    if (mode === 'Create account') { await user.click(screen.getByRole('tab', { name: mode })); await user.type(screen.getByLabelText('Username'), 'learner'); }
+    else await user.type(screen.getByLabelText('Username or email'), 'learner');
+    await user.type(screen.getByLabelText('Password'), 'password8');
+    await user.click(screen.getByRole('button', { name: mode }));
+    finishClaim();
+    expect(await screen.findByLabelText('Coin balance: 104')).toBeInTheDocument();
+  });
   it.each(['Sign in', 'Create account'])('saves local words and resumes the guest puzzle after %s', async mode => {
     const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
       const path = String(input);

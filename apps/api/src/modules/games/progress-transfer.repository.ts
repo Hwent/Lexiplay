@@ -23,11 +23,15 @@ export class ProgressTransferRepository implements OnModuleDestroy {
       if (receipt && (receipt.user_id !== userId || receipt.payload_hash !== payloadHash)) throw new ConflictException('This progress transfer belongs to a different account or has changed.');
       let guestId: string | null = null;
       if (guest) {
-        const session = (await client.query<{ id: string; claimed_at: Date | null; claimed_by_user_id: string | null; expires_at: Date }>(
-          'SELECT id,claimed_at,claimed_by_user_id,expires_at FROM guest_sessions WHERE token_hash=$1 FOR UPDATE', [guest.slice(6)])).rows[0];
+        const session = (await client.query<{ id: string; coin_balance: number; claimed_at: Date | null; claimed_by_user_id: string | null; expires_at: Date }>(
+          'SELECT id,coin_balance,claimed_at,claimed_by_user_id,expires_at FROM guest_sessions WHERE token_hash=$1 FOR UPDATE', [guest.slice(6)])).rows[0];
         if (session) {
           if ((session.claimed_at && session.claimed_by_user_id !== userId) || session.expires_at <= new Date()) throw new ConflictException('This guest session is no longer available for transfer.');
           guestId = session.id;
+          if (!session.claimed_at) {
+            const coins = Math.max(session.coin_balance - 10, 0);
+            if (coins) await client.query('UPDATE account_users SET coin_balance=coin_balance+$2 WHERE id=$1', [userId, coins]);
+          }
           await client.query('UPDATE guest_sessions SET claimed_at=COALESCE(claimed_at,now()),claimed_by_user_id=$2 WHERE id=$1', [guestId, userId]);
         }
       }

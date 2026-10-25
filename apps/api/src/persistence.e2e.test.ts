@@ -465,6 +465,20 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect((await pool.query('SELECT status FROM practice_games WHERE id=$1',[previous.id])).rows[0].status).toBe('active');
   });
 
+  it.each([0, 9, 10, 14].flatMap(guestBalance => [100, 240].map(accountBalance => ({ guestBalance, accountBalance }))))('adds guest coins above 10 once: $guestBalance guest coins, $accountBalance account coins', async ({ guestBalance, accountBalance }) => {
+    const cookie = await guest(), user = await account();
+    await pool.query('UPDATE account_users SET coin_balance=$2 WHERE id=$1', [user.id, accountBalance]);
+    await pool.query('UPDATE guest_sessions SET coin_balance=$2 WHERE token_hash=$1', [guestOwner(cookie)!.slice(6), guestBalance]);
+    const combined = user.cookie + '; ' + cookie;
+    const body = { accountId: user.id, transferId: randomUUID(), words: [] };
+    const claim = () => request('/progress/claim', 'POST', body, combined);
+    const replies = await Promise.all([claim(), claim()]);
+    expect(replies.map(reply => reply.status)).toEqual([201, 201]);
+    expect(await balance(user.cookie)).toBe(accountBalance + Math.max(guestBalance - 10, 0));
+    expect((await request('/progress/claim', 'POST', { ...body, transferId: randomUUID() }, combined)).status).toBe(201);
+    expect(await balance(user.cookie)).toBe(accountBalance + Math.max(guestBalance - 10, 0));
+  });
+
   it('keeps guest payouts in the original wallet after a retry-safe progress transfer', async () => {
     const cookie = await guest(), game = await start(cookie), user = await account(), transferId = randomUUID();
     expect(await balance(cookie)).toBe(9);
