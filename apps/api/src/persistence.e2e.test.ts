@@ -12,6 +12,7 @@ import { GameService } from './modules/games/game.service';
 import { guestOwner } from './modules/games/guest-cookie';
 import { CEFR_POOLS } from './modules/word-lists/cefr-pools';
 import { WORDLE_POOL } from './modules/word-lists/wordle-pool';
+import { CollectionsService } from './modules/collections/collections.service';
 import { WordListsService } from './modules/word-lists/word-lists.service';
 import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
@@ -149,6 +150,42 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const started = await start(user.cookie);
     const saved = (await pool.query('SELECT answer FROM practice_games WHERE id=$1', [started.id])).rows[0];
     expect(['apple','cover','china']).toContain(saved.answer);
+  });
+
+  it('uses cumulative CEFR game ranges and counts without changing vocabulary membership', async () => {
+    await publishDictionary(pool, [...dictionary, word('brave'), word('scope')]);
+    const levels = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2'];
+    const words = ['apple', 'paper', 'cover', 'actor', 'brave', 'scope'];
+    await pool.query("DELETE FROM collection_entries WHERE collection_id IN (SELECT id FROM vocabulary_collections WHERE category='CEFR')");
+    for (const [index, level] of levels.entries()) {
+      await pool.query(`INSERT INTO collection_entries(collection_id,dictionary_entry_id,sort_order)
+        SELECT c.id,e.id,0 FROM vocabulary_collections c CROSS JOIN dictionary_entries e
+        WHERE c.slug=$1 AND e.term=ANY($2::text[])`, ['cefr-' + level, [words[index], 'apple']]);
+    }
+    const options = await (await request('/collections/game-options?wordLength=5')).json();
+    const allOptions = await (await request('/collections/game-options/all')).json();
+    expect(allOptions.find((option: { wordLength: number }) => option.wordLength === 5)).toEqual(options);
+    const service = app.get(CollectionsService);
+    for (const [index, level] of levels.entries()) {
+      const slug = 'cefr-' + level;
+      const option = options.collections.find((collection: { slug: string }) => collection.slug === slug);
+      expect(option.wordCount).toBe(index + 1);
+      for (const identifier of [slug, option.id]) {
+        const selected = await service.collectionGameWords(identifier, 5);
+        expect(selected.words.sort()).toEqual(words.slice(0, index + 1).sort());
+        expect(selected.collection.id).toBe(option.id);
+      }
+    }
+    const c2 = options.collections.find((collection: { slug: string }) => collection.slug === 'cefr-c2');
+    const cookie = await guest();
+    const response = await request('/games', 'POST', { collectionId: c2.id, wordLength: 5 }, cookie);
+    expect(response.status).toBe(201);
+    const game = await response.json();
+    expect(game.pool.id).toBe(c2.id);
+    expect(words).toContain((await pool.query('SELECT answer FROM practice_games WHERE id=$1', [game.id])).rows[0].answer);
+    expect((await pool.query(`SELECT DISTINCT e.term FROM collection_entries ce
+      JOIN vocabulary_collections c ON c.id=ce.collection_id JOIN dictionary_entries e ON e.id=ce.dictionary_entry_id
+      WHERE c.slug='cefr-c2' ORDER BY e.term`)).rows.map(row => row.term)).toEqual(['apple', 'scope']);
   });
 
   it('loads the dictionary pool only once per collection start and replay', async () => {

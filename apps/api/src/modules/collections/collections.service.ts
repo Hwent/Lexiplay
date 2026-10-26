@@ -7,6 +7,13 @@ import { Prisma } from '../../generated/prisma/client';
 import { WORDLE_POOL } from '../word-lists/wordle-pool';
 import { defaultAnswerWords } from '../word-lists/default-answers';
 import { LibraryCache } from '../word-lists/library-cache';
+import { CEFR_POOLS } from '../word-lists/cefr-pools';
+
+const cefrSlugs = CEFR_POOLS.map(pool => 'cefr-' + pool.level.toLowerCase());
+function gameCollectionSlugs(slug: string) {
+  const level = cefrSlugs.indexOf(slug);
+  return level < 0 ? [slug] : cefrSlugs.slice(0, level + 1);
+}
 
 const entrySelect = { id: true, term: true, partOfSpeech: true, familyId: true,
   family: { select: { headword: true } }, definitions: { select: { definition: true },
@@ -284,11 +291,13 @@ export class CollectionsService {
       this.dictionary.dictionaryGameWords(3, 9),
     ]);
     const playable = new Set(words);
+    const collectionWords = new Map(collections.map(collection => [collection.slug, collection.entries.map(row => row.entry.term)]));
     return Array.from({ length: 7 }, (_, index) => {
       const length = index + 3;
       return { wordLength: length, totalWords: defaultAnswerWords(length, words).length, collections: collections.map(collection => ({
         id: collection.id, slug: collection.slug, name: collection.name,
-        wordCount: new Set(collection.entries.map(row => row.entry.term).filter(term => term.length === length && playable.has(term))).size,
+        wordCount: new Set(gameCollectionSlugs(collection.slug).flatMap(slug => collectionWords.get(slug) ?? [])
+          .filter(term => term.length === length && playable.has(term))).size,
       })) };
     });
   }
@@ -299,14 +308,20 @@ export class CollectionsService {
     const where = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(slug) ? { OR: [{ id: slug }, { slug }] } : { slug };
     const collection = await this.db.vocabularyCollection.findFirst({
       where: { ...where, ...(includeHidden ? {} : { hidden: false }) },
-      select: { id: true, name: true, author: true, status: true, entries: {
+      select: { id: true, slug: true, name: true, author: true, status: true, entries: {
         where: { entry: { partOfSpeech: { notIn: ['proper noun', 'proper_noun', 'name'] }, definitions: { some: { languageCode: 'en' } } } },
         select: { entry: { select: { term: true } } },
       } },
     });
     if (!collection) throw new NotFoundException('Vocabulary collection not found.');
     if (collection.status !== 'available') throw new BadRequestException('This collection is not available for play.');
-    const words = [...new Set(collection.entries.map(row => row.entry.term).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
+    const slugs = gameCollectionSlugs(collection.slug);
+    const entries = slugs.length === 1 ? collection.entries : await this.db.collectionEntry.findMany({
+      where: { collection: { slug: { in: slugs }, status: 'available', hidden: false },
+        entry: { partOfSpeech: { notIn: ['proper noun', 'proper_noun', 'name'] }, definitions: { some: { languageCode: 'en' } } } },
+      select: { entry: { select: { term: true } } },
+    });
+    const words = [...new Set(entries.map(row => row.entry.term).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
     if (!words.length) throw new BadRequestException('This collection has no playable words at this length.');
     return { words, collection: { id: collection.id, name: collection.name, author: collection.author } };
   }
