@@ -4,8 +4,8 @@ import { ApiError } from './services/api-client';
 import usePendingWords from './usePendingWords';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
 
-export default function CollectionPicker({ value, wordLength, disabled, personalAvailable = false, onChange }: {
-  value: string; wordLength: number; disabled: boolean; personalAvailable?: boolean; onChange: (id: string) => void;
+export default function CollectionPicker({ value, wordLength, disabled, onChange }: {
+  value: string; wordLength: number; disabled: boolean; onChange: (id: string) => void;
 }) {
   const t = useTranslation();
   const { store } = usePendingWords();
@@ -39,8 +39,7 @@ export default function CollectionPicker({ value, wordLength, disabled, personal
     <label htmlFor="game-collection">{t('Collection')}</label>
     <select id="game-collection" value={value} disabled={disabled} onChange={event => onChange(event.target.value)}>
       <option value="">{wordLength === 5 ? t('Classic Wordle') : t('Common vocabulary')}</option>
-      <option value="my-words" disabled={!personalAvailable}>{t('My word list{0}', (personalAvailable ? '' : t(' · Sign in')))}</option>
-      {value && value !== 'my-words' && !selectedCollection && <option value={value}>{t('Selected collection')}</option>}
+      {value && !selectedCollection && <option value={value}>{t('Selected collection')}</option>}
       {options?.collections.map(collection => <option value={collection.slug} key={collection.id} disabled={ready && collection.wordCount === 0}>{collection.name}{ready ? t(' · {0} words', collection.wordCount.toLocaleString()) : ''}</option>)}
     </select>
     {!disabled && <p className="game-collection-count" aria-label={count === undefined ? undefined : t('Playable words')} aria-hidden={count === undefined}>{count !== undefined && <><strong>{count.toLocaleString()}</strong> {count === 1 ? t('word') : t('words')}</>}</p>}

@@ -121,7 +121,8 @@ describe('saved practice and account updates', () => {
     await user.keyboard('{Escape}');
     expect(search).not.toHaveFocus();
   });
-  it('uses one collection selector for default and personal words without a top game selector', async () => {
+  it('removes personal words from the collection selector and ignores legacy preferences', async () => {
+    localStorage.setItem('lexiplay-practice-preferences', JSON.stringify({ wordLength: 5, difficulty: 'medium', collectionId: 'my-words', playWithMyWords: true }));
     const starts: Record<string, unknown>[] = [];
     stubGameApiFetch(vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       if (String(input).endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
@@ -134,14 +135,14 @@ describe('saved practice and account updates', () => {
     const user = userEvent.setup(); render(<App />);
     expect(screen.queryByRole('region', { name: 'Available games' })).not.toBeInTheDocument();
     expect(screen.getByRole('option', { name: 'Classic Wordle' })).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByRole('option', { name: 'My word list' })).toBeEnabled());
-    await user.selectOptions(screen.getByLabelText('Collection'), 'my-words');
+    expect(screen.queryByRole('option', { name: /My word list/ })).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Collection')).toHaveValue('');
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     await screen.findByRole('grid', { name: '5-letter puzzle board' });
-    expect(starts[0]).toMatchObject({ kind: 'word-puzzle', wordLength: 5, playWithMyWords: true });
+    expect(starts[0]).toMatchObject({ kind: 'word-puzzle', wordLength: 5, playWithMyWords: false });
     expect(starts[0]).not.toHaveProperty('collectionId');
     await user.click(screen.getByRole('button', { name: 'Choose a new puzzle' }));
-    expect(screen.getByLabelText('Collection')).toHaveValue('my-words');
+    expect(screen.getByLabelText('Collection')).toHaveValue('');
     await user.selectOptions(screen.getByLabelText('Collection'), '');
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
     expect(screen.getByRole('option', { name: 'Common vocabulary' })).toBeInTheDocument();

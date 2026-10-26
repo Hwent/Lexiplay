@@ -102,7 +102,6 @@ export default function App() {
   const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(preferences.difficulty);
   const [restoring, setRestoring] = useState(false);
   const [accountRevision, setAccountRevision] = useState(0);
-  const [playWithMyWords, setPlayWithMyWords] = useState(preferences.playWithMyWords);
   const [selectedPoolId, setSelectedPoolId] = useState(preferences.collectionId);
   const wordStore = useMemo(() => new PendingWords(account?.id ?? 'guest'), [account?.id]);
   const wordSelection = useWordSelection(wordStore);
@@ -136,8 +135,8 @@ export default function App() {
     return () => { active = false; };
   }, [accountLoading, account, accountError, wordStore]);
   useEffect(() => {
-    savePracticePreferences({ wordLength: selectedWordLength, difficulty, collectionId: selectedPoolId, playWithMyWords });
-  }, [selectedWordLength, difficulty, selectedPoolId, playWithMyWords]);
+    savePracticePreferences({ wordLength: selectedWordLength, difficulty, collectionId: selectedPoolId });
+  }, [selectedWordLength, difficulty, selectedPoolId]);
   useEffect(() => {
     if (!celebrationId) return;
     if (activeSection !== 'play') { setCelebrationId(''); return; }
@@ -233,7 +232,7 @@ export default function App() {
     try {
       await wordStore.flush();
       if (game && !finished) await api(`/games/${game.id}/abandon`, { method: 'POST' });
-      resetGame(); setSelectedPoolId(poolId); setPlayWithMyWords(false); navigateTo('play');
+      resetGame(); setSelectedPoolId(poolId); navigateTo('play');
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'Could not change your puzzle. Try again.');
       if (error instanceof ApiError && error.code === 'PUZZLE_ALREADY_STARTED') navigateTo('play');
@@ -366,8 +365,8 @@ export default function App() {
       const options = (replay && game ? !!game.ladder : puzzleKind === 'word-ladder')
         ? { kind: 'word-ladder', wordLength: replay && game ? game.wordLength : ladderWordLength }
         : { kind: 'word-puzzle', wordLength: replay && game ? game.wordLength : selectedWordLength,
-        difficulty: replay && game ? game.difficulty ?? difficulty : difficulty, playWithMyWords,
-        ...(!playWithMyWords && selectedPoolId ? { collectionId: selectedPoolId } : {}) };
+        difficulty: replay && game ? game.difficulty ?? difficulty : difficulty, playWithMyWords: false,
+        ...(selectedPoolId ? { collectionId: selectedPoolId } : {}) };
       const key = JSON.stringify([account?.id ?? 'guest', options]);
       if (startRequest.current?.key !== key) {
         try {
@@ -618,10 +617,9 @@ export default function App() {
                 </div>
               </fieldset>
               {puzzleKind === 'word-puzzle' && <><fieldset className="difficulty-options"><legend>{t('Difficulty')}</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{t(option.label)}</strong></label>)}</div></fieldset>
-              <CollectionPicker value={playWithMyWords ? 'my-words' : selectedPoolId} wordLength={selectedWordLength} disabled={busy} personalAvailable={!!account} onChange={id => {
+              <CollectionPicker value={selectedPoolId} wordLength={selectedWordLength} disabled={busy} onChange={id => {
                 firstGuestVisit.current = false;
-                setPlayWithMyWords(id === 'my-words');
-                if (id !== 'my-words') setSelectedPoolId(id);
+                setSelectedPoolId(id);
               }} />
               </>}
             </div>

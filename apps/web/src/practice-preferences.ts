@@ -2,11 +2,10 @@ export type PracticePreferences = {
   wordLength: number;
   difficulty: 'easy' | 'medium' | 'hard';
   collectionId: string;
-  playWithMyWords: boolean;
 };
 
 const KEY = 'lexiplay-practice-preferences';
-const defaults: PracticePreferences = { wordLength: 5, difficulty: 'medium', collectionId: '', playWithMyWords: false };
+const defaults: PracticePreferences = { wordLength: 5, difficulty: 'medium', collectionId: '' };
 
 export function hasPracticePreferences(): boolean {
   try { return localStorage.getItem(KEY) !== null; } catch { return false; }
@@ -19,8 +18,7 @@ export function readPracticePreferences(): PracticePreferences {
     return {
       wordLength: Number.isInteger(saved.wordLength) && saved.wordLength >= 3 && saved.wordLength <= 9 ? saved.wordLength : defaults.wordLength,
       difficulty: ['easy', 'medium', 'hard'].includes(saved.difficulty) ? saved.difficulty : defaults.difficulty,
-      collectionId: typeof saved.collectionId === 'string' ? saved.collectionId : '',
-      playWithMyWords: saved.playWithMyWords === true,
+      collectionId: typeof saved.collectionId === 'string' && saved.collectionId !== 'my-words' ? saved.collectionId : '',
     };
   } catch { return defaults; }
 }

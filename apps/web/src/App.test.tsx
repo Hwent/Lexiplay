@@ -356,7 +356,7 @@ describe('practice puzzle', () => {
     expect(screen.queryByText(/definitions are adapted/i)).not.toBeInTheDocument();
   });
 
-  it('selects word lengths and the personal pool with the redesigned controls', async () => {
+  it('selects word lengths without offering a personal collection', async () => {
     stubGameApiFetch( vi.fn(async input => String(input).endsWith('/auth/me') ? Response.json({ id: 'learner', username: 'learner' }) : Response.json([])));
     const user = userEvent.setup();
     render(<App />);
@@ -366,9 +366,8 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('radio', { name: '8 letters' })).toBeChecked();
     expect(screen.getByRole('radio', { name: '5 letters' })).not.toBeChecked();
     const collection = screen.getByLabelText('Collection');
-    await waitFor(() => expect(screen.getByRole('option', { name: 'My word list' })).toBeEnabled());
-    await user.selectOptions(collection, 'my-words');
-    expect(collection).toHaveValue('my-words');
+    expect(screen.queryByRole('option', { name: 'My word list' })).not.toBeInTheDocument();
+    expect(collection).toHaveValue('');
     expect(screen.queryByRole('switch', { name: 'Play with my words' })).not.toBeInTheDocument();
   });
 });
