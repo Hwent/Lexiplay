@@ -162,7 +162,29 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     } finally { words.mockRestore(); }
   });
 
-  it('matches single-word guess validation to the full pool, excluding proper nouns and missing English definitions', async () => {
+  it('accepts capitalized dictionary guesses without changing dictionary spelling', async () => {
+    await publishDictionary(pool, [...dictionary, word('Sunday'), word('Monday'), word('London', ['proper noun']), word('Friday')]);
+    await pool.query("UPDATE dictionary_definitions SET language_code='fr' WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='Friday')");
+    const repository = app.get(WordListRepository);
+    expect(await repository.isDictionaryGameWord('sunday')).toBe(true);
+    expect(await repository.isDictionaryGameWord('SUNDAY')).toBe(true);
+    expect(await repository.isDictionaryGameWord('london')).toBe(false);
+    expect(await repository.isDictionaryGameWord('friday')).toBe(false);
+    const cookie = await guest();
+    const response = await request('/games', 'POST', { wordLength: 6 }, cookie);
+    expect(response.status).toBe(201);
+    const game = await response.json();
+    for (const guess of ['Sunday', 'MONDAY']) {
+      const submitted = await request(`/games/${game.id}/guesses`, 'POST', { guess }, cookie);
+      expect(submitted.status).toBe(201);
+      expect(await submitted.json()).toMatchObject({ guess: guess.toLowerCase(), definition: `Definition of ${guess === 'Sunday' ? 'Sunday' : 'Monday'}.` });
+    }
+    const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
+    expect(restored.guesses.map((guess: { definition: string }) => guess.definition)).toEqual(['Definition of Sunday.', 'Definition of Monday.']);
+    expect((await pool.query("SELECT term FROM dictionary_entries WHERE lower(term COLLATE \"default\")='sunday'")).rows).toEqual([{ term: 'Sunday' }]);
+  });
+
+  it('matches lowercase guess validation to the full pool, excluding proper nouns and missing English definitions', async () => {
     await publishDictionary(pool, [...dictionary, word('paris', ['proper noun']), word('alone')]);
     await pool.query("UPDATE dictionary_definitions SET language_code='fr' WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='alone')");
     const repository = app.get(WordListRepository);

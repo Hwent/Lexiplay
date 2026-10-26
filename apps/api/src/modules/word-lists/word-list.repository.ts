@@ -77,7 +77,7 @@ export class WordListRepository implements OnModuleDestroy {
 
   async isDictionaryGameWord(term: string): Promise<boolean> {
     const { rows } = await this.pool.query<{ valid: boolean }>(`SELECT EXISTS(
-      SELECT 1 FROM dictionary_entries e WHERE e.term=$1
+      SELECT 1 FROM dictionary_entries e WHERE lower(e.term COLLATE "default")=lower($1)
       AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
     ) AS valid`, [term]);
