@@ -1,0 +1,94 @@
+import { describe, expect, it } from 'vitest';
+import { animals, featureValue, findAnimal, questions } from './knowledge';
+import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, rankAnimals, restoreSession, saveSession, type Session } from './engine';
+
+function play(animalId: string, wrongAt = -1): Session {
+  const target = animals.find(animal => animal.id === animalId)!;
+  let session = newSession();
+  for (let steps = 0; steps < QUESTION_LIMIT + GUESS_LIMIT; steps++) {
+    const turn = nextTurn(session);
+    if (turn.kind === 'finished') break;
+    if (turn.kind === 'guess') session = confirmGuess(session, turn.animal.id === target.id);
+    else {
+      const value = featureValue(target, turn.question.id);
+      const answer = value === 'unknown' ? 'not-sure' : session.answers.length === wrongAt ? value === 'yes' ? 'no' : 'yes' : value;
+      session = answerQuestion(session, answer);
+    }
+  }
+  return session;
+}
+
+describe('animal guessing knowledge and inference', () => {
+  it('keeps a complete, distinct and translated playable animal set', () => {
+    expect(animals.length).toBeGreaterThanOrEqual(40);
+    expect(animals.length).toBeLessThanOrEqual(60);
+    expect(new Set(animals.map(animal => animal.id)).size).toBe(animals.length);
+    expect(new Set(questions.map(question => question.id)).size).toBe(questions.length);
+    const features = new Set(questions.map(question => question.id));
+    for (const animal of animals) {
+      expect(animal.chinese).toMatch(/[\u4e00-\u9fff]/);
+      expect(animal.definition.length).toBeGreaterThan(15);
+      for (const feature of [...animal.yes, ...animal.unknown]) expect(features.has(feature), `${animal.id}: ${feature}`).toBe(true);
+      expect(animal.yes.some(feature => animal.unknown.includes(feature))).toBe(false);
+    }
+    for (const question of questions) for (const word of Object.keys(question.keywords)) expect(question.text.includes(word)).toBe(true);
+  });
+
+  it.each(animals.map(animal => animal.id))('guesses %s from its known features within both limits', id => {
+    const session = play(id);
+    expect(session.status).toBe('won');
+    expect(session.answers.length).toBeLessThanOrEqual(QUESTION_LIMIT);
+    expect(session.guesses.length).toBeLessThanOrEqual(GUESS_LIMIT);
+  });
+
+  it('recovers from a single mistaken answer across the animal set', () => {
+    const results = animals.flatMap(animal => [0, 1, 2, 3].map(index => play(animal.id, index)));
+    const wins = results.filter(session => session.status === 'won').length;
+    expect(wins / results.length).toBeGreaterThanOrEqual(.8);
+  });
+
+  it('keeps all candidates on Not Sure and still makes three distinct guesses after fifteen questions', () => {
+    let session = newSession();
+    for (let index = 0; index < QUESTION_LIMIT; index++) session = answerQuestion(session, 'not-sure');
+    expect(session.answers).toHaveLength(QUESTION_LIMIT);
+    expect(new Set(session.answers.map(item => item.questionId)).size).toBe(QUESTION_LIMIT);
+    expect(new Set(rankAnimals(session).map(item => item.weight)).size).toBe(1);
+    for (let index = 0; index < GUESS_LIMIT; index++) {
+      expect(nextTurn(session).kind).toBe('guess');
+      session = confirmGuess(session, false);
+    }
+    expect(new Set(session.guesses.map(item => item.animalId)).size).toBe(GUESS_LIMIT);
+    expect(session.status).toBe('lost');
+    expect(nextTurn(session)).toEqual({ kind: 'finished' });
+    expect(confirmGuess(session, true)).toBe(session);
+  });
+
+  it('recomputes after editing an answer without spending another question', () => {
+    const session = answerQuestion(newSession(), 'yes');
+    const changed = changeLastAnswer(session, 'no');
+    const direct = answerQuestion({ ...session, answers: [] }, 'no');
+    expect(changed.answers).toHaveLength(1);
+    expect(rankAnimals(changed)).toEqual(rankAnimals(direct));
+    expect(session.answers[0]!.answer).toBe('yes');
+  });
+
+  it('restores question and guess progress and rejects damaged or stale drafts', () => {
+    localStorage.clear();
+    const session = play('tiger');
+    expect(saveSession(session)).toBe(true);
+    expect(restoreSession()).toEqual(session);
+    localStorage.setItem('lexiplay-animal-guess:v1', '{');
+    expect(restoreSession()).toBeNull();
+    localStorage.setItem('lexiplay-animal-guess:v1', JSON.stringify({ ...session, version: 0 }));
+    expect(restoreSession()).toBeNull();
+    localStorage.setItem('lexiplay-animal-guess:v1', JSON.stringify({ ...session, answers: [{ questionId: 'removed', answer: 'yes' }] }));
+    expect(restoreSession()).toBeNull();
+  });
+
+  it('recognizes supplied Chinese names and English aliases without inventing animals', () => {
+    expect(findAnimal(' 海豚 ')?.id).toBe('dolphin');
+    expect(findAnimal('a hippo')?.id).toBe('hippopotamus');
+    expect(findAnimal('Giant Panda')?.id).toBe('panda');
+    expect(findAnimal('unicorn')).toBeUndefined();
+  });
+});
