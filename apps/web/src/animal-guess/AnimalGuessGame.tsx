@@ -1,11 +1,12 @@
-import { useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
+import { useContext, useEffect, useId, useRef, useState, type FormEvent, type ReactNode } from 'react';
 import Icon from '../Icon';
 import PronunciationButton from '../PronunciationButton';
-import { useTranslation } from '../i18n';
+import { LanguageContext, useTranslation } from '../i18n';
 import { apiRequest } from '../services/api-client';
 import { gameAudio } from '../services/game-audio';
 import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, restoreSession, saveSession, type Answer, type Session } from './engine';
 import { animalById, animals, findAnimal, questionById, type FeatureQuestion } from './knowledge';
+import { englishKeywordMeanings } from './keyword-meanings';
 import './animal-guess.css';
 
 const answers: { value: Answer; label: string; icon: 'check' | 'back' | 'search' }[] = [
@@ -16,6 +17,8 @@ const answers: { value: Answer; label: string; icon: 'check' | 'back' | 'search'
 
 function Question({ question }: { question: FeatureQuestion }) {
   const t = useTranslation(), meaningId = useId();
+  const language = useContext(LanguageContext);
+  const meanings = language === 'zh-CN' ? question.keywords : englishKeywordMeanings;
   const [selected, setSelected] = useState('');
   const words = Object.keys(question.keywords).sort((a, b) => b.length - a.length);
   const pattern = new RegExp(`(${words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g');
@@ -24,15 +27,15 @@ function Question({ question }: { question: FeatureQuestion }) {
       ? <button className="animal-keyword" key={index} type="button" aria-expanded={selected === part} aria-controls={meaningId} onClick={() => setSelected(selected === part ? '' : part)}>{part}</button>
       : part)}</h2>
     <div className="animal-keyword-meaning" id={meaningId} role="status">{selected
-      ? <span lang="zh-CN"><strong lang="en">{selected}</strong> · {question.keywords[selected]}</span>
-      : <span>{t('Tap an underlined word for Chinese.')}</span>}</div>
+      ? <span lang={language}><strong lang="en">{selected}</strong> · {meanings[selected]}</span>
+      : <span>{t('Tap an underlined word for its meaning.')}</span>}</div>
   </div>;
 }
 
 function AnswerButtons({ onAnswer, selected }: { onAnswer: (answer: Answer) => void; selected?: Answer }) {
   const t = useTranslation();
   return <div className="animal-answer-buttons" role="group" aria-label={t('Your answer')}>
-    {answers.map(answer => <button key={answer.value} type="button" className={answer.value === 'yes' ? 'primary-button' : 'quiet-button'} aria-pressed={selected === undefined ? undefined : selected === answer.value} onClick={() => onAnswer(answer.value)}><Icon name={answer.icon}/>{t(answer.label)}</button>)}
+    {answers.map(answer => <button key={answer.value} type="button" className={`${answer.value === 'yes' ? 'primary-button' : 'quiet-button'} animal-answer-${answer.value}`} aria-pressed={selected === undefined ? undefined : selected === answer.value} onClick={() => onAnswer(answer.value)}><Icon name={answer.icon}/>{t(answer.label)}</button>)}
   </div>;
 }
 
@@ -86,7 +89,7 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
     const id = session.id;
     setSession(current => current ? { ...current, revealedAnswer: supplied } : current);
     const content = [
-      `AI Guess / animals v1 / ${id}`,
+      `Guess Animal / animals v1 / ${id}`,
       `Player's animal: ${supplied}`,
       `Questions: ${session.answers.map(item => `${item.questionId}=${item.answer}`).join(', ')}`,
       `Rejected guesses: ${session.guesses.map(item => item.animalId).join(', ')}`,
@@ -98,10 +101,10 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
     finally { submitting.current = false; setSending(false); }
   }
 
-  return <section className="game-card animal-guess-game" aria-label={t('AI Guess')}>
+  return <section className="game-card animal-guess-game" aria-label={t('Guess Animal')}>
     {!session ? <div className="welcome-card">
       <div className="practice-story">
-        <h2>{t('AI Guess')}</h2>
+        <h2>{t('Guess Animal')}</h2>
         <div className="game-guide">
           <svg className="animal-guide-picture" viewBox="0 0 360 270" role="img" aria-label={t('Answer questions to reveal an animal')}>
             <rect className="animal-guide-bubble" x="105" y="24" width="150" height="120" rx="20"/>
@@ -111,7 +114,7 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
           </svg>
           <details className="game-rules"><summary>{t('How to play')}</summary>
             <p>{t('Think of a common animal. Answer Yes, No or Not Sure, and see if I can guess it.')}</p>
-            <p>{t('You do not need to know its English name. Tap underlined words for Chinese help.')}</p>
+            <p>{t('You do not need to know its English name. Tap underlined words for help.')}</p>
             <p>{t('Think of the usual animal, not a particular breed. You can change your previous answer.')}</p>
           </details>
         </div>
@@ -124,7 +127,7 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
         <button className="primary-button" type="button" onClick={start}>{t('I have an animal in mind')}<Icon name="arrow"/></button>
       </div>
     </div> : <div className="puzzle animal-round">
-      <div className="puzzle-heading"><div><p className="eyebrow">{t('AI Guess · Animals')}</p><h2>{t(finished ? 'Round complete' : 'Keep your animal in mind.')}</h2></div>
+      <div className="puzzle-heading"><div><p className="eyebrow">{t('Guess Animal · Animals')}</p><h2>{t(finished ? 'Round complete' : 'Keep your animal in mind.')}</h2></div>
         <div className="animal-counters"><span className="attempt-counter">{t('{0} / {1} questions', session.answers.length, QUESTION_LIMIT)}</span><span className="attempt-counter">{t('{0} / {1} guesses', session.guesses.length, GUESS_LIMIT)}</span></div>
       </div>
       {!finished && <div className="puzzle-tools"><button className="account-link" type="button" disabled={!lastAnswer || editing} onClick={() => setEditing(true)}>{t('Change previous answer')}</button><button className="account-link" type="button" onClick={() => { setSession({ ...session, status: 'lost' }); setEditing(false); gameAudio.play('complete'); }}>{t('Give up')}</button></div>}
@@ -142,7 +145,7 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
           <p className="animal-step-label">{t(turn.tentative ? 'Let me try a guess.' : 'I think I have it.')}</p>
           <h2 className="animal-guess-prompt" lang="en">Is it a{ /^[aeiou]/i.test(animal.id) ? 'n' : '' } <strong>{animal.id}</strong>?</h2>
           <div className="animal-reveal"><button className="quiet-button" type="button" aria-expanded={showChinese} onClick={() => setShowChinese(!showChinese)}><Icon name="language"/>{t(showChinese ? 'Hide Chinese' : 'Show Chinese')}</button>{showChinese && <span lang="zh-CN">{animal.chinese}</span>}</div>
-          <div className="animal-answer-buttons animal-confirm-buttons"><button className="primary-button" type="button" onClick={() => confirm(true)}><Icon name="check"/>{t('You guessed it')}</button><button className="quiet-button" type="button" onClick={() => confirm(false)}>{t('Not my animal')}</button></div>
+          <div className="animal-answer-buttons animal-confirm-buttons"><button className="primary-button" type="button" onClick={() => confirm(true)}><Icon name="check"/>{t('You guessed it')}</button><button className="quiet-button animal-answer-no" type="button" onClick={() => confirm(false)}>{t('Not my animal')}</button></div>
         </> : finished ? <>
           <span className="animal-result-icon" aria-hidden="true"><Icon name={session.status === 'won' ? 'check' : 'search'}/></span>
           <h2>{t(session.status === 'won' ? 'Found your animal.' : 'You stumped me.')}</h2>

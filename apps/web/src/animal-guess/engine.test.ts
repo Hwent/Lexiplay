@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { animals, featureValue, findAnimal, questions } from './knowledge';
+import { englishKeywordMeanings } from './keyword-meanings';
 import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, rankAnimals, restoreSession, saveSession, type Session } from './engine';
 
 function play(animalId: string, wrongAt = -1): Session {
@@ -31,7 +32,10 @@ describe('animal guessing knowledge and inference', () => {
       for (const feature of [...animal.yes, ...animal.unknown]) expect(features.has(feature), `${animal.id}: ${feature}`).toBe(true);
       expect(animal.yes.some(feature => animal.unknown.includes(feature))).toBe(false);
     }
-    for (const question of questions) for (const word of Object.keys(question.keywords)) expect(question.text.includes(word)).toBe(true);
+    for (const question of questions) for (const word of Object.keys(question.keywords)) {
+      expect(question.text.includes(word)).toBe(true);
+      expect(englishKeywordMeanings[word], `Missing English explanation: ${word}`).toBeTruthy();
+    }
   });
 
   it.each(animals.map(animal => animal.id))('guesses %s from its known features within both limits', id => {

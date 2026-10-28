@@ -1,10 +1,11 @@
-# AI Guess
+# Guess Animal
 
 Free, browser-run animal guessing for B1–B2 learners. No model calls or coin changes.
 The 50-animal knowledge set is curated; Chinese names reference
 [ECDICT](https://github.com/skywind3000/ECDICT). Only the animal meaning is used.
 English definitions, questions and contextual keyword glosses are written for this game;
-there are no example sentences. ECDICT's notice is in `/licenses/ECDICT-LICENSE.txt`.
+underlined words show English explanations in English UI and Chinese glosses in Chinese UI.
+There are no example sentences. ECDICT's notice is in `/licenses/ECDICT-LICENSE.txt`.
 Reference CSV SHA-256: `d1ecbdf9ee2b920afb6f430ca6b6bb9f559588cf0dff86e04bd255f9390843cc`.
 
 `knowledge.ts` describes typical adults. A listed `yes` feature is positive,
@@ -24,6 +25,8 @@ Progress is versioned in local storage and survives refreshes on the same browse
 There is no cross-device game history. Saved vocabulary uses the existing pending-word
 flow. Optional failed-round feedback uses `POST /feedback`, including the supplied
 answer and round history for manual review; it never updates the knowledge set automatically.
+The server stores this as plain-text `content` in the shared `message` table, with its
+creation time and account or guest association. There is no separate review-status field.
 
 Run the dataset simulations and UI checks with:
 

@@ -6,6 +6,7 @@ import { LanguageContext } from '../i18n';
 import AnimalGuessGame from './AnimalGuessGame';
 import { answerQuestion, newSession, nextTurn, restoreSession, saveSession, type Session } from './engine';
 import { animals, featureValue } from './knowledge';
+import { englishKeywordMeanings } from './keyword-meanings';
 
 beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games/animal-guess'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
@@ -42,6 +43,23 @@ it('starts a free round in Chinese UI while keeping questions in English and exp
   await user.click(screen.getByRole('button', { name: '不确定' }));
   expect(restoreSession()!.answers[0]!.answer).toBe('not-sure');
   expect(fetchMock).not.toHaveBeenCalled();
+});
+
+it('explains keywords in English and switches the explanation with the interface language', async () => {
+  const user = userEvent.setup();
+  const view = render(<LanguageContext.Provider value="en"><AnimalGuessGame bookmark={bookmark}/></LanguageContext.Provider>);
+  expect(screen.getByRole('heading', { name: 'Guess Animal' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'I have an animal in mind' }));
+  const turn = nextTurn(restoreSession()!);
+  if (turn.kind !== 'question') throw new Error('Expected a question');
+  const keyword = Object.keys(turn.question.keywords)[0]!;
+  expect(screen.getByText('Tap an underlined word for its meaning.')).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: keyword }));
+  expect(screen.getByRole('status')).toHaveTextContent(englishKeywordMeanings[keyword]!);
+  expect(screen.getByRole('status')).not.toHaveTextContent(turn.question.keywords[keyword]!);
+  view.rerender(<LanguageContext.Provider value="zh-CN"><AnimalGuessGame bookmark={bookmark}/></LanguageContext.Provider>);
+  expect(screen.getByRole('status')).toHaveTextContent(turn.question.keywords[keyword]!);
+  expect(screen.getByRole('status')).not.toHaveTextContent(englishKeywordMeanings[keyword]!);
 });
 
 it('restores the current question after remount and edits the last answer without consuming a question', async () => {
@@ -137,9 +155,9 @@ it('is reachable from Games, resumes directly by URL and saves to the existing g
   });
   vi.stubGlobal('fetch', fetchMock);
   const view = render(<App/>);
-  await user.click(screen.getByRole('button', { name: 'AI Guess' }));
+  await user.click(screen.getByRole('button', { name: 'Guess Animal' }));
   expect(location.pathname).toBe('/games/animal-guess');
-  expect(screen.getByRole('region', { name: 'AI Guess' })).toBeInTheDocument();
+  expect(screen.getByRole('region', { name: 'Guess Animal' })).toBeInTheDocument();
   view.unmount();
   render(<App/>);
   const save = await screen.findByRole('button', { name: 'Add tiger to word list' });
@@ -182,7 +200,7 @@ it('keeps an existing paid puzzle intact while playing and resuming the free gam
   expect(await screen.findByRole('row', { name: 'crane' })).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Choose a new puzzle' })).toBeDisabled();
   expect(localStorage.getItem('lexiplay-last-game')).toBe(paid.id);
-  await user.click(screen.getByRole('button', { name: 'AI Guess' }));
+  await user.click(screen.getByRole('button', { name: 'Guess Animal' }));
   expect(screen.getByText('1 / 15 questions')).toBeInTheDocument();
   expect(screen.getByText('0 / 3 guesses')).toBeInTheDocument();
   expect(fetchMock.mock.calls.some(([, init]) => init && 'method' in init && init.method === 'POST')).toBe(false);
