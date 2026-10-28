@@ -35,14 +35,12 @@ Imports are additive and transactional. Duplicate senses/relations are ignored, 
 definitions and user data stay intact, and stale reports are rejected. Replacing a cached provider response
 does not remove previously imported relationships.
 
-Read the local data without API calls:
-
-```http
-GET /api/v1/word-lists/dictionary/happy/thesaurus
-```
-
-The response groups relationships under their source sense, with the definition, part of speech and labels.
-The current website UI is unchanged. Future batches can use the same commands after the quota resets.
+The tables are reserved for offline imports; no application endpoint reads them yet.
+Imports use a dedicated advisory lock and do not update `library_state.version`, so they
+neither invalidate game word caches nor acquire the game/publication advisory lock.
+The dictionary version is read only to reject stale reports at the start of an import.
+The existing foreign key remains: concurrent dictionary deletions may make an import fail
+and roll back. Imports still share database CPU and I/O with the application.
 
 Source: [Merriam-Webster JSON documentation](https://dictionaryapi.com/products/json),
 [Collegiate Thesaurus](https://dictionaryapi.com/products/api-collegiate-thesaurus).

@@ -24,7 +24,6 @@ Base path: `/api/v1`. Requests and responses use JSON. Cookie sessions identify 
 | Games | `POST /games`, `GET /games/:id`, `POST /games/:id/guesses` |
 | Hints and giving up | `POST /games/:id/hints`, `POST /games/:id/give-up` |
 | Dictionary | `GET /word-lists/dictionary?q=word`, `GET /word-lists/dictionary/:term/definition` |
-| Synonyms and antonyms | `GET /word-lists/dictionary/:term/thesaurus` |
 | Collections and saved words | `GET /collections`, `GET /collections/:slug/words`, `GET /word-lists/mine` |
 | Statistics | `GET /progress/summary` |
 | Coin leaderboard | `GET /community/coin-rankings` |

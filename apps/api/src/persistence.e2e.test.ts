@@ -273,7 +273,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await app.get(WordListRepository).isDictionaryGameWord('cats')).toBe(false);
   });
 
-  it('imports sense-specific synonyms and antonyms without changing the dictionary and exposes local lookup', async () => {
+  it('isolates offline thesaurus imports from dictionary versions and application routes', async () => {
     const source = websterThesaurus(['noun', 'verb'].map(pos => ({ meta: { id: 'cover', uuid: `cover-${pos}` }, hwi: { hw: 'cover' }, fl: pos,
       def: [{ sseq: [[['sense', { sn: '1', dt: [['text', pos === 'noun' ? 'a protective layer' : 'to conceal']],
         syn_list: [[{ wd: pos === 'noun' ? 'protective covering' : 'conceal', wsls: { wsl: 'formal' } }]],
@@ -281,18 +281,30 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const before = (await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n;
     const plan = await planThesaurus(pool, source);
     expect(plan.senses.every(sense => sense.dictionaryEntryId)).toBe(true);
-    expect(await applyThesaurus(pool, plan)).toEqual({ sensesAdded: 2, relationsAdded: 6 });
+    const activeGame = await pool.connect();
+    const importer = new Pool({ connectionString: database!, lock_timeout: 1000 });
+    try {
+      await activeGame.query('BEGIN');
+      await activeGame.query("SELECT pg_advisory_xact_lock_shared(hashtextextended('library-publication',0))");
+      await activeGame.query('SELECT version FROM library_state WHERE id=1 FOR UPDATE');
+      expect(await applyThesaurus(importer, plan)).toEqual({ sensesAdded: 2, relationsAdded: 6 });
+    } finally {
+      await activeGame.query('ROLLBACK');
+      activeGame.release();
+      await importer.end();
+    }
     expect((await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n).toBe(before);
-    const response = await request('/word-lists/dictionary/COVER/thesaurus');
-    expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body.senses).toHaveLength(2);
-    expect(body.senses.find((sense: { partOfSpeech: string }) => sense.partOfSpeech === 'verb')).toMatchObject({ definition: 'to conceal' });
-    expect(body.senses.flatMap((sense: { relations: { term: string; kind: string }[] }) => sense.relations))
-      .toContainEqual(expect.objectContaining({ term: 'reveal', kind: 'near_antonym' }));
-    expect(await applyThesaurus(pool, await planThesaurus(pool, source))).toEqual({ sensesAdded: 0, relationsAdded: 0 });
+    expect((await pool.query('SELECT version FROM library_state WHERE id=1')).rows[0].version).toBe(plan.version);
+    const senses = (await pool.query("SELECT id,part_of_speech,definition FROM thesaurus_senses WHERE term='cover'")).rows;
+    expect(senses).toHaveLength(2);
+    expect(senses.find(sense => sense.part_of_speech === 'verb')).toMatchObject({ definition: 'to conceal' });
+    expect((await pool.query(`SELECT r.target_term,r.kind FROM thesaurus_relations r
+      JOIN thesaurus_senses s ON s.id=r.sense_id WHERE s.term='cover'`)).rows)
+      .toContainEqual({ target_term: 'reveal', kind: 'near_antonym' });
+    expect(await applyThesaurus(pool, plan)).toEqual({ sensesAdded: 0, relationsAdded: 0 });
+    expect((await request('/word-lists/dictionary/COVER/thesaurus')).status).toBe(404);
+    await publishDictionary(pool, dictionary);
     await expect(applyThesaurus(pool, plan)).rejects.toThrow('Dictionary changed');
-    expect(await (await request('/word-lists/dictionary/missingword/thesaurus')).json()).toEqual({ term: 'missingword', senses: [] });
   });
 
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
