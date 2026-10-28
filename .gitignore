@@ -13,6 +13,7 @@ coverage/
 test_materials/
 /dictionary_materials/
 /dictionary-materials/
+/scripts/
 /dump/
 /dumps/
 *.dump
@@ -24,6 +25,7 @@ test_materials/
 .DS_Store
 Thumbs.db
 todo.md
+plan.md
 
 
 /apps/api/src/generated/prisma/
