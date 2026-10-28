@@ -41,6 +41,7 @@ function AnswerButtons({ onAnswer, selected }: { onAnswer: (answer: Answer) => v
 
 export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string, definition: string) => ReactNode }) {
   const t = useTranslation();
+  const language = useContext(LanguageContext);
   const [session, setSession] = useState<Session | null>(restoreSession);
   const [editing, setEditing] = useState(false);
   const [showChinese, setShowChinese] = useState(false);
@@ -152,7 +153,7 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
           <p className="animal-result-copy">{t(session.status === 'won' ? 'A familiar animal. A word to remember.' : 'Your animal may be missing, or a question may need a closer look.')}</p>
         </> : null}
       </div>
-      {learned && <div className="answer-definition animal-learning-card"><div><p className="eyebrow">{t('YOUR ANIMAL')}</p><div className="word-with-pronunciation"><strong lang="en">{learned.id}</strong><PronunciationButton term={learned.id}/></div><span className="animal-chinese" lang="zh-CN">{learned.chinese}</span><p lang="en">{learned.definition}</p></div>{bookmark(learned.id, learned.definition)}</div>}
+      {learned && <div className="answer-definition animal-learning-card"><div><p className="eyebrow">{t('YOUR ANIMAL')}</p><div className="word-with-pronunciation"><strong lang="en">{learned.id}</strong><PronunciationButton term={learned.id}/></div>{language === 'zh-CN' && <span className="animal-chinese" lang="zh-CN">{learned.chinese}</span>}<p lang="en">{learned.definition}</p></div>{bookmark(learned.id, learned.definition)}</div>}
       {session.status === 'lost' && <div className="animal-feedback">
         {session.feedbackSent ? <p role="status"><Icon name="check"/>{t('Thanks. Your answer is saved for review.')}</p> : <form onSubmit={event => { void sendAnswer(event); }} aria-busy={sending}>
           <label htmlFor="animal-feedback-answer">{t('What animal were you thinking of?')}</label>

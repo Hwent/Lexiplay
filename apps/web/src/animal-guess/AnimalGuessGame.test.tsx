@@ -98,6 +98,18 @@ it('reveals the guessed Chinese name only on request and shows a bookmarkable re
   expect(restoreSession()!.guesses).toHaveLength(0);
 });
 
+it('keeps the result card in English and only shows the Chinese name in Chinese UI', async () => {
+  const session = readyToGuess('tiger');
+  saveSession({ ...session, guesses: [{ animalId: 'tiger', correct: true }], status: 'won' });
+  const view = render(<LanguageContext.Provider value="en"><AnimalGuessGame bookmark={bookmark}/></LanguageContext.Provider>);
+  expect(screen.getByText(animals.find(animal => animal.id === 'tiger')!.definition)).toBeInTheDocument();
+  expect(screen.queryByText('老虎')).not.toBeInTheDocument();
+  view.rerender(<LanguageContext.Provider value="zh-CN"><AnimalGuessGame bookmark={bookmark}/></LanguageContext.Provider>);
+  expect(screen.getByText('老虎')).toBeInTheDocument();
+  view.rerender(<LanguageContext.Provider value="en"><AnimalGuessGame bookmark={bookmark}/></LanguageContext.Provider>);
+  expect(screen.queryByText('老虎')).not.toBeInTheDocument();
+});
+
 it('uses all three guess opportunities after fifteen questions and retries failed feedback without changing the knowledge set', async () => {
   const user = userEvent.setup();
   let session = newSession();
@@ -137,7 +149,8 @@ it('uses a supplied Chinese answer to show the correct animal after giving up', 
   await user.type(screen.getByRole('textbox', { name: 'What animal were you thinking of?' }), '海豚');
   await user.click(screen.getByRole('button', { name: 'Send answer' }));
   expect(await screen.findByRole('button', { name: 'Save dolphin' })).toBeInTheDocument();
-  expect(screen.getByText('海豚')).toBeInTheDocument();
+  expect(screen.queryByText('海豚')).not.toBeInTheDocument();
+  expect(screen.getByText(animals.find(animal => animal.id === 'dolphin')!.definition)).toBeInTheDocument();
 });
 
 it('is reachable from Games, resumes directly by URL and saves to the existing guest word list without charging coins', async () => {
