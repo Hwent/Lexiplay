@@ -22,6 +22,20 @@ beforeEach(() => {
 afterEach(() => { cleanup(); gameAudio.setEnabled(true); vi.restoreAllMocks(); vi.unstubAllGlobals(); });
 
 describe('interface settings', () => {
+  it('defaults to dark and remembers an explicitly selected light theme', async () => {
+    const user = userEvent.setup();
+    const view = render(<App/>);
+    expect(document.documentElement).toHaveAttribute('data-theme', 'dark');
+    expect(screen.getByRole('button', { name: 'Dark mode' })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(screen.getByRole('button', { name: 'Light mode' }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    expect(localStorage.getItem('lexiplay-theme')).toBe('light');
+    view.unmount();
+    render(<App/>);
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    expect(screen.getByRole('button', { name: 'Light mode' })).toHaveAttribute('aria-pressed', 'true');
+  });
+
   it('switches the whole interface, preserves English learning content, and restores preferences', async () => {
     const user = userEvent.setup();
     const first = render(<App/>);

@@ -107,7 +107,10 @@ export default function App() {
   const [selectedPoolId, setSelectedPoolId] = useState(preferences.collectionId);
   const wordStore = useMemo(() => new PendingWords(account?.id ?? 'guest'), [account?.id]);
   const wordSelection = useWordSelection(wordStore);
-  const [theme, setTheme] = useState<Theme>(() => window.localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark');
+  const [theme, setTheme] = useState<Theme>(() => {
+    try { return localStorage.getItem('lexiplay-theme') === 'light' ? 'light' : 'dark'; }
+    catch { return 'dark'; }
+  });
   const [soundEnabled, setSoundEnabled] = useState(() => gameAudio.enabled);
   useEffect(() => gameAudio.listen(), []);
   const [activeSection, setActiveSection] = useState<Section>(currentSection);
@@ -360,7 +363,8 @@ export default function App() {
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme;
-    window.localStorage.setItem('lexiplay-theme', theme);
+    document.querySelector('meta[name="theme-color"]')?.setAttribute('content', theme === 'light' ? '#f5f6f3' : '#141a14');
+    try { localStorage.setItem('lexiplay-theme', theme); } catch { /* Keep the selection for this visit. */ }
   }, [theme]);
 
   async function startPractice(replay = false) {

@@ -5,7 +5,7 @@ import { LanguageContext, useTranslation } from '../i18n';
 import { apiRequest } from '../services/api-client';
 import { gameAudio } from '../services/game-audio';
 import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, restoreSession, saveSession, type Answer, type Session } from './engine';
-import { animalById, animals, findAnimal, KNOWLEDGE_VERSION, questionById, type FeatureQuestion } from './knowledge';
+import { animalById, findAnimal, KNOWLEDGE_VERSION, questionById, type FeatureQuestion } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
 import './animal-guess.css';
 
@@ -123,7 +123,6 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
       <div className="practice-setup animal-setup">
         <div className="practice-setup-heading"><h3>{t('Think of an animal.')}</h3><p>{t('Keep it secret. Let me ask the questions.')}</p></div>
         <div className="animal-round-limits"><div><strong>{QUESTION_LIMIT}</strong><span>{t('Questions')}</span></div><div><strong>{GUESS_LIMIT}</strong><span>{t('Guesses')}</span></div></div>
-        <p className="animal-scope">{t('A starter set of {0} common animals. Some animals may not be in this set yet.', animals.length)}</p>
         <span className="animal-free"><Icon name="check"/>{t('Free to play')}</span>
         <button className="primary-button" type="button" onClick={start}>{t('I have an animal in mind')}<Icon name="arrow"/></button>
       </div>
@@ -150,7 +149,6 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
         </> : finished ? <>
           <span className="animal-result-icon" aria-hidden="true"><Icon name={session.status === 'won' ? 'check' : 'search'}/></span>
           <h2>{t(session.status === 'won' ? 'Found your animal.' : 'You stumped me.')}</h2>
-          <p className="animal-result-copy">{t(session.status === 'won' ? 'A familiar animal. A word to remember.' : 'Your animal may be missing, or a question may need a closer look.')}</p>
         </> : null}
       </div>
       {learned && <div className="answer-definition animal-learning-card"><div><p className="eyebrow">{t('YOUR ANIMAL')}</p><div className="word-with-pronunciation"><strong lang="en">{learned.id}</strong><PronunciationButton term={learned.id}/></div>{language === 'zh-CN' && <span className="animal-chinese" lang="zh-CN">{learned.chinese}</span>}<p lang="en">{learned.definition}</p></div>{bookmark(learned.id, learned.definition)}</div>}

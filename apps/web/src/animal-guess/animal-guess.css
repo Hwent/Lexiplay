@@ -27,12 +27,12 @@
 .animal-answer-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; width: min(100%, 31rem); margin-top: 1.5rem; }
 .animal-answer-buttons > button { display: flex; align-items: center; justify-content: center; gap: .55rem; min-height: 3.5rem; padding: .8rem; font-size: 1rem; }
 .animal-answer-buttons button[aria-pressed='true'] { outline: 2px solid var(--accent); outline-offset: 3px; }
-.animal-answer-buttons > .animal-answer-no { border: 2px solid var(--danger-400); }
-.animal-answer-buttons > .animal-answer-no:hover:enabled { border-color: var(--danger-400); background: var(--danger-soft); }
-.animal-answer-buttons > .animal-answer-no[aria-pressed='true'] { outline-color: var(--danger-400); }
-.animal-answer-buttons > .animal-answer-not-sure { border: 2px solid var(--warning-400); }
-.animal-answer-buttons > .animal-answer-not-sure:hover:enabled { border-color: var(--warning-400); background: var(--warning-soft); }
-.animal-answer-buttons > .animal-answer-not-sure[aria-pressed='true'] { outline-color: var(--warning-400); }
+.animal-answer-buttons > .animal-answer-no { border: 2px solid var(--danger-border); }
+.animal-answer-buttons > .animal-answer-no:hover:enabled { border-color: var(--danger-border); background: var(--danger-soft); }
+.animal-answer-buttons > .animal-answer-no[aria-pressed='true'] { outline-color: var(--danger-border); }
+.animal-answer-buttons > .animal-answer-not-sure { border: 2px solid var(--warning-border); }
+.animal-answer-buttons > .animal-answer-not-sure:hover:enabled { border-color: var(--warning-border); background: var(--warning-soft); }
+.animal-answer-buttons > .animal-answer-not-sure[aria-pressed='true'] { outline-color: var(--warning-border); }
 .animal-confirm-buttons { grid-template-columns: 1fr 1fr; }
 .animal-guess-prompt strong { color: var(--accent); }
 .animal-reveal { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; min-height: 3rem; margin: 1rem 0 .5rem; font-size: 1.2rem; }
@@ -40,7 +40,6 @@
 .animal-cancel-edit { margin-top: 1.5rem; }
 .animal-result-icon { display: grid; place-items: center; width: 3.5rem; height: 3.5rem; margin-bottom: 1rem; border-radius: 1rem; background: var(--accent-soft); color: var(--accent); }
 .animal-result-icon svg { width: 1.75rem; height: 1.75rem; }
-.animal-result-copy { max-width: 40ch; margin: .8rem 0 0; color: var(--soft-text); font-size: 1rem; line-height: 1.7; }
 .animal-learning-card { gap: 1.5rem; padding: 1.4rem; }
 .animal-learning-card .eyebrow { font-size: .8rem; }
 .animal-learning-card .word-with-pronunciation strong { font-size: 1.6rem; }

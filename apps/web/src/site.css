@@ -72,17 +72,24 @@
   .recent-practice-table td:last-child { grid-column: 2; grid-row: 2 / 4; align-self: center; }
 }
 .primary-button, .quiet-button { display: inline-flex; align-items: center; justify-content: center; gap: .65rem; min-height: 2.9rem; padding: .75rem 1.1rem; border: 1px solid transparent; border-radius: .65rem; font-size: .95rem; font-weight: 600; cursor: pointer; transition: background .18s, border-color .18s, transform .18s; }
-.primary-button { background: var(--accent); color: var(--surface); text-decoration: none; }
+.primary-button { background: var(--accent); color: var(--on-accent); text-decoration: none; }
 .result-badge { display: inline-flex; padding: .35rem .65rem; border-radius: .5rem; background: var(--surface-soft); color: var(--soft-text); font-size: .9rem; font-weight: 500; }
 .result-badge.won { background: var(--success-soft); color: var(--success-text); }
 .puzzle-message.invalid { border: 0; border-inline-start: 3px solid var(--danger-text); background: var(--danger-soft); color: var(--danger-text); }
 .definition-text { max-width: var(--reading-width); line-height: 1.7; }
 .primary-button span { padding: 0; }
 .primary-button:hover:enabled { filter: none; background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
-.practice-setup > .primary-button { background: var(--accent); color: var(--page); box-shadow: none; }
+.practice-setup > .primary-button { background: var(--accent); color: var(--on-accent); box-shadow: none; }
 .practice-setup > .primary-button:hover:enabled { background: color-mix(in srgb, var(--accent) 88%, var(--text)); }
 .quiet-button { background: transparent; color: var(--accent); }
 .quiet-button:hover:enabled { border-color: var(--line); background: var(--accent-soft); }
+:root[data-theme='light'] .sidebar { border-right: 1px solid var(--line); }
+:root[data-theme='light'] .main-navigation button.active { background: var(--accent-soft); color: var(--accent); }
+:root[data-theme='light'] .header-search,
+:root[data-theme='light'] .account-status-link { border-color: var(--line); }
+:root[data-theme='light'] .learning-cards > button { border-color: var(--line); box-shadow: 0 3px 14px rgb(30 37 29 / 3%); }
+:root[data-theme='light'] .game-card { border: 1px solid var(--line); border-top: 3px solid var(--accent); box-shadow: 0 5px 20px rgb(30 37 29 / 4%); }
+:root[data-theme='light'] .animal-guess-game .quiet-button:not(.animal-answer-no, .animal-answer-not-sure) { border-color: var(--control-border); }
 .page-eyebrow { margin: 0 0 .75rem; color: var(--muted); font-size: .8rem; font-weight: 600; letter-spacing: .08em; line-height: 1.5; }
 .page-introduction { display: flex; align-items: center; justify-content: space-between; gap: 2rem; padding: 2.5rem 0 2rem; }
 .page-introduction h2 { margin: 0; font-size: clamp(1.8rem, 3vw, 2.5rem); font-weight: 650; line-height: 1.13; letter-spacing: -.055em; }

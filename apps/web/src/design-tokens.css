@@ -66,6 +66,7 @@
   --label: var(--neutral-200);
   --line: var(--neutral-800);
   --accent: var(--sage-300);
+  --on-accent: var(--neutral-950);
   --accent-soft: var(--sage-950);
   --control-bg: var(--neutral-950);
   --control-border: var(--neutral-500);
@@ -89,6 +90,8 @@
   --warning-text: var(--warning-200);
   --danger-soft: var(--danger-950);
   --danger-text: var(--danger-200);
+  --danger-border: var(--danger-400);
+  --warning-border: var(--warning-400);
   --counter-border: var(--line);
   --counter-text: var(--soft-text);
   --notice: var(--warning-text);
@@ -98,27 +101,28 @@
 }
 
 :root[data-theme='light'] {
-  --page: var(--neutral-50);
+  --page: #f5f6f3;
   --surface: var(--neutral-0);
-  --surface-soft: var(--neutral-100);
+  --surface-soft: #edf1e9;
   --text: var(--neutral-900);
-  --soft-text: var(--neutral-700);
-  --muted: var(--neutral-600);
+  --soft-text: #46523f;
+  --muted: #5c6858;
   --label: var(--neutral-700);
-  --line: var(--neutral-200);
-  --accent: var(--sage-700);
-  --accent-soft: var(--sage-100);
+  --line: #d2dccb;
+  --accent: #3f6734;
+  --on-accent: var(--neutral-0);
+  --accent-soft: #e5efdf;
   --control-bg: var(--neutral-0);
-  --control-border: var(--neutral-500);
-  --tile-background: var(--neutral-200);
-  --tile-border: var(--neutral-500);
+  --control-border: #98a88e;
+  --tile-background: var(--neutral-0);
+  --tile-border: #b8c5af;
   --filled-border: var(--neutral-700);
-  --key: var(--neutral-200);
+  --key: #e5ebdf;
   --key-text: var(--neutral-900);
-  --key-absent: var(--neutral-700);
-  --key-absent-text: var(--neutral-100);
-  --absent: var(--neutral-200);
-  --absent-text: var(--neutral-700);
+  --key-absent: #d7ddd2;
+  --key-absent-text: #46523f;
+  --absent: #e2e7de;
+  --absent-text: #46523f;
   --correct: var(--success-700);
   --correct-text: var(--neutral-0);
   --present: var(--warning-300);
@@ -129,6 +133,8 @@
   --warning-text: var(--warning-800);
   --danger-soft: var(--danger-100);
   --danger-text: var(--danger-800);
+  --danger-border: var(--danger-600);
+  --warning-border: var(--warning-600);
   --focus: var(--sage-700);
-  --account-shadow: 0 12px 32px rgb(30 37 29 / 8%);
+  --account-shadow: 0 12px 32px rgb(30 37 29 / 9%);
 }
