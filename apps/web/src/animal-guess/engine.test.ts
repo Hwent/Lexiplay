@@ -21,8 +21,7 @@ function play(animalId: string, wrongAt = -1): Session {
 
 describe('animal guessing knowledge and inference', () => {
   it('keeps a complete, distinct and translated playable animal set', () => {
-    expect(animals.length).toBeGreaterThanOrEqual(40);
-    expect(animals.length).toBeLessThanOrEqual(60);
+    expect(animals).toHaveLength(100);
     expect(new Set(animals.map(animal => animal.id)).size).toBe(animals.length);
     expect(new Set(questions.map(question => question.id)).size).toBe(questions.length);
     const features = new Set(questions.map(question => question.id));
@@ -49,7 +48,7 @@ describe('animal guessing knowledge and inference', () => {
     const results = animals.flatMap(animal => [0, 1, 2, 3].map(index => play(animal.id, index)));
     const wins = results.filter(session => session.status === 'won').length;
     expect(wins / results.length).toBeGreaterThanOrEqual(.8);
-  });
+  }, 20_000);
 
   it('keeps all candidates on Not Sure and still makes three distinct guesses after fifteen questions', () => {
     let session = newSession();

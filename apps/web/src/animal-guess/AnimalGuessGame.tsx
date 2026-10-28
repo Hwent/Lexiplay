@@ -5,7 +5,7 @@ import { LanguageContext, useTranslation } from '../i18n';
 import { apiRequest } from '../services/api-client';
 import { gameAudio } from '../services/game-audio';
 import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, restoreSession, saveSession, type Answer, type Session } from './engine';
-import { animalById, animals, findAnimal, questionById, type FeatureQuestion } from './knowledge';
+import { animalById, animals, findAnimal, KNOWLEDGE_VERSION, questionById, type FeatureQuestion } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
 import './animal-guess.css';
 
@@ -90,7 +90,7 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
     const id = session.id;
     setSession(current => current ? { ...current, revealedAnswer: supplied } : current);
     const content = [
-      `Guess Animal / animals v1 / ${id}`,
+      `Guess Animal / animals v${KNOWLEDGE_VERSION} / ${id}`,
       `Player's animal: ${supplied}`,
       `Questions: ${session.answers.map(item => `${item.questionId}=${item.answer}`).join(', ')}`,
       `Rejected guesses: ${session.guesses.map(item => item.animalId).join(', ')}`,

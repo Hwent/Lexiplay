@@ -136,7 +136,7 @@ it('uses all three guess opportunities after fifteen questions and retries faile
   expect(payload.content).toContain('独角兽');
   expect(payload.content).toContain('Rejected guesses:');
   expect(payload.content.length).toBeLessThanOrEqual(2000);
-  expect(animals).toHaveLength(50);
+  expect(animals).toHaveLength(100);
   expect(restoreSession()!.feedbackSent).toBe(true);
 });
 
