@@ -4,7 +4,7 @@ import { WordListsService } from '../word-lists/word-lists.service';
 import { defaultAnswerWords } from '../word-lists/default-answers';
 import { GameRepository } from './game.repository';
 import { createLadder, LADDER_WORDS, nextLadderWord } from './word-ladder';
-import { DIFFICULTIES, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, PUZZLE_ALREADY_STARTED, WORDLE_COST, score } from './game.types';
+import { LEGACY_ATTEMPT_LIMITS, WORD_PUZZLE_ATTEMPTS, wordPuzzleReward, Difficulty, Game, Guess, HintType, HINT_COST, publicGame, PUZZLE_ALREADY_STARTED, WORDLE_COST, score } from './game.types';
 
 @Injectable()
 export class GameService {
@@ -12,8 +12,7 @@ export class GameService {
 
   async start(wordLength: number = 5, wordList: string[] | undefined, difficulty: Difficulty = 'medium', owner: string, selectedPool?: { id: string; name: string; author: string }, startRequestId: string = randomUUID()) {
     if (!Number.isInteger(wordLength) || wordLength < 3 || wordLength > 9) throw new BadRequestException({ code: 'INVALID_WORD_LENGTH', message: 'Choose a word length from three to nine letters.' });
-    if (!Object.hasOwn(DIFFICULTIES, difficulty)) throw new BadRequestException('Choose a valid difficulty.');
-    const rules = DIFFICULTIES[difficulty];
+    if (!Object.hasOwn(LEGACY_ATTEMPT_LIMITS, difficulty)) throw new BadRequestException('Choose a valid difficulty.');
     const allowedWords = await this.dictionary.dictionaryGameWords(wordLength);
     if (!allowedWords.length) throw new ServiceUnavailableException({ code: 'DICTIONARY_NOT_READY', message: `The dictionary has no ${wordLength}-letter game words. Load the dictionary before playing.` });
     let answers = defaultAnswerWords(wordLength, allowedWords);
@@ -27,10 +26,10 @@ export class GameService {
     }
     const game: Game = {
       id: randomUUID(), startRequestId, kind: 'word-puzzle', owner, ...(selectedPool ? { pool: selectedPool } : {}), answer: answers[randomInt(answers.length)]!,
-      wordLength, difficulty, attemptLimit: rules.attemptLimit, guesses: [], completed: false,
+      wordLength, difficulty: 'medium', attemptLimit: WORD_PUZZLE_ATTEMPTS, guesses: [], completed: false,
       startedAt: new Date().toISOString(), completedAt: null,
       hints: { definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [],
-      status: 'active', coinCost: WORDLE_COST, winRewardCoins: rules.reward, coinPayer: owner.startsWith('user:') ? 'account' : 'guest',
+      status: 'active', coinCost: WORDLE_COST, winRewardCoins: wordPuzzleReward(wordLength), coinPayer: owner.startsWith('user:') ? 'account' : 'guest',
     };
     return publicGame(await this.games.create(game));
   }

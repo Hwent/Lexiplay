@@ -1,6 +1,6 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
-import { DIFFICULTIES, Difficulty, Game, GameStatus, Guess, PUZZLE_ALREADY_STARTED, score } from './game.types';
+import { LEGACY_ATTEMPT_LIMITS, Difficulty, Game, GameStatus, Guess, PUZZLE_ALREADY_STARTED, score } from './game.types';
 import { LADDER_WORDS } from './word-ladder';
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
@@ -194,9 +194,9 @@ export class GameRepository implements OnModuleDestroy {
       JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en' GROUP BY chosen.term`, [terms])).rows : [];
     const meanings = new Map(definitions.map(row => [row.term,row.definition]));
     return rows.map(row => {
-      const state = row.active_state, rules = DIFFICULTIES[row.difficulty], completed = row.status !== 'active';
+      const state = row.active_state, completed = row.status !== 'active';
       const ladder = row.ladder_state;
-      const attemptLimit = ladder ? ladder.targetWords ?? (row.attempt_count || LADDER_WORDS) : rules.attemptLimit;
+      const attemptLimit = ladder ? ladder.targetWords ?? (row.attempt_count || LADDER_WORDS) : LEGACY_ATTEMPT_LIMITS[row.difficulty];
       const steps = state?.guesses ?? ladder?.guesses ?? [];
       const guesses: Guess[] = steps.map((guess,index) => ({ guess,
         feedback:ladder ? [] : score(row.answer,guess),

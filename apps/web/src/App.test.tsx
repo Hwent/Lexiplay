@@ -174,7 +174,7 @@ describe('practice puzzle', () => {
     expect(submissions).toBe(2);
   });
 
-  it('shows rules for the selected length and difficulty before starting', async () => {
+  it('shows six-guess rules at every selected length without difficulty options', async () => {
     stubGameApiFetch( vi.fn(async () => new Response('{}', { status: 401 })));
     const user = userEvent.setup();
     render(<App />);
@@ -184,11 +184,21 @@ describe('practice puzzle', () => {
     await user.click(screen.getByText('How to play'));
     expect(screen.getByText(/hidden 5-letter word in 6 guesses/i)).toBeVisible();
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
-    await user.click(screen.getByRole('radio', { name: /Hard/ }));
-    expect(screen.getByText(/hidden 9-letter word in 5 guesses/i)).toBeInTheDocument();
+    expect(screen.queryByText('Difficulty')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Hard|Easy/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/hidden 9-letter word in 6 guesses/i)).toBeInTheDocument();
     expect(screen.getByText('Correct spot')).toBeInTheDocument();
     expect(screen.getByText('Wrong spot')).toBeInTheDocument();
     expect(screen.getByText('Not in word')).toBeInTheDocument();
+  });
+
+  it.each([[3, 4], [4, 4], [5, 5], [6, 5], [7, 6], [8, 6], [9, 7]])('shows a %i-letter win reward of %i coins', async (length, reward) => {
+    stubGameApiFetch(vi.fn(async () => new Response('{}', { status: 401 })));
+    const user = userEvent.setup();
+    render(<App/>);
+    await user.click(screen.getByRole('button', { name: 'Games' }));
+    await user.click(screen.getByRole('radio', { name: `${length} letters` }));
+    expect(screen.getByLabelText(`Entry: 1 coin. Win: ${reward} coins`)).toHaveTextContent(`+${reward} on a win`);
   });
 
   it('does not restore an old puzzle when an automatic guess finishes after an account change', async () => {

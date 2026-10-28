@@ -4,7 +4,7 @@ LexiPlay helps learners build English vocabulary through word games, dictionary 
 
 ## App
 
-- **Word Guess:** find a hidden 3–9-letter word, with difficulty options and definition hints.
+- **Word Guess:** find a hidden 3–9-letter word in six guesses, with definition hints.
 - **Word Ladder:** make four new words by changing one letter at a time; choose four or five letters.
 - **Guess Animal:** think of a common animal and answer Yes, No or Not Sure. A free, browser-run guessing algorithm asks up to 15 questions and makes up to 3 guesses. English questions include keyword explanations in the interface language; results can be saved to your vocabulary. See [game data and rules](apps/web/src/animal-guess/README.md).
 - **Vocabulary:** explore curated collections, look up definitions and pronunciation, and save words to personal lists.
@@ -12,7 +12,7 @@ LexiPlay helps learners build English vocabulary through word games, dictionary 
 - **Community:** rank the top 20 accounts by coin balance, showing only each username’s first letter.
 - **Settings:** English or Chinese interface, themes, text size, and sound.
 
-Word Guess and Word Ladder cost 1 coin. Word Guess wins award 4–6 coins by difficulty; Word Ladder wins award 4 or 5 coins by word length. Guess Animal is free and does not change the coin balance. New accounts receive 100 coins.
+Word Guess and Word Ladder cost 1 coin. Word Guess wins award 4 coins at 3–4 letters, 5 at 5–6, 6 at 7–8, and 7 at 9 letters. Word Ladder wins award 4 or 5 coins by word length. Guess Animal is free and does not change the coin balance. New accounts receive 100 coins.
 
 ## API
 

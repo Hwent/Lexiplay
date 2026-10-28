@@ -76,7 +76,7 @@ describe('completed games', () => {
     { auth: 'account', status: 'won' }, { auth: 'guest', status: 'cancelled' }, { auth: 'guest', status: 'active' }, { auth: 'error', status: 'won' },
   ] as const)('does not prompt auth=$auth status=$status', async ({ auth, status }) => {
     mockGame('word-puzzle', status, auth); render(<App/>);
-    await screen.findByText('medium · 4 letters');
+    await screen.findByText('Word puzzle · 4 letters');
     await waitFor(() => expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toHaveAttribute('aria-busy', 'false'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

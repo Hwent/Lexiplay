@@ -489,31 +489,56 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await balance(cookie)).toBe(9);
   });
 
-  it.each([['easy',4],['medium',5],['hard',6]])('charges once and credits a %s win exactly once', async (difficulty, reward) => {
-    const user = await account(), id = randomUUID();
-    const [first, retry] = await Promise.all([start(user.cookie, difficulty, id), start(user.cookie, difficulty, id)]);
+  it.each([3,4,5,6,7,8,9].flatMap(length => ['account','guest'].map(kind => ({ length, kind }))))('charges once and pays a $length-letter $kind win exactly once', async ({ length, kind }) => {
+    const cookie = kind === 'account' ? (await account()).cookie : await guest();
+    const before = await balance(cookie), id = randomUUID();
+    const rewards: Record<number, number> = { 3: 4, 4: 4, 5: 5, 6: 5, 7: 6, 8: 6, 9: 7 };
+    const reward = rewards[length]!;
+    const create = async () => {
+      const response = await request('/games', 'POST', { wordLength: length, startRequestId: id }, cookie);
+      expect(response.status, await response.clone().text()).toBe(201);
+      return response.json();
+    };
+    const [first, retry] = await Promise.all([create(), create()]);
     expect(first.id).toBe(retry.id);
+    expect(first).toMatchObject({ difficulty: 'medium', attemptLimit: 6, winRewardCoins: reward });
     expect(first).not.toHaveProperty('answer'); expect(first).not.toHaveProperty('answerDefinition'); expect(first).not.toHaveProperty('allowedWords'); expect(first).not.toHaveProperty('owner');
-    expect(await balance(user.cookie)).toBe(99);
-    await request('/games/' + first.id, 'GET', undefined, user.cookie);
-    expect(await balance(user.cookie)).toBe(99);
+    expect(await balance(cookie)).toBe(before - 1);
+    const restored = await (await request('/games/' + first.id, 'GET', undefined, cookie)).json();
+    expect(restored).toMatchObject({ attemptLimit: 6, winRewardCoins: reward });
+    expect(await balance(cookie)).toBe(before - 1);
+    const answer = (await pool.query('SELECT answer FROM practice_games WHERE id=$1', [first.id])).rows[0].answer;
     const responses = await Promise.all([
-      request('/games/' + first.id + '/guesses', 'POST', { guess: ' APPLE ' }, user.cookie),
-      request('/games/' + first.id + '/guesses', 'POST', { guess: 'apple' }, user.cookie),
+      request('/games/' + first.id + '/guesses', 'POST', { guess: ` ${answer.toUpperCase()} ` }, cookie),
+      request('/games/' + first.id + '/guesses', 'POST', { guess: answer }, cookie),
     ]);
     expect(responses.map(response => response.status).sort()).toEqual([201,400]);
     const won = await responses.find(response => response.status === 201)!.json();
     expect(won).toMatchObject({ outcome: 'WON', rewardCoins: reward });
-    expect(await balance(user.cookie)).toBe(99 + Number(reward));
+    expect(await balance(cookie)).toBe(before - 1 + reward);
     expect((await pool.query('SELECT active_state,attempt_count,coin_change FROM practice_games WHERE id=$1',[first.id])).rows[0]).toEqual({active_state:null,attempt_count:1,coin_change:Number(reward)-1});
+  });
+
+  it('restores a legacy round with its original attempts and stored reward', async () => {
+    const user = await account(), game = await start(user.cookie);
+    await pool.query(`UPDATE practice_games SET difficulty='hard',
+      active_state=jsonb_set(active_state,'{winRewardCoins}','6'::jsonb) WHERE id=$1`, [game.id]);
+    const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
+    expect(restored).toMatchObject({ difficulty: 'hard', attemptLimit: 5, winRewardCoins: 6 });
+    expect(await (await request('/games/' + game.id + '/guesses', 'POST', { guess: 'paper' }, user.cookie)).json())
+      .toMatchObject({ attemptsRemaining: 4, completed: false });
+    expect(await (await request('/games/' + game.id + '/guesses', 'POST', { guess: 'apple' }, user.cookie)).json())
+      .toMatchObject({ outcome: 'WON', rewardCoins: 6 });
+    expect(await balance(user.cookie)).toBe(105);
   });
 
   it('leaves losses charged and rejects invalid or unaffordable starts without debit', async () => {
     const user = await account(), game = await start(user.cookie, 'hard');
-    for (let i = 0; i < 5; i++) {
+    expect(game).toMatchObject({ difficulty: 'medium', attemptLimit: 6 });
+    for (let i = 0; i < 6; i++) {
       const result = await (await request('/games/' + game.id + '/guesses', 'POST', { guess: 'paper' }, user.cookie)).json();
-      expect(result.completed).toBe(i === 4);
-      if (i === 4) expect(result.outcome).toBe('LOST');
+      expect(result.completed).toBe(i === 5);
+      if (i === 5) expect(result.outcome).toBe('LOST');
     }
     expect(await balance(user.cookie)).toBe(99);
     const failed = await request('/games', 'POST', { wordLength: 10 }, user.cookie);
@@ -682,8 +707,8 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const regrouped = await (await request('/collections/cefr-a1')).json();
     expect(regrouped.version).not.toBe(after.version);
     const history = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(history).toMatchObject({answer:'apple',answerDefinition:'Updated meaning.',attemptCount:1,coinChange:3,guesses:[]});
-    expect(await balance(user.cookie)).toBe(103);
+    expect(history).toMatchObject({answer:'apple',answerDefinition:'Updated meaning.',attemptCount:1,coinChange:4,guesses:[]});
+    expect(await balance(user.cookie)).toBe(104);
     const stats = await (await request('/progress/summary', 'GET', undefined, user.cookie)).json();
     expect(stats).toMatchObject({ total: 1, wins: 1, losses: 0 });
     const columns = (await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='practice_guesses'")).rows.map(row => row.column_name);

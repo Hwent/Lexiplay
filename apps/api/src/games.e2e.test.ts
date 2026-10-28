@@ -47,10 +47,12 @@ describe('game HTTP endpoints and rules', () => {
     vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => words.includes(term));
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockImplementation(async length => words.filter(word => word.length === length));
     const url = await startApp();
+    const rewards: Record<number, number> = { 3: 4, 4: 4, 5: 5, 6: 5, 7: 6, 8: 6, 9: 7 };
     for (const word of words) {
       const response = await fetch(`${url}/games`, { method: 'POST', headers: { 'content-type': 'application/json' }, body: JSON.stringify({ wordLength: word.length }) });
       expect(response.status).toBe(201);
       const game = await response.json();
+      expect(game).toMatchObject({ difficulty: 'medium', attemptLimit: 6, winRewardCoins: rewards[word.length] });
       const cookie = response.headers.get('set-cookie')!.split(';')[0]!;
       expect(game).not.toHaveProperty('answer'); expect(game).not.toHaveProperty('owner'); expect(game).not.toHaveProperty('allowedWords');
       expect((await fetch(`${url}/games/${game.id}`)).status).toBe(404);
@@ -59,7 +61,7 @@ describe('game HTTP endpoints and rules', () => {
       expect(invalid.status).toBe(400);
       const guess = await fetch(`${url}/games/${game.id}/guesses`, { method: 'POST', headers, body: JSON.stringify({ guess: ` ${word.toUpperCase()} ` }) });
       expect(guess.status, `length ${word.length}: ${await guess.clone().text()}`).toBe(201);
-      expect(await guess.json()).toMatchObject({ guess: word, completed: true, outcome: 'WON', answer: word, answerDefinition: `Definition of ${word}.` });
+      expect(await guess.json()).toMatchObject({ guess: word, completed: true, outcome: 'WON', answer: word, answerDefinition: `Definition of ${word}.`, rewardCoins: rewards[word.length] });
       const restored = await (await fetch(`${url}/games/${game.id}`, { headers })).json();
       expect(restored.guesses).toHaveLength(1);
       expect(restored.guesses[0].definition).toBe(`Definition of ${word}.`);
@@ -119,11 +121,13 @@ describe('game HTTP endpoints and rules', () => {
     dictionary.mockResolvedValue([]);
     await expect(games.start(5, undefined, 'medium', 'test')).rejects.toThrow('Load the dictionary');
   });
-  it.each([['easy', 7], ['medium', 6], ['hard', 5]] as const)('enforces %s guesses and offers a definition hint', async (difficulty, attempts) => {
+  it.each(['easy', 'medium', 'hard'] as const)('normalizes %s starts to six guesses and offers a definition hint', async difficulty => {
+    const attempts = 6;
     vi.mocked(WordListRepository.prototype.isDictionaryGameWord).mockImplementation(async term => ['apple', 'paper'].includes(term));
     vi.spyOn(WordListRepository.prototype, 'dictionaryGameWords').mockResolvedValue(['apple', 'paper']);
     await startApp(); const games = app!.get(GameService);
     const game = await games.start(5, ['apple'], difficulty, 'test');
+    expect(game).toMatchObject({ difficulty: 'medium', attemptLimit: 6, winRewardCoins: 5 });
     expect(game.hints).toEqual({ definition: 1 });
     expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({ text: 'Definition of _____.', cost: 1 });
     expect(await games.hint(game.id, 'definition', 'test')).toMatchObject({ text: 'Definition of _____.', cost: 0 });

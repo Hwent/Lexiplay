@@ -62,7 +62,6 @@ type GuessResult = {
 type HintType = 'definition' | 'nextWord';
 type Game = { kind?: 'word-puzzle' | 'word-ladder'; ladder?: Ladder; answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { definition: number; nextWord?: number }; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
-const difficulties = [{ id: 'easy', label: 'Easy', guesses: 7, reward: 4 }, { id: 'medium', label: 'Medium', guesses: 6, reward: 5 }, { id: 'hard', label: 'Hard', guesses: 5, reward: 6 }] as const;
 
 function BookmarkIcon({ added }: { added: boolean }) {
   return <svg viewBox="0 0 24 24" aria-hidden="true" focusable="false"><path d="M6 3.75h12a1 1 0 0 1 1 1v16l-7-4.5-7 4.5v-16a1 1 0 0 1 1-1Z" fill={added ? 'currentColor' : 'none'} stroke="currentColor" strokeWidth="1.8" strokeLinejoin="round" /></svg>;
@@ -101,7 +100,6 @@ export default function App() {
   const [puzzleKind, setPuzzleKind] = useState<'word-puzzle' | 'word-ladder'>('word-puzzle');
   const [ladderWordLength, setLadderWordLength] = useState(5);
   useEffect(() => { if (game) setPuzzleKind(game.ladder ? 'word-ladder' : 'word-puzzle'); }, [game?.id]);
-  const [difficulty, setDifficulty] = useState<'easy' | 'medium' | 'hard'>(preferences.difficulty);
   const [restoring, setRestoring] = useState(false);
   const [accountRevision, setAccountRevision] = useState(0);
   const [selectedPoolId, setSelectedPoolId] = useState(preferences.collectionId);
@@ -140,8 +138,8 @@ export default function App() {
     return () => { active = false; };
   }, [accountLoading, account, accountError, wordStore]);
   useEffect(() => {
-    savePracticePreferences({ wordLength: selectedWordLength, difficulty, collectionId: selectedPoolId });
-  }, [selectedWordLength, difficulty, selectedPoolId]);
+    savePracticePreferences({ wordLength: selectedWordLength, collectionId: selectedPoolId });
+  }, [selectedWordLength, selectedPoolId]);
   useEffect(() => {
     if (!celebrationId) return;
     if (activeSection !== 'play') { setCelebrationId(''); return; }
@@ -296,6 +294,7 @@ export default function App() {
 
   const finished = game?.completed || game?.status === 'cancelled' || (game?.guesses.at(-1)?.completed ?? false);
   const attemptsRemaining = game ? Math.max(0,game.attemptLimit - (game.attemptCount ?? game.guesses.length)) : 0;
+  const setupReward = puzzleKind === 'word-ladder' ? ladderWordLength : Math.ceil(selectedWordLength / 2) + 2;
   const showGuestReminder = !!(activeSection === 'play' && game && finished && game.status !== 'cancelled' && !account && !accountLoading && !accountError && dismissedGuestReminder !== game.id);
 
   useEffect(() => {
@@ -376,7 +375,7 @@ export default function App() {
       const options = (replay && game ? !!game.ladder : puzzleKind === 'word-ladder')
         ? { kind: 'word-ladder', wordLength: replay && game ? game.wordLength : ladderWordLength }
         : { kind: 'word-puzzle', wordLength: replay && game ? game.wordLength : selectedWordLength,
-        difficulty: replay && game ? game.difficulty ?? difficulty : difficulty, playWithMyWords: false,
+        difficulty: 'medium', playWithMyWords: false,
         ...(selectedPoolId ? { collectionId: selectedPoolId } : {}) };
       const key = JSON.stringify([account?.id ?? 'guest', options]);
       if (startRequest.current?.key !== key) {
@@ -619,7 +618,7 @@ export default function App() {
           <div className="welcome-card">
             <div className="practice-story">
             <h2>{t(puzzleKind === 'word-ladder' ? 'Word Ladder' : 'Word puzzle')}</h2>
-            <GameGuide kind={puzzleKind} wordLength={puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength} attempts={difficulties.find(option => option.id === difficulty)!.guesses}/>
+            <GameGuide kind={puzzleKind} wordLength={puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength} attempts={6}/>
             </div>
             <div className="practice-setup">
             <div className="practice-setup-heading"><h3>{t('Puzzle options')}</h3></div>
@@ -632,14 +631,14 @@ export default function App() {
                   </label>)}
                 </div>
               </fieldset>
-              {puzzleKind === 'word-puzzle' && <><fieldset className="difficulty-options"><legend>{t('Difficulty')}</legend><div className="difficulty-segments">{difficulties.map(option => <label key={option.id} className={difficulty === option.id ? 'selected' : ''}><input type="radio" name="difficulty" checked={difficulty === option.id} onChange={() => setDifficulty(option.id)} /><strong>{t(option.label)}</strong></label>)}</div></fieldset>
+              {puzzleKind === 'word-puzzle' && <>
               <CollectionPicker value={selectedPoolId} wordLength={selectedWordLength} disabled={busy} onChange={id => {
                 firstGuestVisit.current = false;
                 setSelectedPoolId(id);
               }} />
               </>}
             </div>
-            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', puzzleKind === 'word-ladder' ? ladderWordLength : difficulties.find(option => option.id === difficulty)!.reward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{puzzleKind === 'word-ladder' ? ladderWordLength : difficulties.find(option => option.id === difficulty)!.reward}{t(' on a win')}</span></div>
+            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', setupReward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{setupReward}{t(' on a win')}</span></div>
             <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t(puzzleKind === 'word-ladder' ? 'Start ladder ' : 'Start practice ')}<Icon name="arrow"/>
             </button>
             </div>
@@ -648,7 +647,7 @@ export default function App() {
           <div ref={puzzleRef} key={game.id} className={`puzzle${game.ladder ? ' ladder-puzzle' : ''}${celebrationId === game.id ? ' puzzle-won' : ''}`}>
             {celebrationId === game.id && <PuzzleCelebration key={game.id}/>}
             <div className="puzzle-heading">
-              <div><p className="eyebrow">{t('{0} · {1} letters', t(game.ladder ? 'Word Ladder' : game.difficulty ?? difficulty), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
+              <div><p className="eyebrow">{t('{0} · {1} letters', t(game.ladder ? 'Word Ladder' : 'Word puzzle'), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
               <span className="attempt-counter" aria-live="polite">{game.ladder ? t('{0} / {1} words', game.guesses.length, game.ladder.targetWords) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
             </div>
             {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving || game.guesses.length > 0} title={t('Available before your first accepted word')}>{t('Choose a new puzzle')}</button><button className="account-link" type="button" onClick={() => void giveUp()} disabled={busy || progressSaving}>{t('Give up')}</button></div>}

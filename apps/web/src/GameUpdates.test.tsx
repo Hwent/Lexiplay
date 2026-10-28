@@ -68,7 +68,7 @@ describe('saved practice and account updates', () => {
       return Response.json([]);
     }));
     const user = userEvent.setup(); render(<App />);
-    await screen.findByText('hard · 9 letters');
+    await screen.findByText('Word puzzle · 9 letters');
     const signIn = screen.queryByRole('link', { name: 'Sign in to save your game history.' });
     if (reminder) {
       expect(signIn).toHaveAttribute('href', '/account');
@@ -179,24 +179,24 @@ describe('saved practice and account updates', () => {
     expect(starts[1]).toBe(starts[0]);
     expect(starts[0]).toMatch(/^[0-9a-f-]{36}$/);
   });
-  it('starts a hard game with only a definition hint beside the grid', async () => {
+  it('ignores saved difficulty and starts six-guess games with a definition hint beside the grid', async () => {
+    localStorage.setItem('lexiplay-practice-preferences', JSON.stringify({ wordLength: 9, difficulty: 'hard', collectionId: '' }));
     const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {
       const url = String(input);
       if (url.endsWith('/auth/me')) return new Response('{}', { status: 401 });
       if (url.endsWith('/word-lists')) return new Response('[]');
       if (url.endsWith('/hints')) return Response.json({ type: 'definition', text: 'Having great beauty.', cost: 1, hints: { definition: 0 } });
-      if (init?.method === 'POST') return Response.json(emptyGame);
+      if (init?.method === 'POST') return Response.json({ ...emptyGame, difficulty: 'medium', attemptLimit: 6 });
       throw new Error(`Unexpected request: ${url}`);
     });
     stubGameApiFetch( fetchMock);
     const user = userEvent.setup(); render(<App />);
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
-    await user.click(screen.getByRole('radio', { name: /Hard/ }));
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     expect(await screen.findByRole('grid', { name: '9-letter puzzle board' })).toBeInTheDocument();
-    expect(screen.getAllByRole('row')).toHaveLength(5);
+    expect(screen.getAllByRole('row')).toHaveLength(6);
     const start = fetchMock.mock.calls.find(([url]) => String(url).endsWith('/games'))!;
-    expect(JSON.parse(String(start[1]?.body))).toEqual({ kind: 'word-puzzle', wordLength: 9, difficulty: 'hard', playWithMyWords: false, startRequestId: expect.any(String) });
+    expect(JSON.parse(String(start[1]?.body))).toEqual({ kind: 'word-puzzle', wordLength: 9, difficulty: 'medium', playWithMyWords: false, startRequestId: expect.any(String) });
     await user.click(screen.getByRole('button', { name: /definition hint.*1 coin/i }));
     expect(await screen.findByRole('button', { name: /definition hint.*revealed/i })).toBeDisabled();
     expect(screen.queryByRole('button', { name: /part of speech/i })).not.toBeInTheDocument();
