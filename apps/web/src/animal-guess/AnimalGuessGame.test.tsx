@@ -53,13 +53,39 @@ it('explains keywords in English and switches the explanation with the interface
   const turn = nextTurn(restoreSession()!);
   if (turn.kind !== 'question') throw new Error('Expected a question');
   const keyword = Object.keys(turn.question.keywords)[0]!;
-  expect(screen.getByText('Tap an underlined word for its meaning.')).toBeInTheDocument();
+  expect(screen.getByText('Tap underlined words for meanings')).toBeInTheDocument();
   await user.click(screen.getByRole('button', { name: keyword }));
   expect(screen.getByRole('status')).toHaveTextContent(englishKeywordMeanings[keyword]!);
   expect(screen.getByRole('status')).not.toHaveTextContent(turn.question.keywords[keyword]!);
   view.rerender(<LanguageContext.Provider value="zh-CN"><AnimalGuessGame bookmark={bookmark}/></LanguageContext.Provider>);
   expect(screen.getByRole('status')).toHaveTextContent(turn.question.keywords[keyword]!);
   expect(screen.getByRole('status')).not.toHaveTextContent(englishKeywordMeanings[keyword]!);
+});
+
+it('shows question progress, treats Maybe as uncertainty, and remembers the first keyword interaction', async () => {
+  const user = userEvent.setup();
+  const view = render(<AnimalGuessGame bookmark={bookmark}/>);
+  await user.click(screen.getByRole('button', { name: 'I have an animal in mind' }));
+  expect(screen.getByText('Question 1 / 15')).toBeInTheDocument();
+  expect(screen.getByText('Tap underlined words for meanings')).toBeInTheDocument();
+  const turn = nextTurn(restoreSession()!);
+  if (turn.kind !== 'question') throw new Error('Expected a question');
+  const keyword = Object.keys(turn.question.keywords)[0]!;
+  await user.click(screen.getByRole('button', { name: keyword }));
+  expect(screen.queryByText('Tap underlined words for meanings')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: keyword }));
+  expect(screen.queryByText('Tap underlined words for meanings')).not.toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Maybe' }));
+  expect(restoreSession()!.answers[0]!.answer).toBe('not-sure');
+  expect(screen.getByText('Question 2 / 15')).toBeInTheDocument();
+  view.unmount();
+  render(<AnimalGuessGame bookmark={bookmark}/>);
+  expect(screen.queryByText('Tap underlined words for meanings')).not.toBeInTheDocument();
+  const next = nextTurn(restoreSession()!);
+  if (next.kind !== 'question') throw new Error('Expected a question');
+  const nextKeyword = Object.keys(next.question.keywords)[0]!;
+  await user.click(screen.getByRole('button', { name: nextKeyword }));
+  expect(screen.getByRole('status')).toHaveTextContent(englishKeywordMeanings[nextKeyword]!);
 });
 
 it('restores the current question after remount and edits the last answer without consuming a question', async () => {

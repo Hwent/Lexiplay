@@ -15,11 +15,12 @@ export type Session = {
   feedbackSent: boolean;
   completedAt?: string;
   practiceQueued?: boolean;
+  questionSeed?: number;
 };
 export type Turn = { kind: 'question'; question: FeatureQuestion } | { kind: 'guess'; animal: Animal; tentative: boolean } | { kind: 'finished' };
 
 export function newSession(): Session {
-  return { version: 1, id: crypto.randomUUID(), answers: [], guesses: [], status: 'active', revealedAnswer: '', feedbackSent: false };
+  return { version: 1, id: crypto.randomUUID(), questionSeed: crypto.getRandomValues(new Uint32Array(1))[0]!, answers: [], guesses: [], status: 'active', revealedAnswer: '', feedbackSent: false };
 }
 
 export function rankAnimals(session: Session): { animal: Animal; weight: number }[] {
@@ -49,6 +50,7 @@ export function nextTurn(session: Session): Turn {
   const ranked = rankAnimals(session), top = ranked[0];
   if (!top) return { kind: 'finished' };
   const answered = new Set(session.answers.map(item => item.questionId));
+  const gains: { question: FeatureQuestion; gain: number }[] = [];
   let best: FeatureQuestion | undefined, bestGain = 0;
   for (const question of questions) {
     if (answered.has(question.id)) continue;
@@ -60,10 +62,21 @@ export function nextTurn(session: Session): Turn {
       uncertainty += weight * entropy(likelihood);
     }
     const gain = entropy(yes) - uncertainty;
+    gains.push({ question, gain });
     if (gain > bestGain + 1e-9) { best = question; bestGain = gain; }
   }
   if (session.answers.length >= QUESTION_LIMIT || !best || (session.answers.length >= 4 && top.weight >= .72)) {
     return { kind: 'guess', animal: top.animal, tentative: top.weight < .72 };
+  }
+  if (session.questionSeed !== undefined) {
+    const choices = gains.filter(item => item.gain >= bestGain * .9)
+      .sort((a, b) => b.gain - a.gain).slice(0, 3);
+    // A saved seed varies near-optimal questions without changing the turn on refresh.
+    let value = session.questionSeed ^ Math.imul(session.answers.length + 1, 0x9e3779b1) ^ Math.imul(session.guesses.length, 0x85ebca6b);
+    value ^= value >>> 16;
+    value = Math.imul(value, 0x7feb352d);
+    value ^= value >>> 15;
+    best = choices[(value >>> 0) % choices.length]!.question;
   }
   return { kind: 'question', question: best };
 }
@@ -107,6 +120,7 @@ export function restoreSession(): Session | null {
     if (typeof value.revealedAnswer !== 'string' || value.revealedAnswer.length > 100 || typeof value.feedbackSent !== 'boolean') return null;
     if (value.completedAt !== undefined && (typeof value.completedAt !== 'string' || !Number.isFinite(Date.parse(value.completedAt)))) return null;
     if (value.practiceQueued !== undefined && typeof value.practiceQueued !== 'boolean') return null;
+    if (value.questionSeed !== undefined && (!Number.isInteger(value.questionSeed) || value.questionSeed < 0 || value.questionSeed > 0xffffffff)) return null;
     return value;
   } catch { return null; }
 }

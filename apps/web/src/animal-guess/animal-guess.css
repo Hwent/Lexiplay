@@ -15,24 +15,26 @@
 .animal-counters { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: .5rem; }
 .animal-counters .attempt-counter { font-size: .9rem; }
 .animal-round .puzzle-heading .eyebrow { font-size: .8rem; letter-spacing: .06em; }
-.animal-turn { display: flex; min-height: 20rem; padding: clamp(1.5rem, 4vw, 3rem) 0; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: .8rem; }
+.animal-turn { display: flex; min-height: 18rem; padding: 2rem 0; flex-direction: column; align-items: center; justify-content: center; text-align: center; border-radius: .8rem; }
 .animal-turn:focus-visible { outline: 2px solid var(--focus); outline-offset: .5rem; }
 .animal-step-label { margin: 0 0 1.5rem; color: var(--muted); font-size: 1rem; }
 .animal-question-copy { width: 100%; }
 .animal-question-copy h2, .animal-guess-prompt, .animal-turn > h2 { max-width: 28ch; margin: 0 auto; font: 600 clamp(1.6rem, 4vw, 2.2rem)/1.5 'DM Sans', ui-sans-serif, system-ui, sans-serif; letter-spacing: -.035em; text-wrap: balance; }
-.animal-keyword { display: inline; padding: 0; border: 0; border-bottom: 2px dotted var(--accent); border-radius: .15rem; background: transparent; color: inherit; font: inherit; letter-spacing: inherit; cursor: pointer; text-underline-offset: .2em; }
-.animal-keyword:hover, .animal-keyword[aria-expanded='true'] { color: var(--accent); background: var(--accent-soft); }
-.animal-keyword-meaning { min-height: 3.6rem; margin-top: .9rem; display: grid; align-items: start; color: var(--muted); font-size: 1rem; line-height: 1.6; }
+.animal-keyword { display: inline; padding: 0 .15em .05em; border: 0; border-bottom: 2px dashed var(--accent); border-radius: .2em; background: var(--accent-soft); color: var(--accent); font: inherit; letter-spacing: inherit; cursor: pointer; }
+.animal-keyword:hover, .animal-keyword[aria-expanded='true'] { background: color-mix(in srgb, var(--accent) 18%, var(--surface)); }
+.animal-keyword-meaning { margin-top: 1rem; color: var(--soft-text); font-size: 1rem; line-height: 1.5; }
+.animal-keyword-meaning:empty { margin-top: 0; }
+.animal-keyword-hint { color: var(--muted); font-size: .875rem; }
 .animal-keyword-meaning strong { color: var(--accent); font-weight: 600; }
-.animal-answer-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .8rem; width: min(100%, 31rem); margin-top: 1.5rem; }
-.animal-answer-buttons > button { display: flex; align-items: center; justify-content: center; gap: .55rem; min-height: 3.5rem; padding: .8rem; font-size: 1rem; }
-.animal-answer-buttons button[aria-pressed='true'] { outline: 2px solid var(--accent); outline-offset: 3px; }
-.animal-answer-buttons > .animal-answer-no { border: 2px solid var(--danger-border); }
-.animal-answer-buttons > .animal-answer-no:hover:enabled { border-color: var(--danger-border); background: var(--danger-soft); }
-.animal-answer-buttons > .animal-answer-no[aria-pressed='true'] { outline-color: var(--danger-border); }
-.animal-answer-buttons > .animal-answer-not-sure { border: 2px solid var(--warning-border); }
-.animal-answer-buttons > .animal-answer-not-sure:hover:enabled { border-color: var(--warning-border); background: var(--warning-soft); }
-.animal-answer-buttons > .animal-answer-not-sure[aria-pressed='true'] { outline-color: var(--warning-border); }
+.animal-answer-buttons { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: .75rem; width: min(100%, 31rem); margin-top: 2rem; }
+.animal-answer-buttons > button { --answer-color: var(--accent); display: flex; align-items: center; justify-content: center; gap: .5rem; min-height: 3.5rem; padding: .75rem; border: 2px solid var(--answer-color); background: transparent; color: var(--answer-color); font-size: 1rem; line-height: 1.25; }
+.animal-answer-buttons > button span { white-space: nowrap; }
+.animal-answer-buttons > button .ui-icon { flex: 0 0 auto; }
+.animal-answer-buttons > button:hover:enabled, .animal-answer-buttons > button[aria-pressed='true'] { border-color: var(--answer-color); background: color-mix(in srgb, var(--answer-color) 12%, var(--surface)); }
+.animal-answer-buttons > button[aria-pressed='true'] { outline: 2px solid var(--answer-color); outline-offset: 3px; }
+.animal-answer-buttons > .animal-answer-no { --answer-color: var(--danger-text); }
+.animal-answer-buttons > .animal-answer-not-sure { --answer-color: var(--warning-text); }
+.animal-answer-buttons > button:focus-visible { outline-color: var(--answer-color); }
 .animal-confirm-buttons { grid-template-columns: 1fr 1fr; }
 .animal-guess-prompt strong { color: var(--accent); }
 .animal-reveal { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 1rem; min-height: 3rem; margin: 1rem 0 .5rem; font-size: 1.2rem; }
@@ -69,7 +71,8 @@
   .animal-round .puzzle-heading { align-items: flex-start; flex-direction: column; }
   .animal-counters { justify-content: flex-start; }
   .animal-answer-buttons { gap: .5rem; }
-  .animal-answer-buttons > button { flex-direction: column; gap: .35rem; }
+  .animal-answer-buttons > button { flex-direction: column; gap: .5rem; padding: .75rem .5rem; }
+  .animal-confirm-buttons > button span { white-space: normal; }
   .animal-feedback-input { flex-direction: column; }
   .animal-feedback-input button { justify-content: center; }
   .animal-learning-card { flex-wrap: wrap; }

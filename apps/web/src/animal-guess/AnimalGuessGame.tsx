@@ -10,13 +10,14 @@ import { englishKeywordMeanings } from './keyword-meanings';
 import { queueAnimalPractice, syncAnimalPractice } from './practice-progress';
 import './animal-guess.css';
 
-const answers: { value: Answer; label: string; icon: 'check' | 'back' | 'search' }[] = [
+const KEYWORD_HINT_KEY = 'lexiplay-animal-keyword-hint-seen';
+const answers: { value: Answer; label: string; icon: 'check' | 'close' | 'help' }[] = [
   { value: 'yes', label: 'Yes', icon: 'check' },
-  { value: 'no', label: 'No', icon: 'back' },
-  { value: 'not-sure', label: 'Not Sure', icon: 'search' },
+  { value: 'no', label: 'No', icon: 'close' },
+  { value: 'not-sure', label: 'Maybe', icon: 'help' },
 ];
 
-function Question({ question }: { question: FeatureQuestion }) {
+function Question({ question, showHint, onKeywordOpen }: { question: FeatureQuestion; showHint: boolean; onKeywordOpen: () => void }) {
   const t = useTranslation(), meaningId = useId();
   const language = useContext(LanguageContext);
   const meanings = language === 'zh-CN' ? question.keywords : englishKeywordMeanings;
@@ -25,18 +26,18 @@ function Question({ question }: { question: FeatureQuestion }) {
   const pattern = new RegExp(`(${words.map(word => word.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')})`, 'g');
   return <div className="animal-question-copy" lang="en">
     <h2>{question.text.split(pattern).map((part, index) => question.keywords[part]
-      ? <button className="animal-keyword" key={index} type="button" aria-expanded={selected === part} aria-controls={meaningId} onClick={() => setSelected(selected === part ? '' : part)}>{part}</button>
+      ? <button className="animal-keyword" key={index} type="button" aria-expanded={selected === part} aria-controls={meaningId} onClick={() => { setSelected(selected === part ? '' : part); if (selected !== part) onKeywordOpen(); }}>{part}</button>
       : part)}</h2>
     <div className="animal-keyword-meaning" id={meaningId} role="status">{selected
       ? <span lang={language}><strong lang="en">{selected}</strong> · {meanings[selected]}</span>
-      : <span>{t('Tap an underlined word for its meaning.')}</span>}</div>
+      : showHint ? <span className="animal-keyword-hint" lang={language}>{t('Tap underlined words for meanings')}</span> : null}</div>
   </div>;
 }
 
 function AnswerButtons({ onAnswer, selected }: { onAnswer: (answer: Answer) => void; selected?: Answer }) {
   const t = useTranslation();
   return <div className="animal-answer-buttons" role="group" aria-label={t('Your answer')}>
-    {answers.map(answer => <button key={answer.value} type="button" className={`${answer.value === 'yes' ? 'primary-button' : 'quiet-button'} animal-answer-${answer.value}`} aria-pressed={selected === undefined ? undefined : selected === answer.value} onClick={() => onAnswer(answer.value)}><Icon name={answer.icon}/>{t(answer.label)}</button>)}
+    {answers.map(answer => <button key={answer.value} type="button" className={`quiet-button animal-answer-${answer.value}`} aria-pressed={selected === undefined ? undefined : selected === answer.value} onClick={() => onAnswer(answer.value)}><Icon name={answer.icon}/><span>{t(answer.label)}</span></button>)}
   </div>;
 }
 
@@ -45,6 +46,9 @@ export default function AnimalGuessGame({ bookmark, practiceOwner = 'guest' }: {
   const language = useContext(LanguageContext);
   const [session, setSession] = useState<Session | null>(restoreSession);
   const [editing, setEditing] = useState(false);
+  const [keywordHintSeen, setKeywordHintSeen] = useState(() => {
+    try { return localStorage.getItem(KEYWORD_HINT_KEY) === 'true'; } catch { return false; }
+  });
   const [showChinese, setShowChinese] = useState(false);
   const [storageError, setStorageError] = useState(false);
   const [feedbackAnswer, setFeedbackAnswer] = useState(() => session?.revealedAnswer ?? '');
@@ -76,6 +80,12 @@ export default function AnimalGuessGame({ bookmark, practiceOwner = 'guest' }: {
 
   function start() {
     setSession(newSession()); setEditing(false); setFeedbackAnswer(''); setError('');
+  }
+
+  function rememberKeywordUse() {
+    if (keywordHintSeen) return;
+    setKeywordHintSeen(true);
+    try { localStorage.setItem(KEYWORD_HINT_KEY, 'true'); } catch { /* Keep the hint dismissed during this visit. */ }
   }
 
   function answer(value: Answer) {
@@ -120,10 +130,10 @@ export default function AnimalGuessGame({ bookmark, practiceOwner = 'guest' }: {
             <rect className="animal-guide-bubble" x="105" y="24" width="150" height="120" rx="20"/>
             <text className="animal-guide-mark" x="180" y="106" textAnchor="middle">?</text>
             <path className="animal-guide-branches" d="M180 144v32M60 200v-24h240v24M180 176v24"/>
-            {['Yes', 'No', 'Not Sure'].map((label, index) => <g key={label} transform={`translate(${10 + index * 120}, 200)`}><rect className="animal-guide-answer" width="100" height="42" rx="8"/><text className="animal-guide-label" x="50" y="26" textAnchor="middle">{t(label)}</text></g>)}
+            {answers.map(({ label }, index) => <g key={label} transform={`translate(${10 + index * 120}, 200)`}><rect className="animal-guide-answer" width="100" height="42" rx="8"/><text className="animal-guide-label" x="50" y="26" textAnchor="middle">{t(label)}</text></g>)}
           </svg>
           <details className="game-rules"><summary>{t('How to play')}</summary>
-            <p>{t('Think of a common animal. Answer Yes, No or Not Sure, and see if I can guess it.')}</p>
+            <p>{t('Think of a common animal. Answer Yes, No or Maybe, and see if I can guess it.')}</p>
             <p>{t('You do not need to know its English name. Tap underlined words for help.')}</p>
             <p>{t('Think of the usual animal, not a particular breed. You can change your previous answer.')}</p>
           </details>
@@ -143,18 +153,18 @@ export default function AnimalGuessGame({ bookmark, practiceOwner = 'guest' }: {
       <div ref={panel} tabIndex={-1} className="animal-turn" key={`${turn?.kind}-${turn?.kind === 'question' ? turn.question.id : animal?.id}-${editing}`}>
         {editing && previousQuestion && lastAnswer ? <>
           <p className="animal-step-label">{t('Change your previous answer')}</p>
-          <Question question={previousQuestion}/>
+          <Question key={previousQuestion.id} question={previousQuestion} showHint={!keywordHintSeen} onKeywordOpen={rememberKeywordUse}/>
           <AnswerButtons onAnswer={answer} selected={lastAnswer.answer}/>
           <button className="account-link animal-cancel-edit" type="button" onClick={() => setEditing(false)}>{t('Cancel')}</button>
         </> : turn?.kind === 'question' ? <>
-          <p className="animal-step-label">{t('Question {0}', session.answers.length + 1)}</p>
-          <Question key={turn.question.id} question={turn.question}/>
+          <p className="animal-step-label">{t('Question {0} / {1}', session.answers.length + 1, QUESTION_LIMIT)}</p>
+          <Question key={turn.question.id} question={turn.question} showHint={!keywordHintSeen} onKeywordOpen={rememberKeywordUse}/>
           <AnswerButtons onAnswer={answer}/>
         </> : animal && turn?.kind === 'guess' ? <>
           <p className="animal-step-label">{t(turn.tentative ? 'Let me try a guess.' : 'I think I have it.')}</p>
           <h2 className="animal-guess-prompt" lang="en">Is it a{ /^[aeiou]/i.test(animal.id) ? 'n' : '' } <strong>{animal.id}</strong>?</h2>
           <div className="animal-reveal"><button className="quiet-button" type="button" aria-expanded={showChinese} onClick={() => setShowChinese(!showChinese)}><Icon name="language"/>{t(showChinese ? 'Hide Chinese' : 'Show Chinese')}</button>{showChinese && <span lang="zh-CN">{animal.chinese}</span>}</div>
-          <div className="animal-answer-buttons animal-confirm-buttons"><button className="primary-button" type="button" onClick={() => confirm(true)}><Icon name="check"/>{t('You guessed it')}</button><button className="quiet-button animal-answer-no" type="button" onClick={() => confirm(false)}>{t('Not my animal')}</button></div>
+          <div className="animal-answer-buttons animal-confirm-buttons"><button className="quiet-button animal-answer-yes" type="button" onClick={() => confirm(true)}><Icon name="check"/><span>{t('You guessed it')}</span></button><button className="quiet-button animal-answer-no" type="button" onClick={() => confirm(false)}><Icon name="close"/><span>{t('Not my animal')}</span></button></div>
         </> : finished ? <>
           <span className="animal-result-icon" aria-hidden="true"><Icon name={session.status === 'won' ? 'check' : 'search'}/></span>
           <h2>{t(session.status === 'won' ? 'Found your animal.' : 'You stumped me.')}</h2>

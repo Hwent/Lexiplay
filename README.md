@@ -6,7 +6,7 @@ LexiPlay helps learners build English vocabulary through word games, dictionary 
 
 - **Word Guess:** find a hidden 3–9-letter word in six guesses, with definition hints.
 - **Word Ladder:** make four new words by changing one letter at a time; choose four or five letters.
-- **Guess Animal:** think of a common animal and answer Yes, No or Not Sure. A free, browser-run guessing algorithm asks up to 15 questions and makes up to 3 guesses. English questions include keyword explanations in the interface language; results can be saved to your vocabulary. See [game data and rules](apps/web/src/animal-guess/README.md).
+- **Guess Animal:** think of a common animal and answer Yes, No or Maybe. A free, browser-run guessing algorithm asks up to 15 questions and makes up to 3 guesses. English questions include keyword explanations in the interface language; results can be saved to your vocabulary. See [game data and rules](apps/web/src/animal-guess/README.md).
 - **Vocabulary:** explore curated collections, look up definitions and pronunciation, and save words to personal lists.
 - **Progress:** track completed games, wins, and practice streaks; transfer guest progress after signing in.
 - **Community:** view the top 20 accounts by completed rounds, current practice streak, or coin balance. All games count; giving up does not. Usernames are shown in full, with long names shortened on screen.

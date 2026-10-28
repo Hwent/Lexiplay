@@ -3,9 +3,9 @@ import { animals, featureValue, findAnimal, questions } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
 import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, rankAnimals, restoreSession, saveSession, type Session } from './engine';
 
-function play(animalId: string, wrongAt = -1): Session {
+function play(animalId: string, wrongAt = -1, questionSeed = 42): Session {
   const target = animals.find(animal => animal.id === animalId)!;
-  let session = newSession();
+  let session: Session = { ...newSession(), questionSeed };
   for (let steps = 0; steps < QUESTION_LIMIT + GUESS_LIMIT; steps++) {
     const turn = nextTurn(session);
     if (turn.kind === 'finished') break;
@@ -38,10 +38,38 @@ describe('animal guessing knowledge and inference', () => {
   });
 
   it.each(animals.map(animal => animal.id))('guesses %s from its known features within both limits', id => {
-    const session = play(id);
-    expect(session.status).toBe('won');
-    expect(session.answers.length).toBeLessThanOrEqual(QUESTION_LIMIT);
-    expect(session.guesses.length).toBeLessThanOrEqual(GUESS_LIMIT);
+    for (const seed of [3, 17, 2026]) {
+      const session = play(id, -1, seed);
+      expect(session.status, `seed ${seed}`).toBe('won');
+      expect(session.answers.length).toBeGreaterThanOrEqual(4);
+      expect(session.answers.length).toBeLessThanOrEqual(QUESTION_LIMIT);
+      expect(session.guesses.length).toBeLessThanOrEqual(GUESS_LIMIT);
+    }
+  });
+
+  it('varies strong opening questions between rounds while keeping saved turns stable', () => {
+    const openings = new Set<string>();
+    for (let questionSeed = 0; questionSeed < 16; questionSeed++) {
+      const session = { ...newSession(), questionSeed };
+      const first = nextTurn(session);
+      expect(nextTurn(session)).toEqual(first);
+      if (first.kind !== 'question') throw new Error('Expected an opening question');
+      openings.add(first.question.id);
+      expect(['mammal','fourLegs','fur']).toContain(first.question.id);
+      const answered = answerQuestion(session, 'no');
+      saveSession(answered);
+      expect(nextTurn(restoreSession()!)).toEqual(nextTurn(answered));
+    }
+    expect(openings.size).toBeGreaterThan(1);
+  });
+
+  it('preserves the original selection strategy for rounds saved without a seed', () => {
+    const { questionSeed: _seed, ...legacy } = newSession();
+    const first = nextTurn(legacy);
+    expect(first.kind === 'question' && first.question.id).toBe('mammal');
+    const answered = answerQuestion(legacy, 'yes');
+    saveSession(answered);
+    expect(nextTurn(restoreSession()!)).toEqual(nextTurn(answered));
   });
 
   it('recovers from a single mistaken answer across the animal set', () => {

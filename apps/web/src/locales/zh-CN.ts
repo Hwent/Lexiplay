@@ -1,5 +1,9 @@
 // Interface copy only; learning words and dictionary content stay in English.
 export const zhCN: Record<string, string> = {
+  'Maybe': '不确定',
+  'Tap underlined words for meanings': '点下划线词语，查看释义',
+  'Question {0} / {1}': '第 {0} / {1} 题',
+  'Think of a common animal. Answer Yes, No or Maybe, and see if I can guess it.': '心里想一种常见动物，回答“是”“否”或“不确定”，看看我能不能猜中。',
   'Leaderboards': '排行榜',
   'Practice count': '练习次数',
   'Practice leaderboard': '练习次数排行榜',

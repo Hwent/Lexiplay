@@ -17,6 +17,8 @@ const paths = {
   back: 'M20 12H4M10 6l-6 6 6 6',
   plus: 'M12 5v14M5 12h14',
   check: 'm5 12 4 4L19 6',
+  close: 'm6 6 12 12M18 6 6 18',
+  help: 'M9 7a3 3 0 1 1 5 2c-1 1-2 1.5-2 3.5M12 17.5h.01',
   type: 'M4 6V4h16v2M12 4v16M8 20h8',
   language: 'M3 5h12M9 3v2M6 5c0 5 3 8 7 10M12 5c0 5-4 9-9 11M14 21l4-11 4 11M16 17h4',
   sound: 'M3 9h4l5-4v14l-5-4H3zM16 8a6 6 0 0 1 0 8M19 5a10 10 0 0 1 0 14',

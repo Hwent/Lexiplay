@@ -28,6 +28,10 @@ Other checked profiles include [beavers](https://nationalzoo.si.edu/animals/beav
 by 1.8, mismatches by 0.2; Unknown and Not Sure leave weights unchanged. Scores are
 computed in log space and normalized for selecting questions by expected information
 gain. These are ranking weights, not calibrated real-world confidence percentages.
+New rounds randomly choose among the three best questions within 90% of the best
+information gain. A stored seed keeps each turn stable across rerenders and refreshes;
+older rounds without a seed keep the original question order. The UI labels the
+uncertain answer “Maybe”; it still records `not-sure` internally.
 After at least four questions, a weight of 0.72 triggers an early guess. Otherwise,
 up to 15 feature questions are asked; all three guess opportunities remain available.
 Rejected guesses are excluded. Editing the last answer preserves the guess count.
