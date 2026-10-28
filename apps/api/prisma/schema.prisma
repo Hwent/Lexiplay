@@ -26,6 +26,7 @@ model AccountUser {
   games PracticeGame[] @relation("GameOwner")
   paidGames PracticeGame[] @relation("GamePayer")
   messages Message[]
+  animalGames AnimalGuessGame[]
   @@map("account_users")
 }
 
@@ -63,6 +64,7 @@ model GuestSession {
   games PracticeGame[] @relation("GuestGameOwner")
   paidGames PracticeGame[] @relation("GuestGamePayer")
   messages Message[]
+  animalGames AnimalGuessGame[]
   @@index([claimedByUserId])
   @@map("guest_sessions")
 }
@@ -265,6 +267,7 @@ model PracticeGame {
   activeState Json? @map("active_state")
     ladderState Json? @map("ladder_state")
   status String @default("active")
+  gaveUp Boolean @default(false) @map("gave_up")
   finishedAt DateTime? @db.Timestamptz @map("finished_at")
   @@index([userId,finishedAt])
   @@index([guestSessionId])
@@ -272,4 +275,19 @@ model PracticeGame {
   @@index([coinGuestSessionId])
   @@index([collectionId])
   @@map("practice_games")
+}
+
+model AnimalGuessGame {
+  id String @id @db.Uuid
+  userId String? @db.Uuid @map("user_id")
+  user AccountUser? @relation(fields:[userId], references:[id], onDelete:Cascade)
+  guestSessionId String? @db.Uuid @map("guest_session_id")
+  guest GuestSession? @relation(fields:[guestSessionId], references:[id], onDelete:Cascade)
+  status String
+  questionCount Int @db.SmallInt @map("question_count")
+  guessCount Int @db.SmallInt @map("guess_count")
+  finishedAt DateTime @db.Timestamptz @map("finished_at")
+  @@index([userId,finishedAt], map:"animal_guess_games_user_finished_idx")
+  @@index([guestSessionId], map:"animal_guess_games_guest_idx")
+  @@map("animal_guess_games")
 }

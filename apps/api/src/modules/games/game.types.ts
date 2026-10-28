@@ -24,6 +24,7 @@ export type Game = {
   coinCost: number; winRewardCoins: number; coinPayer: 'account' | 'guest';
   attemptCount?: number; coinChange?: number; answerDefinition?: string;
   cancellationReason?: string;
+  gaveUp?: boolean;
 };
 export function publicGame(game: Game) {
   const { owner: _owner, answer: _answer, answerDefinition: _definition, startRequestId: _request, ...result } = game;

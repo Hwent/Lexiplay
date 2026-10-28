@@ -105,7 +105,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       WHERE u.user_id=$1 AND e.term=$2 ORDER BY e.part_of_speech`, [user.id, term])).rows[0];
   }
 
-  it('publishes the top 20 coin balances with server-masked names and shared ranks', async () => {
+  it('publishes the top 20 coin balances with full usernames and shared ranks', async () => {
     expect(await (await request('/community/coin-rankings')).json()).toEqual([]);
     await pool.query(`INSERT INTO account_users(username,password_hash,coin_balance) VALUES
       ('alice','fixture-only',320),('bob','fixture-only',250),('charlie','fixture-only',250);
@@ -115,19 +115,78 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(response.status).toBe(200);
     const rankings = await response.json();
     expect(rankings).toHaveLength(20);
-    expect(rankings[0]).toEqual({ rank: 1, username: 'al**', coinBalance: 320 });
+    expect(rankings[0]).toEqual({ rank: 1, username: 'alice', coinBalance: 320 });
     expect(rankings.slice(1,3)).toEqual(expect.arrayContaining([
-      { rank: 2, username: 'bo**', coinBalance: 250 },
-      { rank: 2, username: 'ch**', coinBalance: 250 },
+      { rank: 2, username: 'bob', coinBalance: 250 },
+      { rank: 2, username: 'charlie', coinBalance: 250 },
     ]));
-    expect(rankings[3]).toEqual({ rank: 4, username: 'ra**', coinBalance: 99 });
+    expect(rankings[3]).toEqual({ rank: 4, username: 'ranked_1', coinBalance: 99 });
     for (const row of rankings) {
       expect(Object.keys(row).sort()).toEqual(['coinBalance','rank','username']);
-      expect(row.username).toMatch(/^[a-z]{1,2}\*{2}$/);
+      expect(row.username).not.toContain('*');
       expect(typeof row.coinBalance).toBe('number');
     }
     await pool.query("UPDATE account_users SET coin_balance=500 WHERE username='bob'");
-    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'bo**', coinBalance: 500 });
+    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'bob', coinBalance: 500 });
+  });
+
+  it('ranks completed rounds and current UTC streaks across all three games, excluding give-ups and duplicate days', async () => {
+    const a = await account(), b = await account(), c = await account();
+    await pool.query("UPDATE account_users SET username=CASE id WHEN $1::uuid THEN 'Alice' WHEN $2::uuid THEN 'Bob' ELSE '陈同学' END", [a.id,b.id]);
+    const wordRound = async (userId: string, daysAgo: number, ladder = false, gaveUp = false) => pool.query(`
+      INSERT INTO practice_games(start_request_id,user_id,coin_user_id,answer,difficulty,coin_change,status,attempt_count,ladder_state,gave_up,finished_at)
+      VALUES($1,$2,$2,'apple','medium',0,$3,4,$4,$5,((now() AT TIME ZONE 'UTC')::date - $6::int)::timestamp AT TIME ZONE 'UTC')`,
+      [randomUUID(),userId,gaveUp ? 'lost' : 'won',ladder ? JSON.stringify({ startWord:'cold',targetWords:4 }) : null,gaveUp,daysAgo]);
+    const animalRound = async (userId: string, daysAgo: number) => pool.query(`INSERT INTO animal_guess_games(id,user_id,status,question_count,guess_count,finished_at)
+      VALUES($1,$2,'lost',15,3,((now() AT TIME ZONE 'UTC')::date - $3::int)::timestamp AT TIME ZONE 'UTC')`, [randomUUID(),userId,daysAgo]);
+    await wordRound(a.id,0); await wordRound(a.id,1,true); await animalRound(a.id,2); await animalRound(a.id,0);
+    await wordRound(a.id,3,false,true);
+    await wordRound(b.id,1); await animalRound(b.id,2);
+    await wordRound(c.id,3);
+    expect(await (await request('/community/practice-rankings')).json()).toEqual([
+      { rank:1,username:'Alice',value:4 },{ rank:2,username:'Bob',value:2 },{ rank:3,username:'陈同学',value:1 },
+    ]);
+    expect(await (await request('/community/streak-rankings')).json()).toEqual([
+      { rank:1,username:'Alice',value:3 },{ rank:2,username:'Bob',value:2 },
+    ]);
+    await wordRound(c.id,0);
+    expect((await (await request('/community/practice-rankings')).json()).slice(1).map((row: { rank: number }) => row.rank)).toEqual([2,2]);
+  });
+
+  it('records Guess Animal completions once, validates finished rounds, and never charges coins', async () => {
+    const player = await account(), other = await account();
+    const round = { roundId:randomUUID(),status:'won',questionCount:8,guessCount:1,completedAt:new Date().toISOString() };
+    const complete = (body: unknown, cookie = player.cookie) => request('/games/animal-guess/completions','POST',body,cookie);
+    const initial = await balance(player.cookie);
+    expect((await complete(round)).status).toBe(201);
+    expect((await complete(round)).status).toBe(201);
+    expect((await complete(round,other.cookie)).status).toBe(409);
+    expect((await complete({ ...round,roundId:randomUUID(),status:'lost' })).status).toBe(400);
+    expect((await complete({ ...round,roundId:randomUUID(),questionCount:0 })).status).toBe(400);
+    expect((await complete({ ...round,roundId:randomUUID(),completedAt:'2099-01-01T00:00:00Z' })).status).toBe(400);
+    expect(await balance(player.cookie)).toBe(initial);
+    expect((await (await request('/community/practice-rankings')).json())[0].value).toBe(1);
+  });
+
+  it('moves guest animal completions into the signed-in account without counting retries twice', async () => {
+    const cookie = await guest(), player = await account();
+    const round = { roundId:randomUUID(),status:'lost',questionCount:15,guessCount:3,completedAt:new Date().toISOString() };
+    expect((await request('/games/animal-guess/completions','POST',round,cookie)).status).toBe(201);
+    const transfer = { accountId:player.id,transferId:randomUUID(),words:[] };
+    const claimed = await request('/progress/claim','POST',transfer,player.cookie + '; ' + cookie);
+    expect(claimed.status).toBe(201);
+    expect(await claimed.json()).toMatchObject({ gamesTransferred:1 });
+    expect((await request('/games/animal-guess/completions','POST',round,player.cookie)).status).toBe(201);
+    expect((await (await request('/community/practice-rankings')).json())[0].value).toBe(1);
+    expect((await (await request('/community/streak-rankings')).json())[0].value).toBe(1);
+  });
+
+  it('excludes a word puzzle given up through the API from both activity rankings', async () => {
+    const player = await account(), game = await start(player.cookie);
+    expect((await request(`/games/${game.id}/give-up`,'POST',{},player.cookie)).status).toBe(201);
+    expect((await pool.query('SELECT gave_up FROM practice_games WHERE id=$1',[game.id])).rows[0].gave_up).toBe(true);
+    expect(await (await request('/community/practice-rankings')).json()).toEqual([]);
+    expect(await (await request('/community/streak-rankings')).json()).toEqual([]);
   });
 
   it('counts distinct playable words by length and excludes names while preserving ordinary homographs', async () => {
@@ -454,9 +513,10 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
   });
 
-  it('uses 18 tables and enforces balances, ownership, and case-preserved identities', async () => {
+  it('uses 19 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
-    expect(tables).toHaveLength(18);
+    expect(tables).toHaveLength(19);
+    expect(tables).toContainEqual({ tablename: 'animal_guess_games' });
     expect(tables).toContainEqual({ tablename: 'message' });
     const user = await account();
     expect(user.coinBalance).toBe(100);

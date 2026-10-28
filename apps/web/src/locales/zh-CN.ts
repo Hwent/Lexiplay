@@ -1,5 +1,16 @@
 // Interface copy only; learning words and dictionary content stay in English.
 export const zhCN: Record<string, string> = {
+  'Leaderboards': '排行榜',
+  'Practice count': '练习次数',
+  'Practice leaderboard': '练习次数排行榜',
+  'Streak leaderboard': '连续天数排行榜',
+  'Streak days': '连续天数',
+  'Completed rounds': '完成局数',
+  'Days': '天数',
+  'Top 20 by completed rounds across all games. Wins and losses count; giving up does not.': '所有游戏均计入，完成一局计一次，胜负都算，放弃不算。显示前 20 名。',
+  'Top 20 by current streak across all games. Days use UTC; your streak stays active if you played yesterday.': '按连续练习天数排名，显示前 20 名。日期按 UTC 计算；昨天练习过，今天仍保留连续记录。',
+  'Could not load the leaderboard.': '排行榜加载失败，请重试。',
+  'Complete a game while signed in to join the rankings.': '登录后完成一局游戏，就能参与排名。',
   'Coin leaderboard': '金币排行榜',
   'Top 20 accounts by current coin balance.': '金币前 20 用户。',
   'Loading rankings…': '正在加载排行榜…',

@@ -2,6 +2,7 @@ import { BadRequestException, ConflictException, Injectable, NotFoundException, 
 import { Pool, PoolClient } from 'pg';
 import { LEGACY_ATTEMPT_LIMITS, Difficulty, Game, GameStatus, Guess, PUZZLE_ALREADY_STARTED, score } from './game.types';
 import { LADDER_WORDS } from './word-ladder';
+import { AnimalCompletionDto } from './game.dto';
 
 type Wallet = { id: string; coin_balance: number; kind: 'account' | 'guest'; claimed_at?: Date | null; expires_at?: Date };
 type ActiveState = { guesses: string[]; hints: Partial<Game['hints']>; revealedAbsent: string[]; revealedPresent: string[];
@@ -13,6 +14,7 @@ type GameRow = {
   ladder_state: { startWord: string; targetWords?: number; guesses?: string[] } | null;
   collection_id: string | null; collection_name: string; collection_author: string | null;
   coin_user_id: string | null; coin_guest_session_id: string | null;
+  gave_up: boolean;
 };
 
 @Injectable()
@@ -42,6 +44,26 @@ export class GameRepository implements OnModuleDestroy {
         ORDER BY attempt_count DESC,id LIMIT 1`, [row.id])).rows[0];
       return { coinBalance: row.coin_balance, kind: row.kind, activeGameId: active?.id ?? null };
     }
+    finally { client.release(); }
+  }
+
+  async completeAnimal(round: AnimalCompletionDto, owner: string) {
+    const client = await this.pool.connect();
+    try {
+      await client.query('BEGIN');
+      const wallet = await this.walletRow(client, owner, true);
+      const userId = wallet.kind === 'account' ? wallet.id : null;
+      const guestId = wallet.kind === 'guest' ? wallet.id : null;
+      const inserted = await client.query(`INSERT INTO animal_guess_games(id,user_id,guest_session_id,status,question_count,guess_count,finished_at)
+        VALUES($1,$2,$3,$4,$5,$6,$7) ON CONFLICT(id) DO NOTHING RETURNING id`,
+        [round.roundId,userId,guestId,round.status,round.questionCount,round.guessCount,round.completedAt]);
+      if (!inserted.rowCount) {
+        const existing = (await client.query('SELECT user_id,guest_session_id FROM animal_guess_games WHERE id=$1', [round.roundId])).rows[0];
+        if (existing.user_id !== userId || existing.guest_session_id !== guestId) throw new ConflictException('This round belongs to another player.');
+      }
+      await client.query('COMMIT');
+      return { recorded: true };
+    } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
 
@@ -140,10 +162,10 @@ export class GameRepository implements OnModuleDestroy {
           coinCost: game.coinCost, winRewardCoins: game.winRewardCoins, startedAt: game.startedAt };
         await client.query(`UPDATE practice_games SET status=$2,finished_at=$3,active_state=$4,
           attempt_count=$5,coin_change=coin_change+$6,collection_id=CASE WHEN $7 THEN NULL ELSE collection_id END,
-          ladder_state=$8,answer=$9 WHERE id=$1`,
+          ladder_state=$8,answer=$9,gave_up=$10 WHERE id=$1`,
           [id,game.status,game.completedAt,state ? JSON.stringify(state) : null,game.guesses.length,credit-debit,game.completed,
             game.ladder ? JSON.stringify({ startWord: game.ladder.startWord, targetWords: game.ladder.targetWords,
-              ...(game.completed ? { guesses: game.guesses.map(guess => guess.guess) } : {}) }) : null,game.answer]);
+              ...(game.completed ? { guesses: game.guesses.map(guess => guess.guess) } : {}) }) : null,game.answer,game.gaveUp ?? false]);
       }
       await client.query('COMMIT'); return result;
     } catch (error) { await client.query('ROLLBACK'); throw error; }
@@ -168,7 +190,9 @@ export class GameRepository implements OnModuleDestroy {
   async transferGuestGames(client: PoolClient, guest: string, owner: string): Promise<number> {
     const result = await client.query(`UPDATE practice_games SET user_id=$2,guest_session_id=NULL
       WHERE guest_session_id=(SELECT id FROM guest_sessions WHERE token_hash=$1) RETURNING id`, [guest.slice(6), owner.slice(5)]);
-    return result.rowCount ?? 0;
+    const animals = await client.query(`UPDATE animal_guess_games SET user_id=$2,guest_session_id=NULL
+      WHERE guest_session_id=(SELECT id FROM guest_sessions WHERE token_hash=$1) RETURNING id`, [guest.slice(6), owner.slice(5)]);
+    return (result.rowCount ?? 0) + (animals.rowCount ?? 0);
   }
 
   private async load(client: PoolClient, id: string, owner: string, lock = false) {
@@ -204,7 +228,7 @@ export class GameRepository implements OnModuleDestroy {
       return { id:row.id,startRequestId:row.start_request_id,kind:ladder ? 'word-ladder' : 'word-puzzle',owner,answer:row.answer,
         ...(ladder ? { ladder: { startWord: ladder.startWord, targetWords: attemptLimit, startDefinition: meanings.get(ladder.startWord) ?? '' } } : {}),
         answerDefinition:meanings.get(row.answer) ?? '',attemptCount:row.attempt_count,coinChange:row.coin_change,
-        wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit,guesses,completed,status:row.status,
+        wordLength:row.answer.length,difficulty:row.difficulty,attemptLimit,guesses,completed,status:row.status,gaveUp:row.gave_up,
         startedAt:state?.startedAt ?? row.finished_at!.toISOString(),completedAt:row.finished_at?.toISOString() ?? null,
         hints: ladder ? { definition: 0, nextWord: completed || state?.clues?.nextWord ? 0 : 1 } : { definition: completed ? 0 : state?.hints.definition ?? 1 },
         clues: ladder ? { ...(state?.clues?.nextWord ? { nextWord: state.clues.nextWord } : {}) }

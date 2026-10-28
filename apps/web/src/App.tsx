@@ -33,6 +33,7 @@ import SettingsPage from './SettingsPage';
 import CommunityPage from './CommunityPage';
 import StatisticsPanel from './StatisticsPanel';
 import AnimalGuessGame from './animal-guess/AnimalGuessGame';
+import { syncAnimalPractice } from './animal-guess/practice-progress';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
@@ -104,6 +105,14 @@ export default function App() {
   useEffect(() => { if (game) setPuzzleKind(game.ladder ? 'word-ladder' : 'word-puzzle'); }, [game?.id]);
   const [restoring, setRestoring] = useState(false);
   const [accountRevision, setAccountRevision] = useState(0);
+  useEffect(() => {
+    if (accountLoading || progressSaving || accountError) return;
+    const sync = () => { void syncAnimalPractice(account?.id ?? 'guest'); };
+    sync();
+    window.addEventListener('online', sync);
+    window.addEventListener('focus', sync);
+    return () => { window.removeEventListener('online', sync); window.removeEventListener('focus', sync); };
+  }, [account?.id, accountLoading, accountError, progressSaving]);
   const [selectedPoolId, setSelectedPoolId] = useState(preferences.collectionId);
   const wordStore = useMemo(() => new PendingWords(account?.id ?? 'guest'), [account?.id]);
   const wordSelection = useWordSelection(wordStore);
@@ -610,7 +619,7 @@ export default function App() {
         <button type="button" aria-pressed={activeSection === 'animal-guess'} onClick={() => navigateTo('animal-guess')}>{t('Guess Animal')}</button>
       </div>
       </>}
-      {activeSection === 'animal-guess' && <AnimalGuessGame bookmark={wordBookmark}/>}
+      {activeSection === 'animal-guess' && <AnimalGuessGame bookmark={wordBookmark} practiceOwner={accountLoading || progressSaving || accountError ? null : account?.id ?? 'guest'}/>}
       {activeSection === 'play' && <>
       <section className="game-card" aria-label={t('Vocabulary puzzle')} aria-busy={busy || progressSaving || restoring} onClick={event => {
         const target = event.target;

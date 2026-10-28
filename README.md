@@ -9,7 +9,7 @@ LexiPlay helps learners build English vocabulary through word games, dictionary 
 - **Guess Animal:** think of a common animal and answer Yes, No or Not Sure. A free, browser-run guessing algorithm asks up to 15 questions and makes up to 3 guesses. English questions include keyword explanations in the interface language; results can be saved to your vocabulary. See [game data and rules](apps/web/src/animal-guess/README.md).
 - **Vocabulary:** explore curated collections, look up definitions and pronunciation, and save words to personal lists.
 - **Progress:** track completed games, wins, and practice streaks; transfer guest progress after signing in.
-- **Community:** rank the top 20 accounts by coin balance, showing only each username’s first letter.
+- **Community:** view the top 20 accounts by completed rounds, current practice streak, or coin balance. All games count; giving up does not. Usernames are shown in full, with long names shortened on screen.
 - **Settings:** English or Chinese interface, themes, text size, and sound.
 
 Word Guess and Word Ladder cost 1 coin. Word Guess wins award 4 coins at 3–4 letters, 5 at 5–6, 6 at 7–8, and 7 at 9 letters. Word Ladder wins award 4 or 5 coins by word length. Guess Animal is free and does not change the coin balance. New accounts receive 100 coins.
@@ -26,7 +26,10 @@ Base path: `/api/v1`. Requests and responses use JSON. Cookie sessions identify 
 | Dictionary | `GET /word-lists/dictionary?q=word`, `GET /word-lists/dictionary/:term/definition` |
 | Collections and saved words | `GET /collections`, `GET /collections/:slug/words`, `GET /word-lists/mine` |
 | Statistics | `GET /progress/summary` |
-| Coin leaderboard | `GET /community/coin-rankings` |
+| Leaderboards | `GET /community/practice-rankings`, `GET /community/streak-rankings`, `GET /community/coin-rankings` |
+| Guess Animal completion | `POST /games/animal-guess/completions` |
 | Feedback | `POST /feedback` |
 
 Data attribution and license notices: [licenses](apps/web/public/licenses/).
+
+Leaderboard streaks use UTC dates and remain active if the latest completed round was yesterday. Guess Animal completions are recorded once per round and transferred with guest progress after sign-in; earlier browser-only rounds cannot be backfilled.

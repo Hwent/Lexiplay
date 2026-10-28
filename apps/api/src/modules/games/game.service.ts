@@ -142,6 +142,7 @@ export class GameService {
           game.answerDefinition = last?.definition ?? game.ladder.startDefinition ?? '';
         }
         game.completed = true;
+        game.gaveUp = true;
         game.status = 'lost';
         game.completedAt = new Date().toISOString();
       }

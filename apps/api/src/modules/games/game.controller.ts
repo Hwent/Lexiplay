@@ -5,7 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { GameService } from './game.service';
 import { GameRepository } from './game.repository';
 import { SubmitGuessDto } from './submit-guess.dto';
-import { StartGameDto, HintDto } from './game.dto';
+import { StartGameDto, HintDto, AnimalCompletionDto } from './game.dto';
 import { AccountService } from '../accounts/account.service';
 import { readSessionCookie } from '../accounts/session-cookie';
 import { guestOwner } from './guest-cookie';
@@ -22,6 +22,15 @@ export class GameController {
   @Get('wallet')
   async wallet(@Headers('cookie') cookie: string | undefined, @Res({ passthrough: true }) response: Response) {
     return this.repository.wallet(await this.owner(cookie, response));
+  }
+
+  @Post('animal-guess/completions')
+  async completeAnimal(@Headers('cookie') cookie: string | undefined, @Body() body: AnimalCompletionDto,
+    @Res({ passthrough: true }) response: Response) {
+    if (body.status === 'lost' && body.guessCount !== 3 || new Date(body.completedAt).getTime() > Date.now() + 300_000) {
+      throw new BadRequestException('Submit a completed Guess Animal round.');
+    }
+    return this.repository.completeAnimal(body, await this.owner(cookie, response));
   }
 
   @Post()

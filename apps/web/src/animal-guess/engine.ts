@@ -13,6 +13,8 @@ export type Session = {
   status: 'active' | 'won' | 'lost';
   revealedAnswer: string;
   feedbackSent: boolean;
+  completedAt?: string;
+  practiceQueued?: boolean;
 };
 export type Turn = { kind: 'question'; question: FeatureQuestion } | { kind: 'guess'; animal: Animal; tentative: boolean } | { kind: 'finished' };
 
@@ -81,7 +83,8 @@ export function confirmGuess(session: Session, correct: boolean): Session {
   const turn = nextTurn(session);
   if (turn.kind !== 'guess') return session;
   const guesses = [...session.guesses, { animalId: turn.animal.id, correct }];
-  return { ...session, guesses, status: correct ? 'won' : guesses.length >= GUESS_LIMIT ? 'lost' : 'active' };
+  const status = correct ? 'won' : guesses.length >= GUESS_LIMIT ? 'lost' : 'active';
+  return { ...session, guesses, status, ...(status !== 'active' ? { completedAt: new Date().toISOString() } : {}) };
 }
 
 const STORAGE_KEY = 'lexiplay-animal-guess:v1';
@@ -102,6 +105,8 @@ export function restoreSession(): Session | null {
     const won = value.guesses.some(item => item.correct);
     if (won !== (value.status === 'won') || (value.status === 'active' && value.guesses.length >= GUESS_LIMIT)) return null;
     if (typeof value.revealedAnswer !== 'string' || value.revealedAnswer.length > 100 || typeof value.feedbackSent !== 'boolean') return null;
+    if (value.completedAt !== undefined && (typeof value.completedAt !== 'string' || !Number.isFinite(Date.parse(value.completedAt)))) return null;
+    if (value.practiceQueued !== undefined && typeof value.practiceQueued !== 'boolean') return null;
     return value;
   } catch { return null; }
 }

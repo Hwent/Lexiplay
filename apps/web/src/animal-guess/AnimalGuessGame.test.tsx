@@ -81,6 +81,8 @@ it('restores the current question after remount and edits the last answer withou
 
 it('reveals the guessed Chinese name only on request and shows a bookmarkable result without examples', async () => {
   const user = userEvent.setup();
+  const fetchMock = vi.fn(async () => Response.json({ recorded: true }));
+  vi.stubGlobal('fetch', fetchMock);
   saveSession(readyToGuess('tiger'));
   render(<AnimalGuessGame bookmark={bookmark}/>);
   expect(screen.getByRole('heading', { name: /Is it a tiger\s*\?/ })).toBeInTheDocument();
@@ -93,6 +95,9 @@ it('reveals the guessed Chinese name only on request and shows a bookmarkable re
   expect(screen.getByText(animals.find(animal => animal.id === 'tiger')!.definition)).toBeInTheDocument();
   expect(screen.queryByText(/example sentence/i)).not.toBeInTheDocument();
   expect(restoreSession()!.status).toBe('won');
+  await waitFor(() => expect(fetchMock).toHaveBeenCalledOnce());
+  expect(fetchMock.mock.calls[0]).toEqual(expect.arrayContaining(['/api/v1/games/animal-guess/completions']));
+  expect(restoreSession()!.practiceQueued).toBe(true);
   await user.click(screen.getByRole('button', { name: 'Play again' }));
   expect(restoreSession()!.answers).toHaveLength(0);
   expect(restoreSession()!.guesses).toHaveLength(0);
@@ -115,13 +120,17 @@ it('uses all three guess opportunities after fifteen questions and retries faile
   let session = newSession();
   for (let index = 0; index < 15; index++) session = answerQuestion(session, 'not-sure');
   saveSession(session);
-  const fetchMock = vi.fn().mockResolvedValueOnce(Response.json({ message: 'Please try again.' }, { status: 503 })).mockResolvedValueOnce(Response.json({ id: 'feedback-1' }));
+  const feedbackMock = vi.fn().mockResolvedValueOnce(Response.json({ message: 'Please try again.' }, { status: 503 })).mockResolvedValueOnce(Response.json({ id: 'feedback-1' }));
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => String(input).endsWith('/animal-guess/completions')
+    ? Promise.resolve(Response.json({ recorded: true })) : feedbackMock(input, init));
   vi.stubGlobal('fetch', fetchMock);
   render(<AnimalGuessGame bookmark={bookmark}/>);
   for (let index = 0; index < 3; index++) await user.click(screen.getByRole('button', { name: 'Not my animal' }));
   expect(screen.getByText('15 / 15 questions')).toBeInTheDocument();
   expect(screen.getByText('3 / 3 guesses')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'You stumped me.' })).toBeInTheDocument();
+  const completionCall = fetchMock.mock.calls.find(([path]) => String(path).endsWith('/animal-guess/completions'))!;
+  expect(JSON.parse(completionCall[1]!.body as string)).toMatchObject({ status: 'lost', guessCount: 3, questionCount: 15 });
   const input = screen.getByRole('textbox', { name: 'What animal were you thinking of?' });
   await user.type(input, '独角兽');
   await user.click(screen.getByRole('button', { name: 'Send answer' }));
@@ -130,7 +139,7 @@ it('uses all three guess opportunities after fifteen questions and retries faile
   await user.click(screen.getByRole('button', { name: 'Send answer' }));
   expect(await screen.findByText('Thanks. Your answer is saved for review.')).toBeInTheDocument();
   expect(screen.getByText(/Not in this starter set yet\./)).toBeInTheDocument();
-  const [path, init] = fetchMock.mock.calls[1]!;
+  const [path, init] = feedbackMock.mock.calls[1]!;
   expect(path).toBe('/api/v1/feedback');
   const payload = JSON.parse(init.body);
   expect(payload.content).toContain('独角兽');
@@ -143,9 +152,11 @@ it('uses all three guess opportunities after fifteen questions and retries faile
 it('uses a supplied Chinese answer to show the correct animal after giving up', async () => {
   const user = userEvent.setup();
   saveSession(answerQuestion(newSession(), 'no'));
-  vi.stubGlobal('fetch', vi.fn().mockResolvedValue(Response.json({ id: 'feedback-2' })));
+  const fetchMock = vi.fn().mockResolvedValue(Response.json({ id: 'feedback-2' }));
+  vi.stubGlobal('fetch', fetchMock);
   render(<AnimalGuessGame bookmark={bookmark}/>);
   await user.click(screen.getByRole('button', { name: 'Give up' }));
+  expect(fetchMock).not.toHaveBeenCalled();
   await user.type(screen.getByRole('textbox', { name: 'What animal were you thinking of?' }), '海豚');
   await user.click(screen.getByRole('button', { name: 'Send answer' }));
   expect(await screen.findByRole('button', { name: 'Save dolphin' })).toBeInTheDocument();

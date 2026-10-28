@@ -7,6 +7,7 @@ import { gameAudio } from '../services/game-audio';
 import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, restoreSession, saveSession, type Answer, type Session } from './engine';
 import { animalById, findAnimal, KNOWLEDGE_VERSION, questionById, type FeatureQuestion } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
+import { queueAnimalPractice, syncAnimalPractice } from './practice-progress';
 import './animal-guess.css';
 
 const answers: { value: Answer; label: string; icon: 'check' | 'back' | 'search' }[] = [
@@ -39,7 +40,7 @@ function AnswerButtons({ onAnswer, selected }: { onAnswer: (answer: Answer) => v
   </div>;
 }
 
-export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string, definition: string) => ReactNode }) {
+export default function AnimalGuessGame({ bookmark, practiceOwner = 'guest' }: { bookmark: (term: string, definition: string) => ReactNode; practiceOwner?: string | null }) {
   const t = useTranslation();
   const language = useContext(LanguageContext);
   const [session, setSession] = useState<Session | null>(restoreSession);
@@ -60,6 +61,14 @@ export default function AnimalGuessGame({ bookmark }: { bookmark: (term: string,
   const finished = session !== null && session.status !== 'active';
 
   useEffect(() => { if (session) setStorageError(!saveSession(session)); }, [session]);
+  useEffect(() => {
+    if (!practiceOwner || !session?.completedAt || session.practiceQueued || session.status === 'active') return;
+    if (session.status === 'lost' && session.guesses.length !== GUESS_LIMIT) return;
+    queueAnimalPractice({ roundId: session.id, status: session.status, questionCount: session.answers.length,
+      guessCount: session.guesses.length, completedAt: session.completedAt }, practiceOwner);
+    setSession(current => current?.id === session.id ? { ...current, practiceQueued: true } : current);
+    void syncAnimalPractice(practiceOwner);
+  }, [session, practiceOwner]);
   useEffect(() => {
     setShowChinese(false);
     if (session) panel.current?.focus({ preventScroll: true });
