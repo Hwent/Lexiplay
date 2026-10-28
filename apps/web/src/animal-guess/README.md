@@ -1,6 +1,6 @@
 # AI Guess
 
-Free, browser-run animal guessing for B1–B2 learners. No model or coin calls.
+Free, browser-run animal guessing for B1–B2 learners. No model calls or coin changes.
 The 50-animal knowledge set is curated; Chinese names reference
 [ECDICT](https://github.com/skywind3000/ECDICT). Only the animal meaning is used.
 English definitions, questions and contextual keyword glosses are written for this game;

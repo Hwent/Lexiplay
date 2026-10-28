@@ -31,13 +31,15 @@ import AccountPage from './AccountPage';
 import SettingsPage from './SettingsPage';
 import CommunityPage from './CommunityPage';
 import StatisticsPanel from './StatisticsPanel';
+import AnimalGuessGame from './animal-guess/AnimalGuessGame';
 
 type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
-type Section = 'home' | 'play' | 'library' | 'dictionary' | 'feedback' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
+type Section = 'home' | 'play' | 'animal-guess' | 'library' | 'dictionary' | 'feedback' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
 const sectionPaths: Record<Section, string> = {
   home: '/', play: '/games', library: '/library', dictionary: '/dictionary', progress: '/progress', community: '/community', settings: '/settings',
   licenses: '/licenses', account: '/account', feedback: '/feedback',
+  'animal-guess': '/games/animal-guess',
 };
 const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
 pathSections['/play'] = 'play';
@@ -165,7 +167,7 @@ export default function App() {
   activeSectionRef.current = activeSection;
   const navigating = useRef(false);
   useEffect(() => {
-    if (!accountLoading && (activeSection === 'play' || activeSection === 'library')) void wordStore.loadSaved().catch(() => {});
+    if (!accountLoading && (activeSection === 'play' || activeSection === 'animal-guess' || activeSection === 'library')) void wordStore.loadSaved().catch(() => {});
   }, [accountLoading, activeSection, wordStore]);
   useEffect(() => {
     const syncSection = () => {
@@ -248,6 +250,11 @@ export default function App() {
     setMessage('');
     setRejectedAttempt(0);
     setCelebrationId('');
+  }
+
+  function selectPuzzle(kind: 'word-puzzle' | 'word-ladder') {
+    if (game && finished) resetGame();
+    setPuzzleKind(kind); setMessage(''); navigateTo('play');
   }
 
   useEffect(() => {
@@ -548,6 +555,7 @@ export default function App() {
 
   const sectionTitle: Record<Section, string> = {
     home: t('Home'), play: t('Games'), library: t('Words'), dictionary: t('Dictionary'),
+    'animal-guess': t('AI Guess'),
     progress: t('Stats'), community: t('Community'), settings: t('Settings'), licenses: t('Licenses'), account: t('Account'), feedback: t('Feedback'),
   };
   const navigation: { key: Section; icon: IconName }[] = [
@@ -557,7 +565,7 @@ export default function App() {
   ];
   const statsSections = [{ key: 'progress', label: 'Overview' }, { key: 'community', label: 'Community' }] as const;
   const settingsSections = [{ key: 'settings', label: 'Preferences' }, { key: 'account', label: 'Account' }, { key: 'feedback', label: 'Feedback' }] as const;
-  const activeNavigationSection = activeSection === 'community' ? 'progress' : activeSection === 'feedback' || activeSection === 'account' ? 'settings' : activeSection;
+  const activeNavigationSection = activeSection === 'animal-guess' ? 'play' : activeSection === 'community' ? 'progress' : activeSection === 'feedback' || activeSection === 'account' ? 'settings' : activeSection;
   const sectionNavigation = activeNavigationSection === 'progress' ? statsSections : activeNavigationSection === 'settings' ? settingsSections : null;
 
   return (
@@ -588,12 +596,16 @@ export default function App() {
         {sectionNavigation.map(item => <a key={item.key} href={sectionPaths[item.key]} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{t(item.label)}</a>)}
       </nav>}
 
-      {activeSection === 'play' && <>
+      {(activeSection === 'play' || activeSection === 'animal-guess') && <>
       {!game && <div className="page-introduction"><div><h2>{t('Choose your ')}<span>{t('challenge.')}</span></h2></div><span className="page-intro-icon" aria-hidden="true"><Icon name="play" /></span></div>}
-      {!game && <div className="puzzle-type-options" role="group" aria-label={t('Puzzle type')}>
-        <button type="button" aria-pressed={puzzleKind === 'word-puzzle'} onClick={() => { setPuzzleKind('word-puzzle'); setMessage(''); }} disabled={busy || restoring}>{t('Word puzzle')}</button>
-        <button type="button" aria-pressed={puzzleKind === 'word-ladder'} onClick={() => { setPuzzleKind('word-ladder'); setMessage(''); }} disabled={busy || restoring}>{t('Word Ladder')}</button>
-      </div>}
+      <div className="puzzle-type-options" role="group" aria-label={t('Puzzle type')}>
+        <button type="button" aria-pressed={activeSection === 'play' && puzzleKind === 'word-puzzle'} onClick={() => selectPuzzle('word-puzzle')} disabled={busy || restoring || (!!game && !finished && puzzleKind !== 'word-puzzle')}>{t('Word puzzle')}</button>
+        <button type="button" aria-pressed={activeSection === 'play' && puzzleKind === 'word-ladder'} onClick={() => selectPuzzle('word-ladder')} disabled={busy || restoring || (!!game && !finished && puzzleKind !== 'word-ladder')}>{t('Word Ladder')}</button>
+        <button type="button" aria-pressed={activeSection === 'animal-guess'} onClick={() => navigateTo('animal-guess')}>{t('AI Guess')}</button>
+      </div>
+      </>}
+      {activeSection === 'animal-guess' && <AnimalGuessGame bookmark={wordBookmark}/>}
+      {activeSection === 'play' && <>
       <section className="game-card" aria-label={t('Vocabulary puzzle')} aria-busy={busy || progressSaving || restoring} onClick={event => {
         const target = event.target;
         if (target instanceof Element && target.closest('button, input, a, select, textarea')) return;
@@ -726,6 +738,7 @@ export default function App() {
         <article><h3>{t('C2 vocabulary selection')}</h3><p>{t('The expanded C2 selection adapts the ')}<a href="https://github.com/openlanguageprofiles/olp-en-cefrj" target="_blank" rel="noreferrer">{t('Octanove Vocabulary Profile C1/C2 v1.0')}</a>{t(', created by Octanove Labs and published through Open Language Profiles under ')}<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">{t('CC BY-SA 4.0')}</a>{t('. LexiPlay normalizes spelling alternatives, removes duplicate entries, and admits additions only with a published family match and a matching dictionary definition. Entries requiring review of a particular meaning are held back. The original starter used ')}<a href="https://www.esl-lounge.com/student/reference/c2-cefr-vocabulary-word-list.php" target="_blank" rel="noreferrer">{t('ESL Lounge')}</a>{t(' as one reference.')}</p><p>{t('This is a learning selection, not an official or exhaustive CEFR inventory. Dictionary definitions retain their own source licences. ')}<a href="/data/lexiplay-c2.json" target="_blank" rel="noreferrer">{t('Download the adapted C2 selection')}</a> · <a href="/licenses/cefr-data-NOTICE.md" target="_blank" rel="noreferrer">{t('Data attribution and modifications')}</a></p></article>
         <article><h3>{t('Word-family grouping')}</h3><p>{t('Family identities are adapted from Paul Nation\'s BNC/COCA word-family lists v1.0.0, hosted by ')}<a href="https://www.wgtn.ac.nz/lals/resources/paul-nations-resources" target="_blank" rel="noreferrer">{t('Victoria University of Wellington')}</a>{t('. The adapted mapping is provided under CC BY-SA 4.0, following the university\'s resource licence statement. Grouping does not assign one CEFR level or shared learning progress to every member. Phrases and entries without a published match remain separate study items. ')}<a href="/data/bnc-coca-families.json" target="_blank" rel="noreferrer">{t('Download the adapted family mapping')}</a></p></article>
         <article><h3>{t('Original Wordle answers')}</h3><p>{t('The five-letter answer pool uses the original 2,315-word selection by Josh Wardle, preserved in ')}<a href="https://gist.github.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b" target="_blank" rel="noreferrer">{t('cfreshman’s source extraction')}</a>{t('. Playable answers have matching English definitions in the LexiPlay dictionary. This selection does not track subsequent New York Times editorial changes.')}</p></article>
+        <article><h3>{t('AI Guess Chinese meanings')}</h3><p>{t('Chinese animal names reference ')}<a href="https://github.com/skywind3000/ECDICT" target="_blank" rel="noreferrer">ECDICT</a>{t('. Meanings are manually selected for the animal sense. English questions, definitions and contextual keyword glosses are curated for this game.')} <a href="/licenses/ECDICT-LICENSE.txt" target="_blank" rel="noreferrer">{t('ECDICT license notice')}</a></p></article>
       </section>}
       <footer className="workspace-footer"><div className="footer-links"><a href="https://github.com/Hwent" target="_blank" rel="noopener noreferrer" aria-label={t('Visit Hwent on GitHub (opens in a new tab)')}>{t('Hwent on GitHub ')}<Icon name="arrow" /></a><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>{t('Licenses')}</a></div></footer>
       </div>
