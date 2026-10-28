@@ -648,5 +648,9 @@ export const zhCN: Record<string, string> = {
   'Guess Animal Chinese meanings': '猜动物中文释义',
   'Chinese animal names reference ': '中文动物名参考 ',
   '. Meanings are manually selected for the animal sense. English questions, definitions and contextual keyword glosses are curated for this game.': '，由人工筛选动物对应的含义。英文问题、英文释义和关键词的语境释义为本游戏专门整理。',
+  'Try Guess Animal': '来玩猜动物吧',
+  'Think of an animal. Answer a few questions and see if we can guess it.': '心里想一种动物，回答几个问题，看看我能不能猜中！',
+  'Play Guess Animal': '开始游戏',
+  'Maybe later': '下次再玩',
   'ECDICT license notice': 'ECDICT 许可声明'
 };

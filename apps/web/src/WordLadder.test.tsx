@@ -5,7 +5,7 @@ import App from './App';
 import WordLadderBoard from './WordLadderBoard';
 
 describe('Word Ladder', () => {
-  beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games'); });
+  beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const ladder = { startWord: 'cold', startDefinition: 'At a low temperature.', targetWords: 4 };
   const game = { id: 'ladder', kind: 'word-ladder', ladder, wordLength: 4, difficulty: 'medium', attemptLimit: 4, status: 'active', guesses: [], hints: { definition: 0 }, revealedAbsent: [], revealedPresent: [], coinPayer: 'guest' };

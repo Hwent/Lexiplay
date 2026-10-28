@@ -6,7 +6,7 @@ import App from './App';
 import { cachedDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 
 describe('practice puzzle', () => {
-  beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/'); });
+  beforeEach(() => { window.localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); window.history.replaceState({}, '', '/'); });
   afterEach(() => {
     cleanup();
     clearDictionaryCache();

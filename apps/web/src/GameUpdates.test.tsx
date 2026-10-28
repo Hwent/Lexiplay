@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 describe('saved practice and account updates', () => {
-  beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/games'); });
+  beforeEach(() => { window.localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
   it('reminds players to click the puzzle after losing keyboard focus and restores typing', async () => {

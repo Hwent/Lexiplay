@@ -7,7 +7,7 @@ import { gameAudio } from './services/game-audio';
 import { createTranslator } from './i18n';
 
 beforeEach(() => {
-  localStorage.clear(); clearDictionaryCache();
+  localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); clearDictionaryCache();
   history.replaceState({}, '', '/settings');
   vi.spyOn(navigator, 'languages', 'get').mockReturnValue(['en-CA']);
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {

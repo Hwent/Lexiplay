@@ -11,13 +11,13 @@ const word = { id: 'local-1', term: 'chair', definition: 'A seat.', status: 'KNO
 const game = { id: gameId, wordLength: 5, difficulty: 'medium', attemptLimit: 6, guesses: [{ guess: 'paper', feedback: ['PRESENT', 'ABSENT', 'PRESENT', 'ABSENT', 'ABSENT'], attemptsRemaining: 5, completed: false, definition: 'Writing material.' }], hints: { definition: 1 }, revealedAbsent: [], revealedPresent: [] };
 describe('guest progress on authentication', () => {
   beforeEach(() => {
-    window.localStorage.clear(); window.history.replaceState({}, '', '/account');
+    window.localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); window.history.replaceState({}, '', '/account');
     window.localStorage.setItem(LOCAL_WORDS_KEY, JSON.stringify([{ id: 'local-list', name: 'My words', words: [word] }]));
     window.localStorage.setItem(LAST_GAME_KEY, gameId);
   });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   it.each(['Sign in', 'Create account'])('refreshes credited coins after %s with no saved words or games', async mode => {
-    localStorage.clear();
+    localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true');
     let signedIn = false, claimed = false;
     let finishClaim!: () => void;
     const claimPending = new Promise<void>(resolve => { finishClaim = resolve; });

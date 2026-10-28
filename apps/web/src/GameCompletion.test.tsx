@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 describe('completed games', () => {
-  beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games'); });
+  beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const ladder = { startWord: 'cold', startDefinition: 'At a low temperature.', targetWords: 4 };
   function fixture(kind: string, status: string) {

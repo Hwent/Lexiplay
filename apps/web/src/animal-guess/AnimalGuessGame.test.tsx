@@ -8,7 +8,7 @@ import { answerQuestion, newSession, nextTurn, restoreSession, saveSession, type
 import { animals, featureValue } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
 
-beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games/animal-guess'); });
+beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games/animal-guess'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const bookmark = (term: string) => <button type="button">Save {term}</button>;

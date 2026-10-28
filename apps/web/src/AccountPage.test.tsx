@@ -5,7 +5,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 describe('dedicated account page', () => {
-  beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/'); });
+  beforeEach(() => { window.localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); window.history.replaceState({}, '', '/'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   it('keeps forms off the main page and shares sign-in status across page navigation', async () => {
     const account = { id: 'user-1', email: 'learner@example.test', username: 'learner', emailVerified: false };

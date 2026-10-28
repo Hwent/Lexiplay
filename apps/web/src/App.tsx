@@ -16,6 +16,7 @@ import GameGuide from './GameGuide';
 import PuzzleGuessRow from './PuzzleGuessRow';
 import PuzzleGrid from './PuzzleGrid';
 import GuestGameReminder from './GuestGameReminder';
+import AnimalGameInvitation, { hasSeenAnimalInvitation } from './AnimalGameInvitation';
 import DefinitionText from './DefinitionText';
 import { definitionHintText } from './hint-text';
 import { gameAudio } from './services/game-audio';
@@ -84,6 +85,7 @@ export default function App() {
   const { account, setAccount, loading: accountLoading, error: accountError, retry: retryAccount, signedIn, progressSaving, progressError, progressMessage, retryProgress } = useAccount();
   const [game, setGame] = useState<Game | null>(null);
   const [dismissedGuestReminder, setDismissedGuestReminder] = useState('');
+  const [animalInvitationPending, setAnimalInvitationPending] = useState(() => !hasSeenAnimalInvitation());
   const [accountEntryMode, setAccountEntryMode] = useState<'login' | 'register'>('login');
   const playAgainRef = useRef<HTMLButtonElement>(null);
   const [wallet, setWallet] = useState<{ coinBalance: number; kind: string } | null>(null);
@@ -296,6 +298,7 @@ export default function App() {
   const attemptsRemaining = game ? Math.max(0,game.attemptLimit - (game.attemptCount ?? game.guesses.length)) : 0;
   const setupReward = puzzleKind === 'word-ladder' ? ladderWordLength : Math.ceil(selectedWordLength / 2) + 2;
   const showGuestReminder = !!(activeSection === 'play' && game && finished && game.status !== 'cancelled' && !account && !accountLoading && !accountError && dismissedGuestReminder !== game.id);
+  const showAnimalInvitation = animalInvitationPending && !accountLoading && !restoring && !showGuestReminder;
 
   useEffect(() => {
     if (accountLoading || progressSaving) return;
@@ -572,7 +575,7 @@ export default function App() {
   const sectionNavigation = activeNavigationSection === 'progress' ? statsSections : activeNavigationSection === 'settings' ? settingsSections : null;
 
   return (
-    <LanguageContext.Provider value={interfacePreferences.language}><PendingWordsContext.Provider value={wordStore}><main className="app-shell" inert={showGuestReminder}>
+    <LanguageContext.Provider value={interfacePreferences.language}><PendingWordsContext.Provider value={wordStore}><main className="app-shell" inert={showGuestReminder || showAnimalInvitation}>
       <aside className="sidebar">
         <a className="brand" href="/" aria-label={t('LexiPlay home')} onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark">L</span>{t(' LexiPlay')}</a>
         <nav aria-label={t('Main navigation')} className="main-navigation">
@@ -747,6 +750,7 @@ export default function App() {
       </div>
     </main>
     {showGuestReminder && game && <GuestGameReminder key={game.id} returnFocusRef={playAgainRef} onDismiss={() => setDismissedGuestReminder(game.id)} onSignIn={() => { setDismissedGuestReminder(game.id); navigateTo('account'); }} onCreateAccount={() => { setDismissedGuestReminder(game.id); navigateTo('account', undefined, 'register'); }}/>}
+    {showAnimalInvitation && <AnimalGameInvitation onDismiss={() => setAnimalInvitationPending(false)} onPlay={() => { setAnimalInvitationPending(false); navigateTo('animal-guess'); }}/>}
     </PendingWordsContext.Provider></LanguageContext.Provider>
   );
 }

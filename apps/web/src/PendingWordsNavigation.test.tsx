@@ -7,7 +7,7 @@ import { clearDictionaryCache } from './dictionary-cache';
 const account = { id: 'learner', username: 'test', email: null };
 const list = { id: 'my-list', isDefault: true, preferredLanguage: 'en', wordCount: 0 };
 const game = { id: 'saved-game', wordLength: 5, attemptLimit: 6, guesses: [{ guess: 'cover', definition: 'To place over.', feedback: Array(5).fill('ABSENT'), completed: false, attemptsRemaining: 5 }], hints: { definition: 1 }, revealedAbsent: [], revealedPresent: [] };
-beforeEach(() => { localStorage.clear(); window.history.replaceState({}, '', '/games'); });
+beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); window.history.replaceState({}, '', '/games'); });
 afterEach(() => { cleanup(); clearDictionaryCache(); vi.unstubAllGlobals(); });
 function apiFixture(write?: (init: RequestInit) => Promise<Response>) {
   const saved: string[] = [];
