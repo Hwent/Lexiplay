@@ -24,17 +24,39 @@ Other checked profiles include [beavers](https://nationalzoo.si.edu/animals/beav
 [hyenas](https://animals.sandiegozoo.org/animals/spotted-hyena) and
 [sloths](https://animals.sandiegozoo.org/animals/two-toed-sloth).
 
-`engine.ts` recomputes weights from the answer history. Known matches multiply
-by 1.8, mismatches by 0.2; Unknown and Not Sure leave weights unchanged. Scores are
-computed in log space and normalized for selecting questions by expected information
-gain. These are ranking weights, not calibrated real-world confidence percentages.
+`engine.ts` recomputes candidate weights in log space. New rounds use inference v2.
+`question-policy.ts` assigns heuristic reliability: 0.91 for distinctive traits,
+0.90 for ordinary observations and 0.89 for variable or subjective traits. These
+are tuning assumptions, not measured player accuracy. Related traits share an
+evidence group; with k known answers in one group, each reliability becomes
+`0.5 + (reliability - 0.5) * 0.985^(k - 1)`. The entire group is discounted together,
+so reordering answers does not change its score. Unknown and Maybe contribute no
+evidence. Candidate weights are relative rankings, not calibrated confidence percentages.
+Question selection retains the existing expected-information-gain response model.
 New rounds randomly choose among the three best questions within 90% of the best
 information gain. A stored seed keeps each turn stable across rerenders and refreshes;
 older rounds without a seed keep the original question order. The UI labels the
 uncertain answer “Maybe”; it still records `not-sure` internally.
-After at least four questions, a weight of 0.72 triggers an early guess. Otherwise,
-up to 15 feature questions are asked; all three guess opportunities remain available.
+Early guesses require four known answers from at least three groups, a leading
+weight of 0.72, a gap of 0.45 to the runner-up, and at most two groups with strong
+contradictions. Another question is asked if its expected information gain exceeds
+0.4 bits, unless the leading weight is already 0.90. At 15 questions the game still
+makes its best guesses; all three guess opportunities remain available.
+Saved rounds without inference v2 retain their original scoring and stop rules.
 Rejected guesses are excluded. Editing the last answer preserves the guess count.
+
+Synthetic comparison across the existing seeds and separate validation seeds:
+
+| Answers | Original wins | Inference v2 wins |
+| --- | --- | --- |
+| Known features | 600/600 | 600/600 |
+| One wrong answer, positions 1–4 | 800/800 | 799/800 |
+| Every fourth answer uncertain | 600/600 | 600/600 |
+| Two wrong answers | 182/200 | 180/200 |
+
+Standard rounds averaged 8.64 questions originally and 8.79 with v2. These
+authored-feature simulations do not establish an overall win-rate improvement;
+the conservative reliability assumptions still need calibration against real play.
 
 Progress is versioned in local storage and survives refreshes on the same browser.
 There is no cross-device game history. Saved vocabulary uses the existing pending-word

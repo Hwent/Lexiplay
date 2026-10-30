@@ -1,4 +1,5 @@
 import { animalById, animals, featureValue, questionById, questions, type Animal, type FeatureQuestion } from './knowledge';
+import { questionPolicy, questionReliability } from './question-policy';
 
 export const QUESTION_LIMIT = 15;
 export const GUESS_LIMIT = 3;
@@ -16,29 +17,45 @@ export type Session = {
   completedAt?: string;
   practiceQueued?: boolean;
   questionSeed?: number;
+  inferenceVersion?: 2;
 };
 export type Turn = { kind: 'question'; question: FeatureQuestion } | { kind: 'guess'; animal: Animal; tentative: boolean } | { kind: 'finished' };
 
 export function newSession(): Session {
-  return { version: 1, id: crypto.randomUUID(), questionSeed: crypto.getRandomValues(new Uint32Array(1))[0]!, answers: [], guesses: [], status: 'active', revealedAnswer: '', feedbackSent: false };
+  return { version: 1, inferenceVersion: 2, id: crypto.randomUUID(), questionSeed: crypto.getRandomValues(new Uint32Array(1))[0]!, answers: [], guesses: [], status: 'active', revealedAnswer: '', feedbackSent: false };
 }
 
-export function rankAnimals(session: Session): { animal: Animal; weight: number }[] {
+function rankCandidates(session: Session) {
   const rejected = new Set(session.guesses.filter(guess => !guess.correct).map(guess => guess.animalId));
   const ranked = animals.filter(animal => !rejected.has(animal.id)).map(animal => {
     let score = 0;
+    let evidenceCount = 0;
+    const groups = new Map<string, number>();
+    const contradictions = new Set<string>();
+    const observations: { policy: ReturnType<typeof questionPolicy>; matches: boolean }[] = [];
     for (const { questionId, answer } of session.answers) {
       const expected = featureValue(animal, questionId);
       if (answer === 'not-sure' || expected === 'unknown') continue;
-      // A 9:1 likelihood ratio retains mismatches while favouring consistent candidates.
-      score += Math.log(expected === answer ? 1.8 : .2);
+      const policy = questionPolicy(questionId);
+      observations.push({ policy, matches: expected === answer });
+      groups.set(policy.group, (groups.get(policy.group) ?? 0) + 1);
+      evidenceCount++;
+      if (expected !== answer && policy.reliability >= .9) contradictions.add(policy.group);
     }
-    return { animal, score };
+    for (const { policy, matches } of observations) {
+      const reliability = questionReliability(policy, groups.get(policy.group)! - 1);
+      score += session.inferenceVersion === 2 ? Math.log(2 * (matches ? reliability : 1 - reliability)) : Math.log(matches ? 1.8 : .2);
+    }
+    return { animal, score, groups, contradictions, evidenceCount };
   });
   const max = Math.max(...ranked.map(item => item.score));
   const total = ranked.reduce((sum, item) => sum + Math.exp(item.score - max), 0);
-  return ranked.map(({ animal, score }) => ({ animal, weight: Math.exp(score - max) / total }))
+  return ranked.map(candidate => ({ ...candidate, weight: Math.exp(candidate.score - max) / total }))
     .sort((a, b) => b.weight - a.weight || a.animal.id.localeCompare(b.animal.id));
+}
+
+export function rankAnimals(session: Session): { animal: Animal; weight: number }[] {
+  return rankCandidates(session).map(({ animal, weight }) => ({ animal, weight }));
 }
 
 function entropy(probability: number): number {
@@ -47,7 +64,7 @@ function entropy(probability: number): number {
 
 export function nextTurn(session: Session): Turn {
   if (session.status !== 'active') return { kind: 'finished' };
-  const ranked = rankAnimals(session), top = ranked[0];
+  const ranked = rankCandidates(session), top = ranked[0];
   if (!top) return { kind: 'finished' };
   const answered = new Set(session.answers.map(item => item.questionId));
   const gains: { question: FeatureQuestion; gain: number }[] = [];
@@ -65,8 +82,13 @@ export function nextTurn(session: Session): Turn {
     gains.push({ question, gain });
     if (gain > bestGain + 1e-9) { best = question; bestGain = gain; }
   }
-  if (session.answers.length >= QUESTION_LIMIT || !best || (session.answers.length >= 4 && top.weight >= .72)) {
-    return { kind: 'guess', animal: top.animal, tentative: top.weight < .72 };
+  const readyToGuess = session.inferenceVersion === 2
+    ? top.evidenceCount >= 4 && top.groups.size >= 3 && top.contradictions.size <= 2
+      && top.weight >= .72 && top.weight - (ranked[1]?.weight ?? 0) >= .45
+      && (bestGain <= .4 || top.weight >= .9)
+    : session.answers.length >= 4 && top.weight >= .72;
+  if (session.answers.length >= QUESTION_LIMIT || !best || readyToGuess) {
+    return { kind: 'guess', animal: top.animal, tentative: session.inferenceVersion === 2 ? !readyToGuess : top.weight < .72 };
   }
   if (session.questionSeed !== undefined) {
     const choices = gains.filter(item => item.gain >= bestGain * .9)
@@ -121,6 +143,7 @@ export function restoreSession(): Session | null {
     if (value.completedAt !== undefined && (typeof value.completedAt !== 'string' || !Number.isFinite(Date.parse(value.completedAt)))) return null;
     if (value.practiceQueued !== undefined && typeof value.practiceQueued !== 'boolean') return null;
     if (value.questionSeed !== undefined && (!Number.isInteger(value.questionSeed) || value.questionSeed < 0 || value.questionSeed > 0xffffffff)) return null;
+    if (value.inferenceVersion !== undefined && value.inferenceVersion !== 2) return null;
     return value;
   } catch { return null; }
 }

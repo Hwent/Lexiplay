@@ -2,6 +2,7 @@ import { describe, expect, it } from 'vitest';
 import { animals, featureValue, findAnimal, questions } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
 import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession, nextTurn, QUESTION_LIMIT, rankAnimals, restoreSession, saveSession, type Session } from './engine';
+import { questionPolicy } from './question-policy';
 
 function play(animalId: string, wrongAt = -1, questionSeed = 42): Session {
   const target = animals.find(animal => animal.id === animalId)!;
@@ -64,7 +65,7 @@ describe('animal guessing knowledge and inference', () => {
   });
 
   it('preserves the original selection strategy for rounds saved without a seed', () => {
-    const { questionSeed: _seed, ...legacy } = newSession();
+    const { questionSeed: _seed, inferenceVersion: _inference, ...legacy } = newSession();
     const first = nextTurn(legacy);
     expect(first.kind === 'question' && first.question.id).toBe('mammal');
     const answered = answerQuestion(legacy, 'yes');
@@ -72,8 +73,39 @@ describe('animal guessing knowledge and inference', () => {
     expect(nextTurn(restoreSession()!)).toEqual(nextTurn(answered));
   });
 
-  it('recovers from a single mistaken answer across the animal set', () => {
-    const results = animals.flatMap(animal => [0, 1, 2, 3].map(index => play(animal.id, index)));
+  it('uses gentler penalties for ambiguous questions and stronger evidence for distinctive traits', () => {
+    function odds(questionId: string, yes: string, no: string) {
+      const ranked = rankAnimals({ ...newSession(), answers: [{ questionId, answer: 'yes' }] });
+      return ranked.find(item => item.animal.id === yes)!.weight / ranked.find(item => item.animal.id === no)!.weight;
+    }
+    expect(odds('trunk','elephant','tiger')).toBeGreaterThan(odds('mammal','tiger','crocodile'));
+    expect(odds('mammal','tiger','crocodile')).toBeGreaterThan(odds('nocturnal','tiger','horse'));
+  });
+
+  it('discounts related observations without depending on their answer order', () => {
+    const one = { ...newSession(), answers: [{ questionId: 'mammal', answer: 'yes' as const }] };
+    const two = { ...one, answers: [...one.answers, { questionId: 'fur', answer: 'yes' as const }] };
+    const odds = (session: Session) => {
+      const ranked = rankAnimals(session);
+      return ranked.find(item => item.animal.id === 'tiger')!.weight / ranked.find(item => item.animal.id === 'crocodile')!.weight;
+    };
+    expect(odds(two)).toBeGreaterThan(odds(one));
+    expect(odds(two)).toBeLessThan(odds(one) ** 2);
+    expect(rankAnimals({ ...two, answers: [...two.answers].reverse() })).toEqual(rankAnimals(two));
+    expect(rankAnimals({ ...one, answers: [...one.answers, { questionId: 'fur', answer: 'not-sure' }] })).toEqual(rankAnimals(one));
+  });
+
+  it('asks for independent evidence instead of guessing from repeated plumage traits', () => {
+    const session = { ...newSession(), answers: ['bird','feathers','fanTail','eyeTail','colourful'].map(questionId => ({ questionId, answer: 'yes' as const })) };
+    const top = rankAnimals(session)[0]!;
+    expect(top.animal.id).toBe('peacock');
+    expect(top.weight).toBeGreaterThanOrEqual(.72);
+    expect(new Set(session.answers.map(item => questionPolicy(item.questionId).group)).size).toBe(1);
+    expect(nextTurn(session).kind).toBe('question');
+  });
+
+  it.each([0, 1, 2, 3])('recovers from a mistaken answer at question index %s across the animal set', index => {
+    const results = animals.map(animal => play(animal.id, index));
     const wins = results.filter(session => session.status === 'won').length;
     expect(wins / results.length).toBeGreaterThanOrEqual(.8);
   }, 20_000);
