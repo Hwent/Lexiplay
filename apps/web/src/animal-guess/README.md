@@ -64,6 +64,10 @@ flow. Optional failed-round feedback uses `POST /feedback`, including the suppli
 answer and round history for manual review; it never updates the knowledge set automatically.
 The server stores this as plain-text `content` in the shared `message` table, with its
 creation time and account or guest association. There is no separate review-status field.
+Feedback includes the inference version. A supplied answer outside the animal set
+is looked up in the existing dictionary, independently of feedback submission;
+matching words get an English definition, pronunciation and the existing bookmark
+action. This does not add animals to the guessing knowledge set.
 
 Run the dataset simulations and UI checks with:
 

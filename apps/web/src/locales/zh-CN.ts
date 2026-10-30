@@ -1,5 +1,6 @@
 // Interface copy only; learning words and dictionary content stay in English.
 export const zhCN: Record<string, string> = {
+  'Could not look up this word. Your answer is still saved in this round.': '暂时无法查询释义，你的答案仍保留在本局中。',
   'Maybe': '不确定',
   'Tap underlined words for meanings': '轻点下划线查看释义',
   'Question {0} / {1}': '第 {0} / {1} 题',

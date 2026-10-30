@@ -47,6 +47,7 @@
 .animal-learning-card .word-with-pronunciation strong { font-size: 1.6rem; }
 .animal-learning-card p:not(.eyebrow) { margin: .6rem 0 0; color: var(--soft-text); font-size: 1rem; line-height: 1.7; }
 .animal-chinese { margin-top: .35rem; color: var(--soft-text); font-size: 1.1rem; }
+.animal-dictionary-status { margin: 1rem 0; color: var(--soft-text); font-size: 1rem; }
 .animal-feedback { margin: .5rem 0 1.5rem; padding: 1.25rem; border: 1px solid var(--line); border-radius: .8rem; }
 .animal-feedback label { display: block; font-size: 1.05rem; font-weight: 650; }
 .animal-feedback p { margin: .5rem 0 .9rem; color: var(--soft-text); font-size: 1rem; line-height: 1.6; }

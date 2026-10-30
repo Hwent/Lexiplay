@@ -7,8 +7,9 @@ import AnimalGuessGame from './AnimalGuessGame';
 import { answerQuestion, newSession, nextTurn, restoreSession, saveSession, type Session } from './engine';
 import { animals, featureValue } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
+import { clearDictionaryCache } from '../dictionary-cache';
 
-beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games/animal-guess'); });
+beforeEach(() => { localStorage.clear(); clearDictionaryCache(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games/animal-guess'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 const bookmark = (term: string) => <button type="button">Save {term}</button>;
@@ -147,8 +148,9 @@ it('uses all three guess opportunities after fifteen questions and retries faile
   for (let index = 0; index < 15; index++) session = answerQuestion(session, 'not-sure');
   saveSession(session);
   const feedbackMock = vi.fn().mockResolvedValueOnce(Response.json({ message: 'Please try again.' }, { status: 503 })).mockResolvedValueOnce(Response.json({ id: 'feedback-1' }));
-  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => String(input).endsWith('/animal-guess/completions')
-    ? Promise.resolve(Response.json({ recorded: true })) : feedbackMock(input, init));
+  const fetchMock = vi.fn((input: RequestInfo | URL, init?: RequestInit) => String(input).endsWith('/definition')
+    ? Promise.resolve(Response.json({ definition: '' })) : String(input).endsWith('/animal-guess/completions')
+      ? Promise.resolve(Response.json({ recorded: true })) : feedbackMock(input, init));
   vi.stubGlobal('fetch', fetchMock);
   render(<AnimalGuessGame bookmark={bookmark}/>);
   for (let index = 0; index < 3; index++) await user.click(screen.getByRole('button', { name: 'Not my animal' }));
@@ -188,6 +190,34 @@ it('uses a supplied Chinese answer to show the correct animal after giving up', 
   expect(await screen.findByRole('button', { name: 'Save dolphin' })).toBeInTheDocument();
   expect(screen.queryByText('海豚')).not.toBeInTheDocument();
   expect(screen.getByText(animals.find(animal => animal.id === 'dolphin')!.definition)).toBeInTheDocument();
+});
+
+it('shows and bookmarks an entered dictionary word even when feedback submission fails', async () => {
+  saveSession({ ...newSession(), status: 'lost' });
+  const definition = 'An imaginary animal like a horse with one horn.';
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => String(input).endsWith('/definition')
+    ? Response.json({ definition }) : Response.json({ message: 'Feedback unavailable.' }, { status: 503 }));
+  vi.stubGlobal('fetch', fetchMock);
+  const user = userEvent.setup();
+  render(<AnimalGuessGame bookmark={bookmark}/>);
+  await user.type(screen.getByRole('textbox', { name: 'What animal were you thinking of?' }), 'unicorn');
+  await user.click(screen.getByRole('button', { name: 'Send answer' }));
+  expect(await screen.findByText(definition)).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Save unicorn' })).toBeInTheDocument();
+  expect(screen.getByRole('alert')).toHaveTextContent('Feedback unavailable.');
+  expect(restoreSession()!.revealedAnswer).toBe('unicorn');
+  expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/dictionary/unicorn/definition'))).toBe(true);
+});
+
+it('looks up a saved supplied word after refresh and leaves unmatched words outside the animal set', async () => {
+  saveSession({ ...newSession(), status: 'lost', revealedAnswer: 'madeupcreature', feedbackSent: true });
+  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ definition: '' })));
+  render(<AnimalGuessGame bookmark={bookmark}/>);
+  await waitFor(() => expect(screen.queryByText('Searching the dictionary…')).not.toBeInTheDocument());
+  expect(screen.queryByRole('button', { name: 'Save madeupcreature' })).not.toBeInTheDocument();
+  expect(screen.getByText('madeupcreature')).toBeInTheDocument();
+  expect(screen.getByText(/Not in this starter set yet\./)).toBeInTheDocument();
+  expect(animals).toHaveLength(100);
 });
 
 it('is reachable from Games, resumes directly by URL and saves to the existing guest word list without charging coins', async () => {

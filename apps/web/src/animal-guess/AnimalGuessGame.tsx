@@ -8,6 +8,7 @@ import { answerQuestion, changeLastAnswer, confirmGuess, GUESS_LIMIT, newSession
 import { animalById, findAnimal, KNOWLEDGE_VERSION, questionById, type FeatureQuestion } from './knowledge';
 import { englishKeywordMeanings } from './keyword-meanings';
 import { queueAnimalPractice, syncAnimalPractice } from './practice-progress';
+import AnimalDictionaryAnswer from './AnimalDictionaryAnswer';
 import './animal-guess.css';
 
 const KEYWORD_HINT_KEY = 'lexiplay-animal-keyword-hint-seen';
@@ -109,7 +110,7 @@ export default function AnimalGuessGame({ bookmark, practiceOwner = 'guest' }: {
     const id = session.id;
     setSession(current => current ? { ...current, revealedAnswer: supplied } : current);
     const content = [
-      `Guess Animal / animals v${KNOWLEDGE_VERSION} / ${id}`,
+      `Guess Animal / animals v${KNOWLEDGE_VERSION} / inference v${session.inferenceVersion ?? 1} / ${id}`,
       `Player's animal: ${supplied}`,
       `Questions: ${session.answers.map(item => `${item.questionId}=${item.answer}`).join(', ')}`,
       `Rejected guesses: ${session.guesses.map(item => item.animalId).join(', ')}`,
@@ -171,6 +172,7 @@ export default function AnimalGuessGame({ bookmark, practiceOwner = 'guest' }: {
         </> : null}
       </div>
       {learned && <div className="answer-definition animal-learning-card"><div><p className="eyebrow">{t('YOUR ANIMAL')}</p><div className="word-with-pronunciation"><strong lang="en">{learned.id}</strong><PronunciationButton term={learned.id}/></div>{language === 'zh-CN' && <span className="animal-chinese" lang="zh-CN">{learned.chinese}</span>}<p lang="en">{learned.definition}</p></div>{bookmark(learned.id, learned.definition)}</div>}
+      {session.status === 'lost' && session.revealedAnswer && !learned && <AnimalDictionaryAnswer key={`${session.id}:${session.revealedAnswer}`} term={session.revealedAnswer} bookmark={bookmark}/>}
       {session.status === 'lost' && <div className="animal-feedback">
         {session.feedbackSent ? <p role="status"><Icon name="check"/>{t('Thanks. Your answer is saved for review.')}</p> : <form onSubmit={event => { void sendAnswer(event); }} aria-busy={sending}>
           <label htmlFor="animal-feedback-answer">{t('What animal were you thinking of?')}</label>
