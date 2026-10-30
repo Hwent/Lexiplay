@@ -16,12 +16,15 @@ export class AccountCredentialsDto {
   password!: string;
 }
 
-export class RegisterAccountDto {
+export class UpdateUsernameDto {
+  @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
+  @IsString() @Matches(/^[a-z\p{Script=Han}][a-z0-9_\p{Script=Han}]{2,31}$/u, { message: 'Username must be 3–32 Chinese characters, letters, numbers, or underscores, starting with a Chinese character or letter.' }) username!: string;
+}
+
+export class RegisterAccountDto extends UpdateUsernameDto {
   @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() || undefined : value)
   @IsOptional() @IsEmail() @MaxLength(254) email?: string;
   @IsOptional() @IsBoolean() sendVerification?: boolean;
-  @Transform(({ value }) => typeof value === 'string' ? value.trim().toLowerCase() : value)
-  @IsString() @Matches(/^[a-z\p{Script=Han}][a-z0-9_\p{Script=Han}]{2,31}$/u, { message: 'Username must be 3–32 Chinese characters, letters, numbers, or underscores, starting with a Chinese character or letter.' }) username!: string;
   @IsString() @MinLength(6) @MaxLength(128) password!: string;
 }
 export class RecoveryDto {

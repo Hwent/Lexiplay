@@ -1,6 +1,6 @@
 import { Body, Controller, Delete, Get, Headers, HttpCode, HttpStatus, Inject, Post, Res, UnauthorizedException, UseGuards } from '@nestjs/common';
 import { Throttle, ThrottlerGuard } from '@nestjs/throttler';
-import { AccountCredentialsDto, RegisterAccountDto, RecoveryDto, ActionTokenDto, ResetPasswordDto, AddEmailDto, DeleteAccountDto } from './account.dto';
+import { AccountCredentialsDto, RegisterAccountDto, RecoveryDto, ActionTokenDto, ResetPasswordDto, AddEmailDto, DeleteAccountDto, UpdateUsernameDto } from './account.dto';
 import { AccountService } from './account.service';
 import { readSessionCookie } from './session-cookie';
 
@@ -54,6 +54,10 @@ export class AccountController {
 
   @Post('email')
   addEmail(@Headers('cookie') cookie: string | undefined, @Body() body: AddEmailDto) { return this.accounts.addEmail(readSessionCookie(cookie), body.email, body.password); }
+
+  @Post('username')
+  @HttpCode(HttpStatus.OK)
+  updateUsername(@Headers('cookie') cookie: string | undefined, @Body() body: UpdateUsernameDto) { return this.accounts.updateUsername(readSessionCookie(cookie), body.username); }
 
   @Delete('account')
   @HttpCode(HttpStatus.NO_CONTENT)

@@ -67,6 +67,12 @@ export class AccountRepository implements OnModuleDestroy {
     return result.rows;
   }
 
+  async updateUsername(id: string, username: string): Promise<AccountUser | null> {
+    const result = await this.pool.query<AccountUser>(`UPDATE account_users SET username = $2 WHERE id = $1
+      RETURNING id, email, username, email_verified AS "emailVerified", coin_balance AS "coinBalance"`, [id, username]);
+    return result.rows[0] ?? null;
+  }
+
   async addEmail(id: string, email: string, expectedPasswordHash: string): Promise<AccountUser | null> {
     const result = await this.pool.query<AccountUser>(`UPDATE account_users SET email = $2, email_verified = false
       WHERE id = $1 AND email IS NULL AND password_hash = $3

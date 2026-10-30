@@ -39,6 +39,11 @@
 .account-profile > div { display: flex; justify-content: space-between; gap: .75rem; flex-wrap: wrap; padding: .8rem 0; border-bottom: 1px solid var(--line); }
 .account-profile dt { color: var(--muted); font-size: .875rem; }
 .account-profile dd { font-size: .875rem; margin: 0; overflow-wrap: anywhere; }
+.account-profile .account-username { display: flex; align-items: baseline; flex-wrap: wrap; gap: .3rem 1rem; min-width: 0; }
+.account-profile .account-username .account-link { padding: 0; }
+.username-form { margin-bottom: 1.25rem; }
+.username-form .account-setting-actions { margin-top: .6rem; }
+.account-page .username-form .account-action { width: auto; flex: 1; justify-content: center; margin-top: 0; }
 .account-setting { padding: 1.25rem; border: 0; border-radius: .85rem; background: var(--surface-soft); }
 .setting-heading { display: flex; justify-content: space-between; align-items: baseline; gap: .5rem; }
 .setting-heading h3 { font-size: .875rem; margin: 0; }

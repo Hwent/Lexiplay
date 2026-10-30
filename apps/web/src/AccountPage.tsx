@@ -23,6 +23,8 @@ export default function AccountPage({ account, setAccount, loading, accountError
   const [token, setToken] = useState(action.token);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
   const [password, setPassword] = useState('');
   const [recoveryRequested, setRecoveryRequested] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
@@ -66,7 +68,7 @@ export default function AccountPage({ account, setAccount, loading, accountError
     setBusy(true); clearFeedback();
     try {
       await apiRequest<void>('/auth/logout', { method: 'POST' }); setAccount(null); switchMode('login');
-      setShowDelete(false); setDeletePassword(''); setRecoveryPassword(''); setMessage('You’re signed out.'); notifyAccountChanged();
+      setShowDelete(false); setDeletePassword(''); setRecoveryPassword(''); setEditingUsername(false); setNewUsername(''); setMessage('You’re signed out.'); notifyAccountChanged();
     } catch (error) { reportError(error); } finally { setBusy(false); }
   }
   async function requestVerification() {
@@ -86,8 +88,15 @@ export default function AccountPage({ account, setAccount, loading, accountError
     try {
       await apiRequest<void>('/auth/account', { method: 'DELETE', body: JSON.stringify({ password: deletePassword, confirmation: deleteConfirmation }) });
       if (account) forgetPendingProgress(account.id);
-      setAccount(null); setShowDelete(false); setDeletePassword(''); setDeleteConfirmation(''); setRecoveryPassword(''); switchMode('login');
+      setAccount(null); setShowDelete(false); setDeletePassword(''); setDeleteConfirmation(''); setRecoveryPassword(''); setEditingUsername(false); setNewUsername(''); switchMode('login');
       setMessage('Your account and saved learning data have been deleted.'); notifyAccountChanged();
+    } catch (error) { reportError(error); } finally { setBusy(false); }
+  }
+  async function updateUsername(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); clearFeedback();
+    try {
+      const result = await apiRequest<{ user: Account }>('/auth/username', { method: 'POST', body: JSON.stringify({ username: newUsername.trim() }) });
+      setAccount(result.user); setEditingUsername(false); setNewUsername(''); setMessage('Username updated. Use your new username to sign in.');
     } catch (error) { reportError(error); } finally { setBusy(false); }
   }
   const controlsBusy = busy || progressSaving;
@@ -98,7 +107,12 @@ export default function AccountPage({ account, setAccount, loading, accountError
       <div className="account-page-card">
         {loading ? null : accountError ? <><p role="alert">{t(accountError)}</p><button className="account-action" onClick={onRetry}>{t('Try again')}</button></> : profile && account ? <>
           <div className="account-profile-heading"><span className="profile-avatar" aria-hidden="true">{(account.username ?? account.email ?? 'L')[0]!.toUpperCase()}</span><div><h3>{account.username ?? account.email}</h3><p className="account-status" role="status">{t('Signed in as {0}', account.username ?? account.email)}</p></div><button className="account-secondary" onClick={() => void signOut()} disabled={controlsBusy}>{t('Sign out')}</button></div>
-          <dl className="account-profile"><div><dt>{t('Username')}</dt><dd>{account.username ?? t('Not set')}</dd></div><div><dt>{t('Recovery email')}</dt><dd>{account.email ?? t('Not added')}</dd></div></dl>
+          <dl className="account-profile"><div><dt>{t('Username')}</dt><dd className="account-username"><span>{account.username ?? t('Not set')}</span><button className="account-link" type="button" aria-expanded={editingUsername} onClick={() => { setNewUsername(account.username ?? ''); setEditingUsername(true); clearFeedback(); }} disabled={controlsBusy || editingUsername}>{t('Change username')}</button></dd></div><div><dt>{t('Recovery email')}</dt><dd>{account.email ?? t('Not added')}</dd></div></dl>
+          {editingUsername && <form className="account-form username-form" onSubmit={event => void updateUsername(event)}>
+            <label htmlFor="new-username">{t('New username')}</label><input id="new-username" autoComplete="username" autoFocus required minLength={3} maxLength={32} pattern={String.raw`[a-zA-Z\p{Script=Han}][a-zA-Z0-9_\p{Script=Han}]{2,31}`} aria-describedby="username-hint" value={newUsername} onChange={event => setNewUsername(event.target.value)} disabled={controlsBusy} />
+            <p className="account-hint" id="username-hint">{t('3–32 Chinese characters, letters, numbers, or underscores. Start with a Chinese character or letter.')}</p>
+            <div className="account-setting-actions"><button className="account-action" type="submit" disabled={controlsBusy || newUsername.trim().length < 3 || newUsername.trim().toLowerCase() === account.username?.toLowerCase()}>{t('Save changes')}</button><button className="account-secondary" type="button" onClick={() => { setEditingUsername(false); setNewUsername(''); clearFeedback(); }} disabled={controlsBusy}>{t('Cancel')}</button></div>
+          </form>}
           <section className="account-setting" aria-label={t('Email and recovery')}><div className="setting-heading"><h3>{t('Email & recovery')}</h3><span className={`account-pill${account.emailVerified ? ' verified' : ''}`}>{account.emailVerified ? t('Verified') : t('Optional')}</span></div>
             {account.email ? <><p className="setting-copy">{t('Your recovery email can help you reset a forgotten password.')}</p>{!account.emailVerified && <p className="verification-status">{t('Email not verified · optional')}</p>}<div className="account-setting-actions">{!account.emailVerified && <button className="account-secondary" onClick={() => void requestVerification()} disabled={controlsBusy}>{t('Send verification link')}</button>}<button className="account-link" onClick={() => switchMode('forgot')} disabled={controlsBusy}>{t('Reset your password')}</button></div></> : <><p className="setting-copy">{t('Add an email for password recovery. You can continue without one.')}</p><form className="account-form recovery-email-form" onSubmit={event => void addRecoveryEmail(event)}><label htmlFor="recovery-email">{t('Recovery email')}</label><input id="recovery-email" type="email" autoComplete="email" required maxLength={254} value={recoveryEmail} onChange={event => setRecoveryEmail(event.target.value)} disabled={controlsBusy} /><PasswordField id="recovery-password" label={t('Current password')} value={recoveryPassword} onChange={setRecoveryPassword} autoComplete="current-password" disabled={controlsBusy} /><button className="account-secondary" type="submit" disabled={controlsBusy}>{t('Add recovery email')}</button></form></>}
           </section>

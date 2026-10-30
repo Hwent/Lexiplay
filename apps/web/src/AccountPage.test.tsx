@@ -90,6 +90,59 @@ describe('dedicated account page', () => {
     expect(screen.getByText('Not added')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Send verification link' })).not.toBeInTheDocument();
   });
+  it('cancels username edits and saves a new name across the account page and navigation', async () => {
+    window.history.replaceState({}, '', '/account');
+    const account = { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false, coinBalance: 100 };
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/me')) return Response.json(account);
+      if (String(input).endsWith('/auth/username')) return Response.json({ user: { ...account, username: '学习者_new' } });
+      throw new Error(`Unexpected request: ${input}`);
+    });
+    stubGameApiFetch(fetchMock); const user = userEvent.setup(); render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Change username' }));
+    expect(screen.getByLabelText('New username')).toHaveValue('learner');
+    expect(screen.getByLabelText('New username')).toHaveFocus();
+    expect(screen.getByRole('button', { name: 'Save changes' })).toBeDisabled();
+    await user.clear(screen.getByLabelText('New username')); await user.type(screen.getByLabelText('New username'), 'discarded');
+    await user.click(screen.getByRole('button', { name: 'Cancel' }));
+    expect(screen.queryByLabelText('New username')).not.toBeInTheDocument();
+    expect(fetchMock.mock.calls.some(call => String(call[0]).endsWith('/auth/username'))).toBe(false);
+    await user.click(screen.getByRole('button', { name: 'Change username' }));
+    expect(screen.getByLabelText('New username')).toHaveValue('learner');
+    await user.clear(screen.getByLabelText('New username')); await user.type(screen.getByLabelText('New username'), '学习者_NEW');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(await screen.findByText('Username updated. Use your new username to sign in.')).toBeInTheDocument();
+    expect(screen.getByText('Signed in as 学习者_new')).toBeInTheDocument();
+    expect(screen.queryByLabelText('New username')).not.toBeInTheDocument();
+    expect(fetchMock).toHaveBeenCalledWith('/api/v1/auth/username', expect.objectContaining({ method: 'POST', body: JSON.stringify({ username: '学习者_NEW' }) }));
+    expect(screen.getByLabelText('Account', { selector: 'a' })).toHaveTextContent('学习者_new');
+    await user.click(screen.getByRole('link', { name: 'LexiPlay home' }));
+    await user.click(screen.getByRole('link', { name: 'Account' }));
+    expect(screen.getByText('Signed in as 学习者_new')).toBeInTheDocument();
+  });
+  it('keeps the original username and edit form after a conflict, then allows retry', async () => {
+    window.history.replaceState({}, '', '/account');
+    const account = { id: 'user-1', username: 'learner', email: 'learner@example.test', emailVerified: false };
+    let attempts = 0;
+    const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+      if (String(input).endsWith('/auth/me')) return Response.json(account);
+      if (String(input).endsWith('/auth/username')) return ++attempts === 1
+        ? Response.json({ message: 'That username is already in use.' }, { status: 409 })
+        : Response.json({ user: { ...account, username: 'available' } });
+      throw new Error(`Unexpected request: ${input}`);
+    });
+    stubGameApiFetch(fetchMock); const user = userEvent.setup(); render(<App />);
+    await user.click(await screen.findByRole('button', { name: 'Change username' }));
+    await user.clear(screen.getByLabelText('New username')); await user.type(screen.getByLabelText('New username'), 'taken');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('That username is already in use.');
+    expect(screen.getByText('Signed in as learner')).toBeInTheDocument();
+    expect(screen.getByLabelText('New username')).toHaveValue('taken');
+    await user.clear(screen.getByLabelText('New username')); await user.type(screen.getByLabelText('New username'), 'available');
+    await user.click(screen.getByRole('button', { name: 'Save changes' }));
+    expect(await screen.findByText('Signed in as available')).toBeInTheDocument();
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
   it('adds a recovery address with the current password and opens the recovery confirmation', async () => {
     window.history.replaceState({}, '', '/account');
     const account = { id: 'user-1', username: 'learner', email: null, emailVerified: false };
