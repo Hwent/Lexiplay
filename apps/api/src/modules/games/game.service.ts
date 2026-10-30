@@ -74,7 +74,7 @@ export class GameService {
     }
     if (current.ladder) throw new BadRequestException('Word Ladder already includes word definitions.');
     // Resolve dictionary clues before taking wallet and game locks.
-    const text = current.clues[type] ?? (current.answerDefinition || await this.dictionary.dictionaryDefinition(current.answer));
+    const text = current.clues[type] ?? (current.answerDefinition || await this.dictionary.dictionaryDefinition(current.answer, true));
     if (!text) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: 'No definition is available for this word. No coins were charged.' });
     const clue = text.replace(new RegExp(current.answer, 'gi'), '_____');
     return this.games.change(id, owner, game => {
@@ -105,12 +105,12 @@ export class GameService {
       const won = game.ladder ? attemptsRemaining === 0 : guess === game.answer;
       const completed = won || attemptsRemaining === 0;
       const result: Guess = { guess, feedback: game.ladder ? [] : score(game.answer, guess), attemptsRemaining, completed };
-      result.definition = await this.dictionary.dictionaryDefinition(guess) ?? '';
+      result.definition = await this.dictionary.dictionaryDefinition(guess, true) ?? '';
       if (completed) {
         if (game.ladder) game.answer = guess;
         result.outcome = won ? 'WON' : 'LOST';
         result.answer = game.answer;
-        result.answerDefinition = won ? result.definition : await this.dictionary.dictionaryDefinition(game.answer) ?? '';
+        result.answerDefinition = won ? result.definition : await this.dictionary.dictionaryDefinition(game.answer, true) ?? '';
         game.completed = true;
         game.status = won ? 'won' : 'lost';
         if (won) result.rewardCoins = game.winRewardCoins;

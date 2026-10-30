@@ -13,7 +13,7 @@ export class WordListsService {
     return this.dictionary.searchDictionary(term);
   }
 
-  dictionaryDefinition(term: string) { return this.dictionary.getDictionaryDefinition(term); }
+  dictionaryDefinition(term: string, forGame = false) { return this.dictionary.getDictionaryDefinition(term, forGame); }
   async dictionaryPartOfSpeech(term: string): Promise<string | undefined> {
     const entries = await this.dictionary.poolDictionaryEntries([term]);
     const classes = entries.flatMap(entry => entry.partOfSpeech)

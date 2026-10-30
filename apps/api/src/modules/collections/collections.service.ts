@@ -1,3 +1,4 @@
+import { gameWord, playableEntryWhere } from '../word-lists/game-entry';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AccountService } from '../accounts/account.service';
 import { CollectionsStorage } from './collections.storage';
@@ -267,7 +268,7 @@ export class CollectionsService {
     const user = await this.owned(cookie, id);
     const rows = await this.db.userWord.findMany({ where: { userId: user.id, status: 'active',
       entry: { definitions: { some: { languageCode: 'en' } } } }, include: { entry: true } });
-    const words = [...new Set(rows.map(row => row.entry.term.toLowerCase()).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
+    const words = [...new Set(rows.flatMap(row => { const term = gameWord(row.entry); return term?.length === length ? [term] : []; }))];
     if (!words.length) throw new BadRequestException('This word list has no playable words at this length.');
     return words;
   }
@@ -287,11 +288,11 @@ export class CollectionsService {
   private async loadGameOptions() {
     const [collections, words] = await Promise.all([
       this.db.vocabularyCollection.findMany({ where: { status: 'available', hidden: false }, orderBy: { slug: 'asc' },
-        select: { id: true, slug: true, name: true, entries: { select: { entry: { select: { term: true } } } } } }),
+        select: { id: true, slug: true, name: true, entries: { where: { entry: playableEntryWhere }, select: { entry: { select: { term: true, partOfSpeech: true } } } } } }),
       this.dictionary.dictionaryGameWords(3, 9),
     ]);
     const playable = new Set(words);
-    const collectionWords = new Map(collections.map(collection => [collection.slug, collection.entries.map(row => row.entry.term)]));
+    const collectionWords = new Map(collections.map(collection => [collection.slug, collection.entries.map(row => row.entry.partOfSpeech === 'proper noun' ? row.entry.term.toLowerCase() : row.entry.term)]));
     return Array.from({ length: 7 }, (_, index) => {
       const length = index + 3;
       return { wordLength: length, totalWords: defaultAnswerWords(length, words).length, collections: collections.map(collection => ({
@@ -309,8 +310,8 @@ export class CollectionsService {
     const collection = await this.db.vocabularyCollection.findFirst({
       where: { ...where, ...(includeHidden ? {} : { hidden: false }) },
       select: { id: true, slug: true, name: true, author: true, status: true, entries: {
-        where: { entry: { partOfSpeech: { notIn: ['proper noun', 'proper_noun', 'name'] }, definitions: { some: { languageCode: 'en' } } } },
-        select: { entry: { select: { term: true } } },
+        where: { entry: { ...playableEntryWhere, definitions: { some: { languageCode: 'en' } } } },
+        select: { entry: { select: { term: true, partOfSpeech: true } } },
       } },
     });
     if (!collection) throw new NotFoundException('Vocabulary collection not found.');
@@ -318,10 +319,11 @@ export class CollectionsService {
     const slugs = gameCollectionSlugs(collection.slug);
     const entries = slugs.length === 1 ? collection.entries : await this.db.collectionEntry.findMany({
       where: { collection: { slug: { in: slugs }, status: 'available', hidden: false },
-        entry: { partOfSpeech: { notIn: ['proper noun', 'proper_noun', 'name'] }, definitions: { some: { languageCode: 'en' } } } },
-      select: { entry: { select: { term: true } } },
+        entry: { ...playableEntryWhere, definitions: { some: { languageCode: 'en' } } } },
+      select: { entry: { select: { term: true, partOfSpeech: true } } },
     });
-    const words = [...new Set(entries.map(row => row.entry.term).filter(term => term.length === length && /^[a-z]+$/.test(term)))];
+    const words = [...new Set(entries.map(row => row.entry.partOfSpeech === 'proper noun' ? row.entry.term.toLowerCase() : row.entry.term)
+      .filter(term => term.length === length && /^[a-z]+$/.test(term)))];
     if (!words.length) throw new BadRequestException('This collection has no playable words at this length.');
     return { words, collection: { id: collection.id, name: collection.name, author: collection.author } };
   }

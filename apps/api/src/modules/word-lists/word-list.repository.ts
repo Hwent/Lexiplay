@@ -1,6 +1,7 @@
 import { Injectable, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import { LibraryCache } from './library-cache';
+import { playableEntrySql, playableProperNounSql } from './game-entry';
 
 export type WordStatus = 'KNOWN' | 'UNFAMILIAR';
 export type WordEntry = { id: string; term: string; definition: string; partOfSpeech: string | null; status: WordStatus };
@@ -28,11 +29,12 @@ export class WordListRepository implements OnModuleDestroy {
       definition: row.senses.map(sense => sense.definitions.join('; ')).join('\n') }));
   }
 
-  async getDictionaryDefinition(term: string): Promise<string> {
+  async getDictionaryDefinition(term: string, forGame = false): Promise<string> {
     const result = await this.pool.query<{ definition: string }>(`SELECT string_agg(d.definition,'; ' ORDER BY e.part_of_speech,d.sense_order) AS definition
       FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en'
       WHERE e.term=(SELECT term FROM dictionary_entries WHERE lower(term COLLATE "default")=lower($1)
-        ORDER BY (term=$1) DESC,term LIMIT 1)`, [term.trim()]);
+        ORDER BY (term=$1) DESC,term LIMIT 1)
+      OR ($2 AND lower(e.term COLLATE "default")=lower($1) AND ${playableProperNounSql})`, [term.trim(), forGame]);
     return result.rows[0]?.definition ?? '';
   }
 
@@ -49,9 +51,10 @@ export class WordListRepository implements OnModuleDestroy {
   async dictionaryGameWords(length: number, maxLength = length): Promise<string[]> {
     const { rows: [library] } = await this.pool.query<{ version: string }>('SELECT version FROM library_state WHERE id=1');
     return this.cache.get(`words:${length}:${maxLength}`, library!.version, async () => {
-      const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT e.term FROM dictionary_entries e
-      WHERE char_length(e.term) BETWEEN $1 AND $2 AND e.term ~ '^[a-z]+$'
-      AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
+      const { rows } = await this.pool.query<{ term: string }>(`SELECT DISTINCT lower(e.term COLLATE "default") AS term FROM dictionary_entries e
+      WHERE char_length(e.term) BETWEEN $1 AND $2 AND lower(e.term COLLATE "default") ~ '^[a-z]+$'
+      AND (e.term ~ '^[a-z]+$' OR ${playableProperNounSql})
+      AND ${playableEntrySql}
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
       ORDER BY term`, [length, maxLength]);
       const words = rows.map(row => row.term);
@@ -65,7 +68,7 @@ export class WordListRepository implements OnModuleDestroy {
   async isDictionaryGameWord(term: string): Promise<boolean> {
     const { rows } = await this.pool.query<{ valid: boolean }>(`SELECT EXISTS(
       SELECT 1 FROM dictionary_entries e WHERE lower(e.term COLLATE "default")=lower($1)
-      AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
+      AND ${playableEntrySql}
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
     ) AS valid`, [term]);
     return rows[0]!.valid;

@@ -20,6 +20,9 @@ import { planInflections, applyInflections } from './modules/word-lists/inflecti
 import { definitionInflections, websterInflections } from './modules/word-lists/dictionary-inflections';
 import { websterThesaurus } from './modules/word-lists/webster-thesaurus';
 import { planThesaurus, applyThesaurus } from './modules/word-lists/thesaurus-import';
+import { importProperNouns } from './modules/word-lists/proper-noun-import';
+import properNouns from './modules/word-lists/proper-nouns.json';
+import { cancelUnplayableGames } from './modules/word-lists/library-maintenance';
 
 const database = process.env.TEST_DATABASE_URL;
 const word = (term: string, positions = ['noun']): LibraryWord => ({
@@ -364,6 +367,49 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect((await request('/word-lists/dictionary/COVER/thesaurus')).status).toBe(404);
     await publishDictionary(pool, dictionary);
     await expect(applyThesaurus(pool, plan)).rejects.toThrow('Dictionary changed');
+  });
+
+  it('supplements non-personal proper nouns and plays them with lowercase answers', async () => {
+    const repository = app.get(WordListRepository);
+    expect(await repository.dictionaryGameWords(6)).not.toContain('africa');
+    const china = (await pool.query("INSERT INTO dictionary_entries(term,part_of_speech) VALUES('china','noun') RETURNING id")).rows[0];
+    await pool.query("INSERT INTO dictionary_definitions(dictionary_entry_id,sense_order,definition) VALUES($1,0,'Porcelain tableware.')", [china.id]);
+    const original = (await pool.query("SELECT jsonb_agg(to_jsonb(d) ORDER BY dictionary_entry_id,sense_order) definitions FROM dictionary_definitions d")).rows[0].definitions;
+    const imported = await importProperNouns(pool);
+    expect(imported.entriesAdded).toBe(properNouns.entries.length);
+    expect(imported.definitionsAdded).toBe(properNouns.entries.reduce((n,entry) => n+entry.definitions.length,0));
+    expect((await repository.searchDictionary('africa'))[0]).toMatchObject({ term: 'Africa', partOfSpeech: ['proper noun'] });
+    expect(await repository.dictionaryGameWords(6)).toEqual(expect.arrayContaining(['africa','london']));
+    expect(await repository.dictionaryGameWords(3,9)).not.toContain('new york');
+    expect(await repository.isDictionaryGameWord('AFRICA')).toBe(true);
+    expect(await repository.isDictionaryGameWord('john')).toBe(false);
+    expect(await repository.getDictionaryDefinition('china')).toBe('Porcelain tableware.');
+    expect(await repository.getDictionaryDefinition('china', true)).toContain('country in Asia');
+    expect((await pool.query(`SELECT jsonb_agg(to_jsonb(d) ORDER BY dictionary_entry_id,sense_order) definitions
+      FROM dictionary_definitions d JOIN dictionary_entries e ON e.id=d.dictionary_entry_id WHERE e.part_of_speech<>'proper noun'`)).rows[0].definitions).toEqual(original);
+    const version = (await pool.query('SELECT version FROM library_state WHERE id=1')).rows[0].version;
+    expect(await importProperNouns(pool)).toEqual({ entriesAdded: 0, definitionsAdded: 0 });
+    expect((await pool.query('SELECT version FROM library_state WHERE id=1')).rows[0].version).toBe(version);
+    const user = await account();
+    const game = await app.get(GameService).start(6, ['africa'], 'easy', 'user:' + user.id);
+    const client = await pool.connect();
+    try { expect(await cancelUnplayableGames(client)).toBe(0); } finally { client.release(); }
+    const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
+    expect(restored.completed).toBe(false);
+    const response = await request('/games/' + game.id + '/guesses', 'POST', { guess: 'AFRICA' }, user.cookie);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ answer: 'africa', completed: true, outcome: 'WON' });
+    expect((await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json()).answerDefinition).toContain('continent');
+    const countryGame = await app.get(GameService).start(5, ['china'], 'easy', 'user:' + user.id);
+    const countryWin = await (await request('/games/' + countryGame.id + '/guesses', 'POST', { guess: 'china' }, user.cookie)).json();
+    expect(countryWin.answerDefinition).toContain('country in Asia');
+    expect((await (await request('/games/' + countryGame.id, 'GET', undefined, user.cookie)).json()).answerDefinition).toContain('country in Asia');
+    const collection = (await pool.query(`INSERT INTO vocabulary_collections(slug,name,category) VALUES('proper-fixture','Places','Fixture') RETURNING id`)).rows[0];
+    await pool.query(`INSERT INTO collection_entries(collection_id,dictionary_entry_id,sort_order)
+      SELECT $1,id,0 FROM dictionary_entries WHERE term='Africa' AND part_of_speech='proper noun'`, [collection.id]);
+    expect((await app.get(CollectionsService).collectionGameWords(collection.id,6)).words).toEqual(['africa']);
+    const options = await (await request('/collections/game-options?wordLength=6')).json();
+    expect(options.collections.find((row: {id:string}) => row.id===collection.id).wordCount).toBe(1);
   });
 
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {

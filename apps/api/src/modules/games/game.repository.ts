@@ -1,3 +1,4 @@
+import { playableEntrySql, playableProperNounSql } from '../word-lists/game-entry';
 import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
 import { Pool, PoolClient } from 'pg';
 import { LEGACY_ATTEMPT_LIMITS, Difficulty, Game, GameStatus, Guess, PUZZLE_ALREADY_STARTED, score } from './game.types';
@@ -120,7 +121,7 @@ export class GameRepository implements OnModuleDestroy {
 
   private async resolveWord(client: PoolClient, term: string) {
     return (await client.query<{ id: string }>(`SELECT e.id FROM dictionary_entries e
-      WHERE e.term=$1 AND e.part_of_speech NOT IN ('proper noun','proper_noun','name')
+      WHERE lower(e.term COLLATE "default")=lower($1) AND ${playableEntrySql}
       AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
       ORDER BY (e.term=$1) DESC,e.term,e.part_of_speech LIMIT 1`, [term])).rows[0];
   }
@@ -215,6 +216,7 @@ export class GameRepository implements OnModuleDestroy {
       JOIN LATERAL (SELECT term FROM dictionary_entries WHERE lower(term COLLATE "default")=chosen.term
         ORDER BY (term=chosen.term) DESC,term LIMIT 1) spelling ON true
       JOIN dictionary_entries e ON e.term=spelling.term
+        OR (lower(e.term COLLATE "default")=chosen.term AND ${playableProperNounSql})
       JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en' GROUP BY chosen.term`, [terms])).rows : [];
     const meanings = new Map(definitions.map(row => [row.term,row.definition]));
     return rows.map(row => {
