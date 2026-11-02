@@ -4,9 +4,9 @@ export class LibraryRequests {
   private values = new Map<string, { value: unknown; expiresAt: number }>();
   private pending = new Map<string, Promise<unknown>>();
 
-  peek<T>(path: string): T | undefined {
+  peek<T>(path: string, allowStale = false): T | undefined {
     const cached = this.values.get(path);
-    if (!cached || cached.expiresAt <= Date.now()) { this.values.delete(path); return undefined; }
+    if (!cached || !allowStale && cached.expiresAt <= Date.now()) return undefined;
     return cached.value as T;
   }
   get<T>(path: string, lifetime = 60_000): Promise<T> {

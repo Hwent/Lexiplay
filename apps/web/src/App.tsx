@@ -30,7 +30,7 @@ import FeedbackPage from './FeedbackPage';
 import AccountPage from './AccountPage';
 import SettingsPage from './SettingsPage';
 import CommunityPage from './CommunityPage';
-import StatisticsPanel from './StatisticsPanel';
+import StatisticsPanel, { statisticsPath } from './StatisticsPanel';
 import AnimalGuessGame from './animal-guess/AnimalGuessGame';
 import { syncAnimalPractice } from './animal-guess/practice-progress';
 
@@ -180,6 +180,14 @@ function AppLayout() {
     window.addEventListener('pagehide', leaving);
     return () => window.removeEventListener('pagehide', leaving);
   }, [wordStore]);
+
+  function prefetchSection(section: Section) {
+    if (accountLoading) return;
+    if (section === 'progress' && account) void wordStore.requests.get(statisticsPath(), 30_000).catch(() => {});
+    if (section === 'community') void wordStore.requests.get('/community/practice-rankings', 30_000).catch(() => {});
+    if (section === 'library') void wordStore.requests.get('/collections', 300_000).catch(() => {});
+    if (section === 'play') void wordStore.requests.get(GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME).catch(() => {});
+  }
 
   function navigateTo(section: Section, search?: string, accountMode: 'login' | 'register' = 'login') {
     if (section === 'account') setAccountEntryMode(accountMode);
@@ -561,7 +569,7 @@ function AppLayout() {
       <aside className="sidebar">
         <a className="brand" href="/" aria-label={t('LexiPlay home')} onClick={event => { event.preventDefault(); navigateTo('home'); }}><span className="brand-mark">L</span>{t(' LexiPlay')}</a>
         <nav aria-label={t('Main navigation')} className="main-navigation">
-          {navigation.map(item => <button type="button" key={item.key} aria-label={sectionTitle[item.key]} className={activeNavigationSection === item.key ? 'active' : ''} aria-current={activeNavigationSection === item.key ? 'page' : undefined} onClick={() => navigateTo(item.key)}><span className="nav-icon" aria-hidden="true"><Icon name={item.icon}/></span><span className="nav-label">{sectionTitle[item.key]}</span><span className="nav-mobile-label" aria-hidden="true">{sectionTitle[item.key]}</span></button>)}
+          {navigation.map(item => <button type="button" key={item.key} aria-label={sectionTitle[item.key]} className={activeNavigationSection === item.key ? 'active' : ''} aria-current={activeNavigationSection === item.key ? 'page' : undefined} onPointerEnter={() => prefetchSection(item.key)} onFocus={() => prefetchSection(item.key)} onClick={() => navigateTo(item.key)}><span className="nav-icon" aria-hidden="true"><Icon name={item.icon}/></span><span className="nav-label">{sectionTitle[item.key]}</span><span className="nav-mobile-label" aria-hidden="true">{sectionTitle[item.key]}</span></button>)}
         </nav>
       </aside>
       <div className="workspace">
@@ -581,7 +589,7 @@ function AppLayout() {
       {wordSelection.error && <p className="word-selection-error" role="alert">{t(wordSelection.error)}</p>}
       {wordSelection.notice && <p className="word-selection-error" role="alert">{t(wordSelection.notice)}</p>}
       {sectionNavigation && <nav className="section-navigation" aria-label={activeNavigationSection === 'progress' ? t('Stats sections') : t('Settings sections')}>
-        {sectionNavigation.map(item => <a key={item.key} href={sectionPaths[item.key]} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{t(item.label)}</a>)}
+        {sectionNavigation.map(item => <a key={item.key} href={sectionPaths[item.key]} onPointerEnter={() => prefetchSection(item.key)} onFocus={() => prefetchSection(item.key)} aria-current={activeSection === item.key ? 'page' : undefined} onClick={event => { event.preventDefault(); navigateTo(item.key); }}>{t(item.label)}</a>)}
       </nav>}
 
       {(activeSection === 'play' || activeSection === 'animal-guess') && <>

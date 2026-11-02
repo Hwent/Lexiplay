@@ -1,3 +1,5 @@
+import { PendingWords } from './services/pending-words';
+import { PendingWordsContext } from './usePendingWords';
 import { cleanup, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
@@ -63,4 +65,15 @@ describe('community coin leaderboard', () => {
     await user.click(screen.getByRole('button', { name: 'Explore vocabulary' }));
     expect(explore).toHaveBeenCalledOnce();
   });
+});
+
+it('renders cached rankings immediately while an expired cache refreshes in the background', () => {
+  const store = new PendingWords('test-account');
+  store.requests.prime('/community/practice-rankings', [{ rank: 1, username: 'cached-player', value: 12 }], -1);
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(() => {})));
+  render(<PendingWordsContext.Provider value={store}><CommunityPage onExplore={() => {}} /></PendingWordsContext.Provider>);
+  expect(screen.getByRole('table', { name: 'Practice leaderboard' })).toHaveTextContent('cached-player');
+  expect(screen.queryByText('Loading rankings…')).not.toBeInTheDocument();
+  expect(fetch).toHaveBeenCalledOnce();
+  cleanup(); vi.unstubAllGlobals();
 });

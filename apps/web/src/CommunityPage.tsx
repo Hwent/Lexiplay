@@ -2,7 +2,7 @@ import { useContext, useEffect, useRef, useState } from 'react';
 import { LanguageContext, useTranslation } from './i18n';
 import Icon from './Icon';
 import EmptyState from './EmptyState';
-import { apiRequest } from './services/api-client';
+import usePendingWords from './usePendingWords';
 import './community.css';
 
 type Ranking = { rank: number; username: string; value: number };
@@ -16,22 +16,30 @@ type Board = typeof boards[number]['id'];
 export default function CommunityPage({ onExplore }: { onExplore: () => void }) {
   const t = useTranslation();
   const language = useContext(LanguageContext);
+  const { store } = usePendingWords();
   const [selected, setSelected] = useState<Board>('practice');
   const board = boards.find(item => item.id === selected)!;
-  const [rankings, setRankings] = useState<Ranking[]>([]);
+  const path = `/community/${selected}-rankings`;
+  type ResponseRanking = Ranking & { coinBalance?: number };
+  const [result, setResult] = useState<{ board: Board; rows: ResponseRanking[] } | null>(null);
+  const cached = store.requests.peek<ResponseRanking[]>(path, true);
+  const rankings = (result?.board === selected ? result.rows : cached ?? [])
+    .map(entry => ({ ...entry, value: entry.coinBalance ?? entry.value }));
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
   const [revision, setRevision] = useState(0);
   const tabsRef = useRef<HTMLDivElement>(null);
   useEffect(() => {
-    const controller = new AbortController();
-    setLoading(true); setError(''); setRankings([]);
-    apiRequest<(Ranking & { coinBalance?: number })[]>(`/community/${selected}-rankings`, { signal: controller.signal }, 'Could not load the leaderboard.')
-      .then(result => { if (!controller.signal.aborted) setRankings(result.map(entry => ({ ...entry, value: entry.coinBalance ?? entry.value }))); })
-      .catch(reason => { if (!controller.signal.aborted) setError(reason instanceof Error ? reason.message : 'Could not load the leaderboard.'); })
-      .finally(() => { if (!controller.signal.aborted) setLoading(false); });
-    return () => controller.abort();
-  }, [selected, revision]);
+    let active = true;
+    const cached = store.requests.peek<ResponseRanking[]>(path, true);
+    setLoading(!cached); setError('');
+    setResult(cached ? { board: selected, rows: cached } : null);
+    store.requests.get<ResponseRanking[]>(path, 30_000)
+      .then(rows => { if (active) setResult({ board: selected, rows }); })
+      .catch(reason => { if (active) setError(reason instanceof Error ? reason.message : 'Could not load the leaderboard.'); })
+      .finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [selected, revision, path, store]);
 
   return <section className="community-page">
     <div className="page-introduction">
@@ -47,8 +55,8 @@ export default function CommunityPage({ onExplore }: { onExplore: () => void }) 
       }}>{t(item.label)}</button>)}
     </div>
     <article className="coin-leaderboard" id="ranking-panel" role="tabpanel" aria-labelledby={`ranking-tab-${selected}`} aria-busy={loading}>
-      {loading ? <p className="leaderboard-status" role="status">{t('Loading rankings…')}</p>
-        : error ? <EmptyState icon={board.icon} title="Rankings are unavailable." action={<button type="button" className="quiet-button" onClick={() => setRevision(value => value + 1)}>{t('Try again')}</button>}><p role="status">{t(error)}</p></EmptyState>
+      {loading && !cached ? <p className="leaderboard-status" role="status">{t('Loading rankings…')}</p>
+        : error && !cached ? <EmptyState icon={board.icon} title="Rankings are unavailable." action={<button type="button" className="quiet-button" onClick={() => { store.requests.invalidate(path); setRevision(value => value + 1); }}>{t('Try again')}</button>}><p role="status">{t(error)}</p></EmptyState>
         : rankings.length === 0 ? <EmptyState icon={board.icon} title="No rankings yet."><p>{t(selected === 'coin' ? 'Account coin balances will appear here.' : 'Complete a game while signed in to join the rankings.')}</p></EmptyState>
         : <table className="coin-ranking-table">
           <caption className="sr-only">{t(board.title)}</caption>
@@ -59,6 +67,7 @@ export default function CommunityPage({ onExplore }: { onExplore: () => void }) 
             <td><span className="ranked-coins">{selected === 'coin' && <Icon name="coin"/>}<strong>{entry.value.toLocaleString(language)}</strong></span></td>
           </tr>)}</tbody>
         </table>}
+      {error && cached && <p role="status">{t(error)}</p>}
     </article>
     <div className="community-footer"><button type="button" className="quiet-button" onClick={onExplore}>{t('Explore vocabulary ')}<Icon name="arrow"/></button></div>
   </section>;
