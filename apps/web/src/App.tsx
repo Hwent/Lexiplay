@@ -1,7 +1,12 @@
+import { createBrowserRouter, Navigate, Route, Routes, useBlocker, useLocation, useNavigate } from 'react-router';
+import { RouterProvider } from 'react-router/dom';
+import GamePage from './GamePage';
+import LicensesPage from './LicensesPage';
+import type { Game, Feedback, GuessResult, HintType } from './game-types';
+import { sectionPaths, type Section } from './routes';
 import { PendingWords } from './services/pending-words';
 import { PendingWordsContext, useWordSelection } from './usePendingWords';
 import Icon, { IconName } from './Icon';
-import CollectionPicker from './CollectionPicker';
 import { KeyboardEvent, useEffect, useMemo, useRef, useState } from 'react';
 import AccountStatus from './AccountStatus';
 import useAccount from './useAccount';
@@ -10,14 +15,8 @@ import PronunciationButton from './PronunciationButton';
 import { normalizeTerm, rememberDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 import { ApiError, apiRequest as api } from './services/api-client';
 import { hasPracticePreferences, readPracticePreferences, savePracticePreferences } from './practice-preferences';
-import PuzzleCelebration from './PuzzleCelebration';
-import WordLadderBoard, { Ladder } from './WordLadderBoard';
-import GameGuide from './GameGuide';
-import PuzzleGuessRow from './PuzzleGuessRow';
-import PuzzleGrid from './PuzzleGrid';
 import GuestGameReminder from './GuestGameReminder';
 import AnimalGameInvitation, { hasSeenAnimalInvitation } from './AnimalGameInvitation';
-import DefinitionText from './DefinitionText';
 import { definitionHintText } from './hint-text';
 import { gameAudio } from './services/game-audio';
 import { GameOptions, GAME_OPTIONS_PATH, GAME_OPTIONS_LIFETIME } from './services/game-options';
@@ -35,34 +34,7 @@ import StatisticsPanel from './StatisticsPanel';
 import AnimalGuessGame from './animal-guess/AnimalGuessGame';
 import { syncAnimalPractice } from './animal-guess/practice-progress';
 
-type Feedback = 'CORRECT' | 'PRESENT' | 'ABSENT';
 type Theme = 'dark' | 'light';
-type Section = 'home' | 'play' | 'animal-guess' | 'library' | 'dictionary' | 'feedback' | 'progress' | 'community' | 'settings' | 'licenses' | 'account';
-const sectionPaths: Record<Section, string> = {
-  home: '/', play: '/games', library: '/library', dictionary: '/dictionary', progress: '/progress', community: '/community', settings: '/settings',
-  licenses: '/licenses', account: '/account', feedback: '/feedback',
-  'animal-guess': '/games/animal-guess',
-};
-const pathSections = Object.fromEntries(Object.entries(sectionPaths).map(([section, path]) => [path, section])) as Record<string, Section>;
-pathSections['/play'] = 'play';
-function currentSection(): Section {
-  const action = new URLSearchParams(window.location.hash.slice(1)).get('action');
-  if (action === 'reset' || action === 'verify') return 'account';
-  return pathSections[window.location.pathname] ?? 'home';
-}
-type GuessResult = {
-  guess: string;
-  feedback: Feedback[];
-  attemptsRemaining: number;
-  completed: boolean;
-  outcome?: 'WON' | 'LOST';
-  answer?: string;
-  definition?: string;
-  answerDefinition?: string;
-  rewardCoins?: number;
-};
-type HintType = 'definition' | 'nextWord';
-type Game = { kind?: 'word-puzzle' | 'word-ladder'; ladder?: Ladder; answer?: string; answerDefinition?: string; completed?: boolean; attemptCount?: number; coinChange?: number; pool?: { id: string; name: string; author: string }; id: string; wordLength: number; difficulty?: string; attemptLimit: number; guesses: GuessResult[]; hints: { definition: number; nextWord?: number }; clues?: Partial<Record<HintType, string>>; hintCoinsSpent?: number; revealedAbsent: string[]; revealedPresent: string[]; status?: string; cancellationReason?: string; coinCost?: number; winRewardCoins?: number; coinPayer?: 'account' | 'guest' };
 const LAST_GAME_KEY = 'lexiplay-last-game';
 
 function BookmarkIcon({ added }: { added: boolean }) {
@@ -74,11 +46,25 @@ function savedDefinition(text: string) {
   return trimmed.length > 500 ? `${trimmed.slice(0, 499).trimEnd()}…` : trimmed;
 }
 
-const lengthName = (length: number) => `${['zero', 'one', 'two', 'three', 'four', 'five', 'six', 'seven', 'eight', 'nine'][length]}-letter`;
-const keyboardRows = ['qwertyuiop', 'asdfghjkl', 'zxcvbnm'];
 const feedbackRank: Record<Feedback, number> = { ABSENT: 1, PRESENT: 2, CORRECT: 3 };
 
 export default function App() {
+  const [router, setRouter] = useState<ReturnType<typeof createBrowserRouter> | null>(null);
+  useEffect(() => {
+    const instance = createBrowserRouter([{ path: '*', element: <AppLayout /> }]);
+    setRouter(instance);
+    return () => instance.dispose();
+  }, []);
+  return router ? <RouterProvider router={router} /> : null;
+}
+
+function AppLayout() {
+  const location = useLocation();
+  const navigate = useNavigate();
+  const action = new URLSearchParams(location.hash.slice(1)).get('action');
+  const activeSection: Section = action === 'reset' || action === 'verify' ? 'account'
+    : (Object.entries(sectionPaths).find(([, path]) => path === location.pathname)?.[0] as Section | undefined)
+      ?? (location.pathname === '/play' ? 'play' : 'home');
   const interfacePreferences = useInterfacePreferences();
   const t = useMemo(() => createTranslator(interfacePreferences.language), [interfacePreferences.language]);
   const [preferences] = useState(readPracticePreferences);
@@ -122,7 +108,6 @@ export default function App() {
   });
   const [soundEnabled, setSoundEnabled] = useState(() => gameAudio.enabled);
   useEffect(() => gameAudio.listen(), []);
-  const [activeSection, setActiveSection] = useState<Section>(currentSection);
   const [quickSearch, setQuickSearch] = useState('');
   useEffect(() => {
     if (accountLoading) return;
@@ -177,41 +162,29 @@ export default function App() {
 
   const activeSectionRef = useRef(activeSection);
   activeSectionRef.current = activeSection;
-  const navigating = useRef(false);
   useEffect(() => {
     if (!accountLoading && (activeSection === 'play' || activeSection === 'animal-guess' || activeSection === 'library')) void wordStore.loadSaved().catch(() => {});
   }, [accountLoading, activeSection, wordStore]);
+  const blocker = useBlocker(({ currentLocation, nextLocation }) =>
+    currentLocation.pathname !== nextLocation.pathname && (wordSelection.pending.size > 0 || wordSelection.saving));
   useEffect(() => {
-    const syncSection = () => {
-      const nextSection = currentSection();
-      if (navigating.current) { window.history.pushState({}, '', sectionPaths[activeSectionRef.current]); return; }
-      const commit = () => {
-        window.dispatchEvent(new Event('lexiplay:before-route-change'));
-        setQuickSearch(''); setActiveSection(nextSection);
-      };
-      const words = wordStore.getSnapshot();
-      if (!words.pending.size && !words.saving) { commit(); return; }
-      navigating.current = true;
-      void wordStore.flush().then(commit).catch(() => { window.history.pushState({}, '', sectionPaths[activeSectionRef.current]); }).finally(() => { navigating.current = false; });
-    };
+    if (blocker.state !== 'blocked') return;
+    void wordStore.flush().then(() => blocker.proceed()).catch(() => blocker.reset());
+  }, [blocker, wordStore]);
+  useEffect(() => {
+    window.dispatchEvent(new Event('lexiplay:before-route-change'));
+    setQuickSearch('');
+  }, [location.pathname]);
+  useEffect(() => {
     const leaving = () => { void wordStore.flush(true).catch(() => {}); };
-    window.addEventListener('popstate', syncSection);
     window.addEventListener('pagehide', leaving);
-    return () => { window.removeEventListener('popstate', syncSection); window.removeEventListener('pagehide', leaving); };
+    return () => window.removeEventListener('pagehide', leaving);
   }, [wordStore]);
 
   function navigateTo(section: Section, search?: string, accountMode: 'login' | 'register' = 'login') {
-    const commit = () => {
-      const path = sectionPaths[section];
-      if (window.location.pathname !== path) { window.dispatchEvent(new Event('lexiplay:before-route-change')); window.history.pushState({}, '', path); }
-      if (section !== activeSection) setQuickSearch(search ?? '');
-      if (section === 'account') setAccountEntryMode(accountMode);
-      setActiveSection(section);
-    };
-    if (section === activeSection || (!wordSelection.pending.size && !wordSelection.saving)) { commit(); return; }
-    if (navigating.current) return;
-    navigating.current = true;
-    void wordStore.flush().then(commit).catch(() => {}).finally(() => { navigating.current = false; });
+    if (section === 'account') setAccountEntryMode(accountMode);
+    navigate(sectionPaths[section], { state: { search: search ?? '' } });
+    setQuickSearch(search ?? '');
   }
 
   async function exitGame() {
@@ -619,142 +592,69 @@ export default function App() {
         <button type="button" aria-pressed={activeSection === 'animal-guess'} onClick={() => navigateTo('animal-guess')}>{t('Guess Animal')}</button>
       </div>
       </>}
-      {activeSection === 'animal-guess' && <AnimalGuessGame bookmark={wordBookmark} practiceOwner={accountLoading || progressSaving || accountError ? null : account?.id ?? 'guest'}/>}
-      {activeSection === 'play' && <>
-      <section className="game-card" aria-label={t('Vocabulary puzzle')} aria-busy={busy || progressSaving || restoring} onClick={event => {
-        const target = event.target;
-        if (target instanceof Element && target.closest('button, input, a, select, textarea')) return;
-        focusGameInput();
-      }}>
-        {!game ? (
-          <div className="welcome-card">
-            <div className="practice-story">
-            <h2>{t(puzzleKind === 'word-ladder' ? 'Word Ladder' : 'Word puzzle')}</h2>
-            <GameGuide kind={puzzleKind} wordLength={puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength} attempts={6}/>
-            </div>
-            <div className="practice-setup">
-            <div className="practice-setup-heading"><h3>{t('Puzzle options')}</h3></div>
-            <div className="practice-options">
-              <fieldset className="length-options"><legend>{t('Word length')}</legend>
-                <div className={`length-segments${puzzleKind === 'word-ladder' ? ' ladder-length-options' : ''}`}>
-                  {(puzzleKind === 'word-ladder' ? [4, 5] : [3, 4, 5, 6, 7, 8, 9]).map(length => <label key={length} className={(puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength) === length ? 'selected' : ''}>
-                    <input type="radio" name="word-length" value={length} checked={(puzzleKind === 'word-ladder' ? ladderWordLength : selectedWordLength) === length} onChange={() => puzzleKind === 'word-ladder' ? setLadderWordLength(length) : setSelectedWordLength(length)} aria-label={t('{0} letters', length)} />
-                    <span>{length}</span>
-                  </label>)}
-                </div>
-              </fieldset>
-              {puzzleKind === 'word-puzzle' && <>
-              <CollectionPicker value={selectedPoolId} wordLength={selectedWordLength} disabled={busy} onChange={id => {
-                firstGuestVisit.current = false;
-                setSelectedPoolId(id);
-              }} />
-              </>}
-            </div>
-            <div className="game-price" aria-label={t('Entry: 1 coin. Win: {0} coins', setupReward)}><span><Icon name="coin"/>{t('1 to play')}</span><span><Icon name="coin"/>+{setupReward}{t(' on a win')}</span></div>
-            <button className="primary-button" onClick={() => void startPractice()} disabled={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t(puzzleKind === 'word-ladder' ? 'Start ladder ' : 'Start practice ')}<Icon name="arrow"/>
-            </button>
-            </div>
-          </div>
-        ) : (
-          <div ref={puzzleRef} key={game.id} className={`puzzle${game.ladder ? ' ladder-puzzle' : ''}${celebrationId === game.id ? ' puzzle-won' : ''}`}>
-            {celebrationId === game.id && <PuzzleCelebration key={game.id}/>}
-            <div className="puzzle-heading">
-              <div><p className="eyebrow">{t('{0} · {1} letters', t(game.ladder ? 'Word Ladder' : 'Word puzzle'), game.wordLength)}</p>{game.pool && <small>{t(game.pool.name)} · {game.pool.author}</small>}</div>
-              <span className="attempt-counter" aria-live="polite">{game.ladder ? t('{0} / {1} words', game.guesses.length, game.ladder.targetWords) : t('{0} {1} left', attemptsRemaining, (attemptsRemaining === 1 ? t('guess') : t('guesses')))}</span>
-            </div>
-            {!finished && <div className="puzzle-tools"><button className="account-link" type="button" onClick={exitGame} disabled={busy || progressSaving || game.guesses.length > 0} title={t('Available before your first accepted word')}>{t('Choose a new puzzle')}</button><button className="account-link" type="button" onClick={() => void giveUp()} disabled={busy || progressSaving}>{t('Give up')}</button></div>}
-            <p className={`puzzle-message${rejectedAttempt ? ' invalid' : ''}`} role="status" aria-live="polite">{
-              game.cancellationReason ? t(game.cancellationReason) + t(' Your entry cost was returned to the original wallet.')
-              : message ? t(message)
-              : finished ? game.ladder
-                ? game.status === 'won' ? t('{0} new words made.', game.guesses.length) : t('Challenge ended.')
-                : t('{0} in {1} guesses.', t(game.status === 'won' ? 'Solved' : 'Puzzle complete'), game.attemptCount ?? game.guesses.length)
-              : !gameInputFocused ? t('Click anywhere in the puzzle to resume typing.')
-              : game.ladder ? t('Change one letter. Complete words check automatically.')
-              : t('Type {0} letters to check your word automatically.', game.wordLength)
-            }</p>
-            {!finished && (game.revealedPresent.length > 0 || game.revealedAbsent.length > 0) && <div className="puzzle-revealed-hints" aria-label={t('Revealed letters')}>
-              {game.revealedPresent.length > 0 && <span>{t('In the word: ')}<strong>{game.revealedPresent.map(letter => letter.toUpperCase()).join(' · ')}</strong>{t(' · position unknown')}</span>}
-              {game.revealedAbsent.length > 0 && <span>{t('Ruled out: ')}<strong>{game.revealedAbsent.map(letter => letter.toUpperCase()).join(' · ')}</strong></span>}
-            </div>}
-            <div className="puzzle-columns">
-            <div className={`puzzle-stage${!finished ? ' with-hints' : ''}`}>
-            <div className="puzzle-play-column">
-            {game.ladder ? <WordLadderBoard ladder={game.ladder} steps={game.guesses} guess={guess} finished={!!finished} busy={busy && submittingGuess.current} rejectedAttempt={rejectedAttempt} revealingRow={revealingGuess?.gameId === game.id ? revealingGuess.row : undefined} onRevealEnd={() => setRevealingGuess(null)}/> : (!finished || game.guesses.length > 0) && <PuzzleGrid wordLength={game.wordLength} label={t('{0}-letter puzzle board', game.wordLength)}>
-              {Array.from({ length: game.attemptLimit }, (_, row) => {
-                const result = game.guesses[row];
-                const activeGuess = !result && row === game.guesses.length ? guess : '';
-                const rejected = !result && row === game.guesses.length && rejectedAttempt > 0;
-                const revealing = revealingGuess?.gameId === game.id && revealingGuess.row === row;
-                const checking = !result && row === game.guesses.length && busy && submittingGuess.current;
-                return <PuzzleGuessRow key={`${game.id}-${row}`} word={result?.guess ?? activeGuess} wordLength={game.wordLength} label={result?.guess ?? t('Guess {0}', row + 1)} states={result?.feedback.map(state => state.toLowerCase()) ?? []}
-                  rejectedAttempt={rejected ? rejectedAttempt : 0} revealing={revealing} checking={checking} onRevealEnd={() => setRevealingGuess(null)}/>;
-              })}
-            </PuzzleGrid>}
-            {finished && <div className="next-game" role="group" aria-label={t('Game actions')}><button ref={playAgainRef} className="primary-button" onClick={() => void startPractice(true)} disabled={busy || progressSaving || accountLoading || walletOwner !== (account?.id ?? 'guest')}>{t('Play again')}</button><button className="quiet-button" onClick={exitGame} disabled={busy || progressSaving}>{t('Change settings')}</button>{!account && !accountLoading && !accountError && game.status !== 'cancelled' && <p className="guest-save-reminder"><a href={sectionPaths.account} onClick={event => { event.preventDefault(); navigateTo('account'); }}>{t('Sign in to save your game history.')}</a></p>}</div>}
-            {!finished && <>
-              <label className="sr-only" htmlFor="guess-input">{t('Type your {0} guess one letter at a time', t(lengthName(game.wordLength)))}</label>
-              <input ref={inputRef} className="game-input" id="guess-input" value={guess} readOnly onFocus={() => setGameInputFocused(true)} onBlur={() => setGameInputFocused(false)} onChange={event => changeGuess(event.target.value)} onPaste={event => event.preventDefault()} onDrop={event => event.preventDefault()} onKeyDown={handleInputKeyDown} autoComplete="off" autoCapitalize="none" inputMode="none" />
-            </>}
-            </div>
-            {hintPanel(game.ladder ? 'nextWord' : 'definition')}
-            </div>
-
-            {!finished && <div className="keyboard-dock">
-              <div className="game-keyboard" role="group" aria-label={t('On-screen keyboard')}>
-                {keyboardRows.map((row, rowIndex) => <div className={`keyboard-row keyboard-row-${rowIndex + 1}`} key={row}>
-                  {rowIndex === 2 && <button className="keyboard-key special-key enter-key" type="button" onMouseDown={event => event.preventDefault()} onClick={() => void submitGuess()} disabled={busy || progressSaving || finished || guess.length !== game.wordLength}>{t('Enter')}</button>}
-                  {row.split('').map(letter => {
-                    const state = keyboardFeedback.get(letter.toUpperCase())?.toLowerCase() ?? '';
-                    return <button className={`keyboard-key ${state}`} key={letter} type="button" aria-label={`${letter.toUpperCase()}${state ? `, ${t(state)}` : ''}`} onMouseDown={event => event.preventDefault()} onClick={() => addLetter(letter)} disabled={busy || progressSaving || finished}>{letter}</button>;
-                  })}
-                  {rowIndex === 2 && <button className="keyboard-key special-key delete-key" type="button" aria-label={t('Delete letter')} onMouseDown={event => event.preventDefault()} onClick={deleteLetter} disabled={busy || progressSaving || finished}>⌫</button>}
-                </div>)}
-              </div>
-            </div>}
-            {(game.ladder || game.guesses.length > 0 || (finished && game.status !== 'cancelled')) && <aside className="puzzle-definitions" aria-label={t('Word definitions')}>
-            {game.ladder && <div className="guess-definition">
-              <div><div className="word-with-pronunciation"><strong>{game.ladder.startWord}</strong><PronunciationButton term={game.ladder.startWord}/></div><DefinitionText text={game.ladder.startDefinition || t('Definition unavailable.')}/></div>
-              {wordBookmark(game.ladder.startWord, game.ladder.startDefinition ?? '')}
-            </div>}
-            {game.guesses.map((result, index) => <div className="guess-definition" key={`${result.guess}-${index}`}>
-              <div><div className="word-with-pronunciation"><strong>{result.guess}</strong><PronunciationButton term={result.guess} /></div><DefinitionText text={result.definition || t('Definition unavailable.')} /></div>
-              {wordBookmark(result.guess, result.definition ?? '')}
-            </div>)}
-            {finished && !game.ladder && game.answer && <div className="answer-definition">
-              <div><p className="eyebrow">{t('THE ANSWER')}</p><div className="word-with-pronunciation"><strong>{game.answer}</strong><PronunciationButton term={game.answer!} /></div><DefinitionText text={game.answerDefinition || t('Definition unavailable.')} /></div>
-              {wordBookmark(game.answer!, game.answerDefinition ?? '')}
-            </div>}
-            </aside>}
-
-            </div>
-          </div>
-        )}
-      {!game && message && <p className="notice" role="status">{t(message)}</p>}
-      </section>
-      </>}
-      {activeSection === 'library' && <section className="library-page">
+      <Routes location={action === 'reset' || action === 'verify' ? { ...location, pathname: '/account' } : location}>
+      <Route path="/games/animal-guess" element={<AnimalGuessGame bookmark={wordBookmark} practiceOwner={accountLoading || progressSaving || accountError ? null : account?.id ?? 'guest'}/>} />
+      <Route path="/games" element={<GamePage
+        game={game}
+        busy={busy}
+        progressSaving={progressSaving}
+        restoring={restoring}
+        puzzleKind={puzzleKind}
+        ladderWordLength={ladderWordLength}
+        selectedWordLength={selectedWordLength}
+        selectedPoolId={selectedPoolId}
+        firstGuestVisit={firstGuestVisit}
+        setupReward={setupReward}
+        accountLoading={accountLoading}
+        walletOwner={walletOwner}
+        account={account}
+        puzzleRef={puzzleRef}
+        celebrationId={celebrationId}
+        finished={finished}
+        attemptsRemaining={attemptsRemaining}
+        message={message}
+        rejectedAttempt={rejectedAttempt}
+        gameInputFocused={gameInputFocused}
+        submittingGuess={submittingGuess}
+        guess={guess}
+        revealingGuess={revealingGuess}
+        playAgainRef={playAgainRef}
+        accountError={accountError}
+        inputRef={inputRef}
+        keyboardFeedback={keyboardFeedback}
+        focusGameInput={focusGameInput}
+        setLadderWordLength={setLadderWordLength}
+        setSelectedWordLength={setSelectedWordLength}
+        setSelectedPoolId={setSelectedPoolId}
+        startPractice={startPractice}
+        exitGame={exitGame}
+        giveUp={giveUp}
+        setRevealingGuess={setRevealingGuess}
+        navigateTo={navigateTo}
+        setGameInputFocused={setGameInputFocused}
+        changeGuess={changeGuess}
+        handleInputKeyDown={handleInputKeyDown}
+        hintPanel={hintPanel}
+        submitGuess={submitGuess}
+        addLetter={addLetter}
+        deleteLetter={deleteLetter}
+        wordBookmark={wordBookmark}
+        />}
+        />
+      <Route path="/library" element={<section className="library-page">
         <VocabularyLibrary onUseCollection={useCollection} key={accountRevision} signedIn={!!account} searchQuery="" onSignIn={() => navigateTo('account')} />
-      </section>}
-      {activeSection === 'dictionary' && <DictionaryPage key={accountRevision} signedIn={!!account} accountLoading={accountLoading} searchQuery={quickSearch} />}
-      {activeSection === 'feedback' && <FeedbackPage />}
-      {activeSection === 'home' && <HomePage onNavigate={navigateTo} />}
-      {activeSection === 'account' && <AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} initialMode={accountEntryMode} />}
-      {activeSection === 'progress' && <StatisticsPanel key={accountRevision} onPlay={() => navigateTo('play')} onSignIn={() => navigateTo('account')} />}
-      {activeSection === 'community' && <CommunityPage onExplore={() => navigateTo('library')} />}
-      {activeSection === 'settings' && <SettingsPage theme={theme} onThemeChange={setTheme} soundEnabled={soundEnabled} onSoundChange={enabled => { gameAudio.setEnabled(enabled); setSoundEnabled(enabled); }} fontSize={interfacePreferences.fontSize} onFontSizeChange={interfacePreferences.setFontSize} language={interfacePreferences.languagePreference} onLanguageChange={interfacePreferences.setLanguage} />}
-      {activeSection === 'licenses' && <section className="licenses-page" aria-label={t('Licenses and attribution')}>
-        <p className="eyebrow">{t('SOURCES & ATTRIBUTION')}</p><h2>{t('Words with a shared history.')}</h2><p>{t('Our dictionary combines Simple English Wiktionary with supplementary definitions from Open English WordNet.')}</p>
-        <article><h3>{t('Dictionary definitions')}</h3><p>{t('Definitions are adapted from ')}<a href="https://simple.wiktionary.org/" target="_blank" rel="noreferrer">{t('Simple English Wiktionary')}</a>{t(', under the ')}<a href="https://creativecommons.org/licenses/by-sa/3.0/" target="_blank" rel="noreferrer">{t('Creative Commons Attribution-ShareAlike 3.0 license')}</a>{t(', as described in the project’s ')}<a href="https://simple.wiktionary.org/wiki/Wiktionary:Rules" target="_blank" rel="noreferrer">{t('rules')}</a>{t(' and ')}<a href="https://simple.wiktionary.org/wiki/Wiktionary:Copyrights" target="_blank" rel="noreferrer">{t('copyright notice')}</a>.</p>
-          <p>{t('LexiPlay removes markup, normalizes spacing, and shortens definitions to the first two senses. Community definitions may vary in accuracy.')}</p>
-          <p>{t('Use ')}<a href="https://simple.wiktionary.org/wiki/Special:Search" target="_blank" rel="noreferrer">{t('Wiktionary’s entry search')}</a>{t(' to find an original word page and its contributors in the revision history. Shared adaptations remain subject to the applicable attribution and ShareAlike terms.')}</p>
-        </article>
-        <article><h3>{t('Open English WordNet 2025')}</h3><p>{t('Supplementary definitions come from ')}<a href="https://github.com/globalwordnet/english-wordnet" target="_blank" rel="noreferrer">{t('Open English WordNet 2025 Core')}</a>{t(', developed by the Open English WordNet team and derived from the Princeton University WordNet database.')}</p><p>{t('The supplement is licensed under ')}<a href="https://creativecommons.org/licenses/by/4.0/" target="_blank" rel="noreferrer">{t('Creative Commons Attribution 4.0')}</a>{t(', with the underlying Princeton WordNet notice retained. LexiPlay normalizes whitespace and groups word classes, preserves existing useful definitions, and selects up to two WordNet meanings per word class for display. Full imported meanings and source identifiers remain in the database.')}</p><p><a href="/licenses/open-english-wordnet-LICENSE.md" target="_blank" rel="noreferrer">{t('Open English WordNet license notice')}</a> · <a href="/licenses/Princeton-WordNet-LICENSE.txt" target="_blank" rel="noreferrer">{t('Princeton WordNet license notice')}</a></p></article>
-        <article><h3>{t('C2 vocabulary selection')}</h3><p>{t('The expanded C2 selection adapts the ')}<a href="https://github.com/openlanguageprofiles/olp-en-cefrj" target="_blank" rel="noreferrer">{t('Octanove Vocabulary Profile C1/C2 v1.0')}</a>{t(', created by Octanove Labs and published through Open Language Profiles under ')}<a href="https://creativecommons.org/licenses/by-sa/4.0/" target="_blank" rel="noreferrer">{t('CC BY-SA 4.0')}</a>{t('. LexiPlay normalizes spelling alternatives, removes duplicate entries, and admits additions only with a published family match and a matching dictionary definition. Entries requiring review of a particular meaning are held back. The original starter used ')}<a href="https://www.esl-lounge.com/student/reference/c2-cefr-vocabulary-word-list.php" target="_blank" rel="noreferrer">{t('ESL Lounge')}</a>{t(' as one reference.')}</p><p>{t('This is a learning selection, not an official or exhaustive CEFR inventory. Dictionary definitions retain their own source licences. ')}<a href="/data/lexiplay-c2.json" target="_blank" rel="noreferrer">{t('Download the adapted C2 selection')}</a> · <a href="/licenses/cefr-data-NOTICE.md" target="_blank" rel="noreferrer">{t('Data attribution and modifications')}</a></p></article>
-        <article><h3>{t('Word-family grouping')}</h3><p>{t('Family identities are adapted from Paul Nation\'s BNC/COCA word-family lists v1.0.0, hosted by ')}<a href="https://www.wgtn.ac.nz/lals/resources/paul-nations-resources" target="_blank" rel="noreferrer">{t('Victoria University of Wellington')}</a>{t('. The adapted mapping is provided under CC BY-SA 4.0, following the university\'s resource licence statement. Grouping does not assign one CEFR level or shared learning progress to every member. Phrases and entries without a published match remain separate study items. ')}<a href="/data/bnc-coca-families.json" target="_blank" rel="noreferrer">{t('Download the adapted family mapping')}</a></p></article>
-        <article><h3>{t('Original Wordle answers')}</h3><p>{t('The five-letter answer pool uses the original 2,315-word selection by Josh Wardle, preserved in ')}<a href="https://gist.github.com/cfreshman/a03ef2cba789d8cf00c08f767e0fad7b" target="_blank" rel="noreferrer">{t('cfreshman’s source extraction')}</a>{t('. Playable answers have matching English definitions in the LexiPlay dictionary. This selection does not track subsequent New York Times editorial changes.')}</p></article>
-        <article><h3>{t('Guess Animal Chinese meanings')}</h3><p>{t('Chinese animal names reference ')}<a href="https://github.com/skywind3000/ECDICT" target="_blank" rel="noreferrer">ECDICT</a>{t('. Meanings are manually selected for the animal sense. English questions, definitions and contextual keyword glosses are curated for this game.')} <a href="/licenses/ECDICT-LICENSE.txt" target="_blank" rel="noreferrer">{t('ECDICT license notice')}</a></p></article>
-      </section>}
+      </section>} />
+      <Route path="/dictionary" element={<DictionaryPage key={accountRevision} signedIn={!!account} accountLoading={accountLoading} searchQuery={(location.state as { search?: string } | null)?.search ?? ''} />} />
+      <Route path="/feedback" element={<FeedbackPage />} />
+      <Route path="/" element={<HomePage onNavigate={navigateTo} />} />
+      <Route path="/account" element={<AccountPage account={account} setAccount={setAccount} loading={accountLoading} accountError={accountError} onRetry={retryAccount} onSignedIn={signedIn} progressSaving={progressSaving} progressError={progressError} progressMessage={progressMessage} onRetryProgress={retryProgress} initialMode={accountEntryMode} />} />
+      <Route path="/progress" element={<StatisticsPanel key={accountRevision} onPlay={() => navigateTo('play')} onSignIn={() => navigateTo('account')} />} />
+      <Route path="/community" element={<CommunityPage onExplore={() => navigateTo('library')} />} />
+      <Route path="/settings" element={<SettingsPage theme={theme} onThemeChange={setTheme} soundEnabled={soundEnabled} onSoundChange={enabled => { gameAudio.setEnabled(enabled); setSoundEnabled(enabled); }} fontSize={interfacePreferences.fontSize} onFontSizeChange={interfacePreferences.setFontSize} language={interfacePreferences.languagePreference} onLanguageChange={interfacePreferences.setLanguage} />} />
+      <Route path="/licenses" element={<LicensesPage />} />
+      <Route path="/play" element={<Navigate to="/games" replace />} />
+      <Route path="*" element={<Navigate to="/" replace />} />
+      </Routes>
       <footer className="workspace-footer"><div className="footer-links"><a href="https://github.com/Hwent" target="_blank" rel="noopener noreferrer" aria-label={t('Visit Hwent on GitHub (opens in a new tab)')}>{t('Hwent on GitHub ')}<Icon name="arrow" /></a><a href="/licenses" onClick={event => { event.preventDefault(); navigateTo('licenses'); }} aria-current={activeSection === 'licenses' ? 'page' : undefined}>{t('Licenses')}</a></div></footer>
       </div>
     </main>

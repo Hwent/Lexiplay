@@ -137,6 +137,7 @@ describe('saved practice and account updates', () => {
     expect(screen.getByRole('option', { name: 'Classic Wordle' })).toBeInTheDocument();
     expect(screen.queryByRole('option', { name: /My word list/ })).not.toBeInTheDocument();
     expect(screen.getByLabelText('Collection')).toHaveValue('');
+    await waitFor(() => expect(screen.getByRole('button', { name: /start practice/i })).toBeEnabled());
     await user.click(screen.getByRole('button', { name: /start practice/i }));
     await screen.findByRole('grid', { name: '5-letter puzzle board' });
     expect(starts[0]).toMatchObject({ kind: 'word-puzzle', wordLength: 5, playWithMyWords: false });

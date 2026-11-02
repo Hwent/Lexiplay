@@ -33,3 +33,7 @@ Base path: `/api/v1`. Requests and responses use JSON. Cookie sessions identify 
 Data attribution and license notices: [licenses](apps/web/public/licenses/).
 
 Leaderboard streaks use UTC dates and remain active if the latest completed round was yesterday. Guess Animal completions are recorded once per round and transferred with guest progress after sign-in; earlier browser-only rounds cannot be backfilled.
+
+## Frontend routing
+
+React Router manages browser navigation in `apps/web/src/App.tsx`; shared paths live in `routes.ts`. `GamePage.tsx` renders puzzle setup and play, and `LicensesPage.tsx` renders attribution. Existing feature pages are mounted through routes. Pending vocabulary saves block navigation until successful, including browser back/forward. `/play` redirects to `/games`; email action hashes continue to open the account page.

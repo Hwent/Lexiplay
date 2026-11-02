@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { stubGameApiFetch } from './game-api-test-fixtures';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -11,6 +12,22 @@ describe('practice puzzle', () => {
     cleanup();
     clearDictionaryCache();
     vi.unstubAllGlobals();
+  });
+
+  it('keeps browser back and forward working in StrictMode', async () => {
+    stubGameApiFetch(vi.fn(async input => String(input).endsWith('/auth/me')
+      ? new Response('{}', { status: 401 }) : Response.json([])));
+    const user = userEvent.setup();
+    render(<StrictMode><App /></StrictMode>);
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    expect(window.location.pathname).toBe('/settings');
+    await user.click(screen.getByRole('link', { name: 'Licenses' }));
+    expect(await screen.findByRole('region', { name: 'Licenses and attribution' })).toBeInTheDocument();
+    act(() => window.history.back());
+    expect(await screen.findByRole('region', { name: 'Preferences' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/settings');
+    act(() => window.history.forward());
+    expect(await screen.findByRole('region', { name: 'Licenses and attribution' })).toBeInTheDocument();
   });
 
   it('lets players choose a four-letter game and requires one character per keystroke', async () => {
