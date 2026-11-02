@@ -36,4 +36,13 @@ Leaderboard streaks use UTC dates and remain active if the latest completed roun
 
 ## Frontend routing
 
-React Router manages browser navigation in `apps/web/src/App.tsx`; shared paths live in `routes.ts`. `GamePage.tsx` renders puzzle setup and play, and `LicensesPage.tsx` renders attribution. Existing feature pages are mounted through routes. Pending vocabulary saves block navigation until successful, including browser back/forward. `/play` redirects to `/games`; email action hashes continue to open the account page.
+React Router starts in `apps/web/src/App.tsx`, with navigation and account coordination in `AppLayout.tsx`; shared paths live in `routes.ts`. `GamePage.tsx` renders puzzle setup and play, and `LicensesPage.tsx` renders attribution. Existing feature pages are mounted through routes. Pending vocabulary saves block navigation until successful, including browser back/forward. `/play` redirects to `/games`; email action hashes continue to open the account page.
+
+The frontend separates state by responsibility:
+
+- `usePuzzleGame.ts`: puzzle setup, input, hints, wallet and round recovery. The layout keeps this hook mounted across routes.
+- `GamePage.tsx`: puzzle UI, using the typed controller returned by `usePuzzleGame`.
+- `PreferencesProvider.tsx`: theme, language, font size and sound persistence; settings read it through `usePreferences()`.
+- `PuzzleHint.tsx` and `WordBookmark.tsx`: shared UI, separate from game state and API actions.
+
+Account and pending-word state stay above the pages so navigation preserves progress and unsaved selections.
