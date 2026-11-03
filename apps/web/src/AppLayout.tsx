@@ -21,9 +21,6 @@ import HomePage from './HomePage';
 import GamePage from './GamePage';
 import LicensesPage from './LicensesPage';
 import GuestGameReminder from './GuestGameReminder';
-import AnimalGameInvitation, {
-  hasSeenAnimalInvitation,
-} from './AnimalGameInvitation';
 import {
   GameOptions,
   GAME_OPTIONS_PATH,
@@ -73,9 +70,6 @@ export default function AppLayout() {
     retryProgress,
   } = useAccount();
   const [dismissedGuestReminder, setDismissedGuestReminder] = useState('');
-  const [animalInvitationPending, setAnimalInvitationPending] = useState(
-    () => !hasSeenAnimalInvitation(),
-  );
   const [accountEntryMode, setAccountEntryMode] = useState<
     'login' | 'register'
   >('login');
@@ -244,12 +238,6 @@ export default function AppLayout() {
     !accountError &&
     dismissedGuestReminder !== game.id
   );
-  const showAnimalInvitation =
-    animalInvitationPending &&
-    !accountLoading &&
-    !restoring &&
-    !showGuestReminder;
-
   const sectionTitle: Record<Section, string> = {
     home: t('Home'),
     play: t('Games'),
@@ -298,7 +286,7 @@ export default function AppLayout() {
     <PendingWordsContext.Provider value={wordStore}>
       <main
         className="app-shell"
-        inert={showGuestReminder || showAnimalInvitation}
+        inert={showGuestReminder}
       >
         <aside className="sidebar">
           <a
@@ -636,15 +624,6 @@ export default function AppLayout() {
           onCreateAccount={() => {
             setDismissedGuestReminder(game.id);
             navigateTo('account', undefined, 'register');
-          }}
-        />
-      )}
-      {showAnimalInvitation && (
-        <AnimalGameInvitation
-          onDismiss={() => setAnimalInvitationPending(false)}
-          onPlay={() => {
-            setAnimalInvitationPending(false);
-            navigateTo('animal-guess');
           }}
         />
       )}
