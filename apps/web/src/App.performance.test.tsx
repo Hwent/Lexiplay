@@ -6,6 +6,38 @@ import App from './App';
 beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
+it('uses the authenticated bootstrap wallet without requesting it again', async () => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    if (String(input).endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner', coinBalance: 12, activeGameId: null });
+    return Response.json([]);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<App />);
+  expect(await screen.findByLabelText('Coin balance: 12')).toBeInTheDocument();
+  await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/collections/game-options/all'))).toBe(true));
+  expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/games/wallet'))).toBe(false);
+});
+
+it('shares the saved-game and authenticated active-game recovery request', async () => {
+  localStorage.setItem('lexiplay-last-game', 'saved-game');
+  let finish!: (response: Response) => void;
+  const pending = new Promise<Response>(resolve => { finish = resolve; });
+  let gameReads = 0;
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner', coinBalance: 12, activeGameId: 'saved-game' });
+    if (path.endsWith('/games/saved-game')) { gameReads++; return pending; }
+    return Response.json([]);
+  }));
+  render(<App />);
+  expect(await screen.findByLabelText('Coin balance: 12')).toBeInTheDocument();
+  expect(gameReads).toBe(1);
+  finish(Response.json({ id: 'saved-game', wordLength: 5, attemptLimit: 6, guesses: [], hints: { definition: 1 }, clues: {}, revealedAbsent: [], revealedPresent: [], wallet: { coinBalance: 12, kind: 'account' } }));
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Games' }));
+  expect(await screen.findByRole('grid', { name: '5-letter puzzle board' })).toBeInTheDocument();
+  expect(gameReads).toBe(1);
+});
+
 it('prefetches every word count before opening setup and reuses them across lengths', async () => {
   const counts = vi.fn(async () => Response.json(Array.from({ length: 7 }, (_, index) => ({ wordLength: index + 3, totalWords: (index + 3) * 10, collections: [] }))));
   vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {

@@ -40,9 +40,9 @@ export class AccountService {
     return { user, token: await this.startSession(user.id) };
   }
 
-  async current(token: string | undefined): Promise<AccountUser> {
+  async current(token: string | undefined, includeActiveGame = false): Promise<AccountUser> {
     if (!token) throw new UnauthorizedException();
-    const user = await this.accounts.findSession(this.hashToken(token));
+    const user = await this.accounts.findSession(this.hashToken(token), includeActiveGame);
     if (!user) throw new UnauthorizedException();
     return user;
   }

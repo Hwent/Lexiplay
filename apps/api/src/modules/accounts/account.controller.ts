@@ -28,7 +28,7 @@ export class AccountController {
 
   @Get('me')
   async current(@Headers('cookie') cookieHeader: string | undefined, @Res({ passthrough: true }) response: Response) {
-    try { return await this.accounts.current(readSessionCookie(cookieHeader)); }
+    try { return await this.accounts.current(readSessionCookie(cookieHeader), true); }
     catch (error) {
       if (error instanceof UnauthorizedException) response.setHeader('Set-Cookie', this.accounts.expiredCookie());
       throw error;

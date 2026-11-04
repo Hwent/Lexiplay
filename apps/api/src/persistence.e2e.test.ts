@@ -103,6 +103,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
     try {
       const game = await profile('start', 12, () => start(user.cookie));
+      expect(await (await request('/auth/me', 'GET', undefined, user.cookie)).json()).toMatchObject({ activeGameId: game.id, coinBalance: user.coinBalance - 1 });
       await profile('read', 2, async () => expect((await request(`/games/${game.id}`, 'GET', undefined, user.cookie)).status).toBe(200));
       await profile('hint', 7, async () => expect((await request(`/games/${game.id}/hints`, 'POST', { type: 'definition' }, user.cookie)).status).toBe(201));
       await profile('guess', 7, async () => expect((await request(`/games/${game.id}/guesses`, 'POST', { guess: 'paper' }, user.cookie)).status).toBe(201));
