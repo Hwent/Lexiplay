@@ -38,7 +38,7 @@ The 1.2 MB source archive from `git archive d19329b` built successfully in App S
 
 Deployment Center is connected to `Hwent/Lexiplay`, branch `Nov-2026`. The workflow `.github/workflows/nov-2026_lexiplay-ca-api-20261104.yml` runs on pushes to that branch and manual runs from the same branch. It packages only Git-tracked files, signs in with OpenID Connect, and deploys the source archive for the server's pnpm build. Deployments are serialized rather than cancelling an in-progress publication.
 
-After user approval, Deployment Center created the user-assigned identity `oidc-msi-bb14` and configured its three `AZUREAPPSERVICE_*` identity settings as GitHub repository secrets. These identify the OIDC login; no database or mail credentials belong in GitHub. Initial Actions deployment and the identity's resulting role scope still require verification.
+After user approval, Deployment Center created the user-assigned identity `oidc-msi-bb14` and configured its three `AZUREAPPSERVICE_*` identity settings as GitHub repository secrets. These identify the OIDC login; no database or mail credentials belong in GitHub. OIDC login succeeded in the first Actions run. App Service IAM confirms **Website Contributor**, scoped to **This resource**. The workflow also checks the deployed API health after publication; initial deployment still requires verification.
 
 Use a user-assigned identity with **Website Contributor** scoped only to this Web App. The federated credential must trust issuer `https://token.actions.githubusercontent.com`, audience `api://AzureADTokenExchange`, and subject `repo:Hwent/Lexiplay:ref:refs/heads/Nov-2026`. The workflow has no GitHub environment that would change this subject. Do not enable basic publishing authentication.
 

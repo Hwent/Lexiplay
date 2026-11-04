@@ -40,3 +40,10 @@ jobs:
         with:
           app-name: lexiplay-ca-api-20261104
           package: ${{ runner.temp }}/lexiplay-source.zip
+
+      - name: Verify deployed API health
+        run: >-
+          curl --fail --silent --show-error
+          --connect-timeout 10 --max-time 15
+          --retry 24 --retry-delay 10 --retry-max-time 300 --retry-all-errors
+          https://lexiplay-ca-api-20261104-drhmefb7d4dafee7.canadacentral-01.azurewebsites.net/api/v1/health
