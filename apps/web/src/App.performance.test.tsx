@@ -3,7 +3,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 
-beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/'); });
+beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
 
 it('prefetches every word count before opening setup and reuses them across lengths', async () => {
@@ -71,4 +71,25 @@ it('loads the signed-in word list before navigation and reuses the first page', 
   await user.click(screen.getByRole('tab', { name: 'My Word List' }));
   expect(await screen.findByText('A fruit.')).toBeInTheDocument();
   expect(entries).toHaveBeenCalledOnce();
+});
+
+it('opens another page while statistics fetch is still pending', async () => {
+  let requested = false;
+  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
+    if (path.includes('/progress/summary')) {
+      requested = true;
+      return new Promise<Response>(() => {});
+    }
+    if (path.endsWith('/word-lists/saved-terms')) return Response.json({ terms: [] });
+    return Response.json([]);
+  }));
+  const user = userEvent.setup(); render(<App />);
+  await user.click(screen.getByRole('button', { name: 'Stats' }));
+  await waitFor(() => expect(requested).toBe(true));
+  expect(screen.getByRole('region', { name: 'Learning statistics' })).toBeInTheDocument();
+  await user.click(screen.getByRole('button', { name: 'Settings' }));
+  expect(location.pathname).toBe('/settings');
+  expect(screen.getByRole('region', { name: 'Preferences' })).toBeInTheDocument();
 });

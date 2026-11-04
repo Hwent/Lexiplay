@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 import { stubGameApiFetch } from './game-api-test-fixtures';
 
-beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/progress'); });
+beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/progress'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it('offers a puzzle instead of empty metrics and pagination before the first game', async () => {

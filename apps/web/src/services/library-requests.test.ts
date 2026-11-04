@@ -27,3 +27,22 @@ it('retries failed reads instead of caching the error', async () => {
   const cache = new LibraryRequests(); await expect(cache.get('/word-lists/mine')).rejects.toThrow('Offline');
   await expect(cache.get('/word-lists/mine')).resolves.toEqual([]); expect(fetchMock).toHaveBeenCalledTimes(2);
 });
+
+it('keeps expired data available for rendering during a background refresh and clears it on invalidation', async () => {
+  vi.useFakeTimers();
+  const cache = new LibraryRequests();
+  cache.prime('/progress/summary', { total: 4 }, 1000);
+  vi.advanceTimersByTime(1001);
+  expect(cache.peek('/progress/summary', true)).toEqual({ total: 4 });
+  expect(cache.peek('/progress/summary')).toBeUndefined();
+  expect(cache.peek('/progress/summary', true)).toEqual({ total: 4 });
+  let finish!: (response: Response) => void;
+  vi.stubGlobal('fetch', vi.fn(() => new Promise<Response>(resolve => { finish = resolve; })));
+  const refreshing = cache.get('/progress/summary');
+  expect(cache.peek('/progress/summary', true)).toEqual({ total: 4 });
+  finish(Response.json({ total: 5 }));
+  await refreshing;
+  expect(cache.peek('/progress/summary')).toEqual({ total: 5 });
+  cache.invalidate('/progress/');
+  expect(cache.peek('/progress/summary', true)).toBeUndefined();
+});

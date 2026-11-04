@@ -1,8 +1,7 @@
 import { randomInt } from 'node:crypto';
 export const LADDER_WORDS = 4;
 
-// Offer only starting words with a chain of four distinct common words.
-export function createLadder(words: string[]) {
+function ladderNeighbors(words: string[]) {
   const buckets = new Map<string, string[]>();
   for (const word of words) {
     for (let i = 0; i < word.length; i++) {
@@ -12,24 +11,37 @@ export function createLadder(words: string[]) {
       buckets.set(pattern, bucket);
     }
   }
+  return (word: string) => [...new Set([...word].flatMap((_, i) => buckets.get(word.slice(0, i) + '*' + word.slice(i + 1)) ?? []))];
+}
+
+function findChain(neighbors: ReturnType<typeof ladderNeighbors>, word: string, visited: Set<string>, remaining: number): string[] | undefined {
+  if (!remaining) return [];
+  for (const next of neighbors(word)) {
+    if (visited.has(next)) continue;
+    visited.add(next);
+    const rest = findChain(neighbors, next, visited, remaining - 1);
+    visited.delete(next);
+    if (rest) return [next, ...rest];
+  }
+  return undefined;
+}
+
+export function nextLadderWord(words: string[], used: string[], remaining: number) {
+  const neighbors = ladderNeighbors(words);
+  const previous = used.at(-1)!;
+  const visited = new Set(used);
+  return findChain(neighbors, previous, visited, remaining)?.[0]
+    ?? neighbors(previous).find(word => !visited.has(word));
+}
+
+// Offer only starting words with a chain of four distinct common words.
+export function createLadder(words: string[]) {
   if (!words.length) return undefined;
+  const neighbors = ladderNeighbors(words);
   const offset = randomInt(words.length);
   for (let attempt = 0; attempt < words.length; attempt++) {
     const startWord = words[(offset + attempt) % words.length]!;
-    const visited = new Set([startWord]);
-    function hasChain(word: string, remaining: number): boolean {
-      if (!remaining) return true;
-      for (let i = 0; i < word.length; i++) {
-        for (const next of buckets.get(word.slice(0, i) + '*' + word.slice(i + 1)) ?? []) {
-          if (visited.has(next)) continue;
-          visited.add(next);
-          if (hasChain(next, remaining - 1)) return true;
-          visited.delete(next);
-        }
-      }
-      return false;
-    }
-    if (hasChain(startWord, LADDER_WORDS)) return { startWord };
+    if (findChain(neighbors, startWord, new Set([startWord]), LADDER_WORDS)) return { startWord };
   }
   return undefined;
 }

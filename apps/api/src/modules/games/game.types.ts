@@ -4,12 +4,11 @@ export type GameStatus = 'active' | 'won' | 'lost' | 'cancelled';
 export const WORDLE_COST = 1;
 export const HINT_COST = 1;
 export const PUZZLE_ALREADY_STARTED = { code: 'PUZZLE_ALREADY_STARTED', message: 'Finish this puzzle or give up before choosing a new one.' };
-export type HintType = 'definition';
-export const DIFFICULTIES = {
-  easy: { attemptLimit: 7, reward: 4 },
-  medium: { attemptLimit: 6, reward: 5 },
-  hard: { attemptLimit: 5, reward: 6 },
-} as const;
+export type HintType = 'definition' | 'nextWord';
+export const WORD_PUZZLE_ATTEMPTS = 6;
+// Existing rounds retain their original attempt limit when restored.
+export const LEGACY_ATTEMPT_LIMITS = { easy: 7, medium: WORD_PUZZLE_ATTEMPTS, hard: 5 } as const;
+export function wordPuzzleReward(wordLength: number): number { return Math.ceil(wordLength / 2) + 2; }
 export type Guess = {
   guess: string; feedback: Feedback[]; attemptsRemaining: number; completed: boolean;
   outcome?: 'WON' | 'LOST'; answer?: string; definition?: string; answerDefinition?: string; rewardCoins?: number;
@@ -20,11 +19,12 @@ export type Game = {
   ladder?: { startWord: string; targetWords: number; startDefinition?: string };
   wordLength: number; difficulty: Difficulty; attemptLimit: number; guesses: Guess[];
   completed: boolean; status: GameStatus; startedAt: string; completedAt: string | null;
-  hints: Record<HintType, number>; clues: Partial<Record<HintType, string>>; hintCoinsSpent: number;
+  hints: { definition: number; nextWord?: number }; clues: Partial<Record<HintType, string>>; hintCoinsSpent: number;
   revealedAbsent: string[]; revealedPresent: string[];
   coinCost: number; winRewardCoins: number; coinPayer: 'account' | 'guest';
   attemptCount?: number; coinChange?: number; answerDefinition?: string;
   cancellationReason?: string;
+  gaveUp?: boolean;
 };
 export function publicGame(game: Game) {
   const { owner: _owner, answer: _answer, answerDefinition: _definition, startRequestId: _request, ...result } = game;

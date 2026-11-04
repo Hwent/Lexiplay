@@ -17,6 +17,10 @@ revision `c46f451920d5cf6326d550fb2d6abb1642717852`. Migration and dictionary pu
 membership from matching dictionary entries with English definitions, excluding names. Guesses still
 use the full practice dictionary. This pool is independent of subsequent NYT editorial changes.
 
+Word Guess CEFR selections are cumulative: A2 draws from A1–A2, through C2 drawing from A1–C2.
+Playable counts and answer selection use the same deduplicated union. Vocabulary browsing and saved
+collection membership retain their individual levels.
+
 `library_state` contains one cache token. Dictionary maintenance reports differences before applying them;
 referenced removals require further action. See [maintenance](../../../../../scripts/DATABASE-REDEPLOY.md).
 

@@ -1,5 +1,5 @@
 import { LanguageContext, useTranslation } from './i18n';
-import { useContext, useEffect, useState } from 'react';
+import { useContext, useEffect, useRef, useState } from 'react';
 import { ApiError } from './services/api-client';
 import Icon, { IconName } from './Icon';
 import PronunciationButton from './PronunciationButton';
@@ -7,28 +7,43 @@ import usePendingWords from './usePendingWords';
 import EmptyState from './EmptyState';
 
 type RecentGame = { id: string; wordLength: number; difficulty: string; completedAt: string; answer: string; answerDefinition?: string; status: string; attemptCount: number; coinChange: number };
-type Statistics = { total: number; wins: number; losses: number; winRate: number; streak: number; timezone: string; distribution: { attempts: number; wins: number }[]; recent: RecentGame[]; page: number; pageSize: number; totalPages: number };
+export type Statistics = { total: number; wins: number; losses: number; winRate: number; streak: number; timezone: string; distribution: { attempts: number; wins: number }[]; recent: RecentGame[]; page: number; pageSize: number; totalPages: number };
+export function statisticsPath(page = 1) {
+  const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+  return `/progress/summary?timezone=${encodeURIComponent(timezone)}&page=${page}&pageSize=10`;
+}
+
 export default function StatisticsPanel({ onPlay, onSignIn }: { onPlay: () => void; onSignIn: () => void }) {
   const t = useTranslation();
   const language = useContext(LanguageContext);
   const { store, selection } = usePendingWords();
-  const [data, setData] = useState<Statistics | null>(null);
+  const [data, setData] = useState<Statistics | null>(() => store.requests.peek<Statistics>(statisticsPath(), true) ?? null);
+  const dataStore = useRef(store);
   const [page, setPage] = useState(1);
   const [message, setMessage] = useState('');
+  const [refreshError, setRefreshError] = useState('');
   const [signInRequired, setSignInRequired] = useState(false);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => !store.requests.peek(statisticsPath(), true));
   const [retry, setRetry] = useState(0);
   useEffect(() => { void store.loadSaved().catch(() => {}); }, [store]);
   useEffect(() => {
     let active = true;
-    setLoading(true); setMessage(''); setSignInRequired(false);
-    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
-    const path = `/progress/summary?timezone=${encodeURIComponent(timezone)}&page=${page}&pageSize=10`;
+    const path = statisticsPath(page);
+    const cached = store.requests.peek<Statistics>(path, true);
+    if (cached) setData(cached);
+    else if (dataStore.current !== store) setData(null);
+    dataStore.current = store;
+    setLoading(!cached); setMessage(''); setRefreshError(''); setSignInRequired(false);
     store.requests.get<Statistics>(path, 30_000)
       .then(result => { if (active) setData(result); })
       .catch(error => {
         if (!active) return;
         const needsAccount = error instanceof ApiError && error.status === 401;
+        if (cached && !needsAccount) {
+          setRefreshError(error instanceof Error ? error.message : 'Could not load your statistics.');
+          return;
+        }
+        if (needsAccount) setData(null);
         setSignInRequired(needsAccount);
         setMessage(needsAccount ? 'Sign in to see your saved learning progress.' : error instanceof Error ? error.message : 'Could not load your statistics.');
       })
@@ -37,7 +52,8 @@ export default function StatisticsPanel({ onPlay, onSignIn }: { onPlay: () => vo
   }, [retry, page, store]);
   return <section className="statistics-page" aria-label={t('Learning statistics')} aria-busy={loading}>
     <div className="page-introduction"><div><h2>{t('Your ')}<span>{t('progress.')}</span></h2></div><span className="page-intro-icon" aria-hidden="true"><Icon name="progress" /></span></div>
-    {!loading && message && <EmptyState icon="progress" title={signInRequired ? t('Keep your progress together.') : t('Progress is unavailable.')} action={signInRequired ? <button className="primary-button" onClick={onSignIn}>{t('Sign in ')}<Icon name="arrow"/></button> : <button className="quiet-button" onClick={() => setRetry(value => value + 1)}>{t('Try again')}</button>}><p role="status">{t(message)}</p></EmptyState>}
+    {refreshError && <p role="status">{t(refreshError)}</p>}
+    {!loading && message && <EmptyState icon="progress" title={signInRequired ? t('Keep your progress together.') : t('Progress is unavailable.')} action={signInRequired ? <button className="primary-button" onClick={onSignIn}>{t('Sign in ')}<Icon name="arrow"/></button> : <button className="quiet-button" onClick={() => { store.requests.invalidate('/progress/'); setRetry(value => value + 1); }}>{t('Try again')}</button>}><p role="status">{t(message)}</p></EmptyState>}
     {!message && data && !data.total && <EmptyState icon="play" title={t('Your first word starts the story.')} action={<button className="primary-button" onClick={onPlay}>{t('Start a puzzle ')}<Icon name="arrow"/></button>}><p>{t('Complete a puzzle while signed in to see your progress here.')}</p></EmptyState>}
     {!message && data && data.total > 0 && <>
       <div className="stat-cards">{([{ label: 'Games played', value: data.total, icon: 'play' }, { label: 'Win rate', value: `${data.winRate}%`, icon: 'progress' }, { label: 'Current streak', value: t(data.streak === 1 ? '{0} day' : '{0} days', data.streak), icon: 'sun' }, { label: 'Words solved', value: data.wins, icon: 'check' }] satisfies { label: string; value: string | number; icon: IconName }[]).map(({ label, value, icon }) => <article key={label}><span className="stat-label"><span>{t(label)}</span><Icon name={icon} /></span><strong>{value}</strong></article>)}</div>

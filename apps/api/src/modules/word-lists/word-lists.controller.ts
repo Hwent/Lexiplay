@@ -10,7 +10,4 @@ export class WordListsController {
   @Get(':term/definition') async definition(@Param('term') term: string) {
     return { definition: await this.dictionary.dictionaryDefinition(term) };
   }
-  @Get(':term/thesaurus') thesaurus(@Param('term') term: string) {
-    return this.dictionary.dictionaryThesaurus(term);
-  }
 }

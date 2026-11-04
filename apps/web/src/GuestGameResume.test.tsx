@@ -2,7 +2,7 @@ import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 
-beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games'); });
+beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
 it.each([null, 'stale-game'])('recovers the guest active game when the local game ID is %s', async localId => {

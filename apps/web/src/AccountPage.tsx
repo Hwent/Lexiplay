@@ -23,8 +23,9 @@ export default function AccountPage({ account, setAccount, loading, accountError
   const [token, setToken] = useState(action.token);
   const [email, setEmail] = useState('');
   const [username, setUsername] = useState('');
+  const [editingUsername, setEditingUsername] = useState(false);
+  const [newUsername, setNewUsername] = useState('');
   const [password, setPassword] = useState('');
-  const [sendVerification, setSendVerification] = useState(false);
   const [recoveryRequested, setRecoveryRequested] = useState(false);
   const [recoveryEmail, setRecoveryEmail] = useState('');
   const [recoveryPassword, setRecoveryPassword] = useState('');
@@ -39,7 +40,7 @@ export default function AccountPage({ account, setAccount, loading, accountError
   function clearFeedback() { setMessage(''); setFailed(false); }
   function reportError(error: unknown) { setFailed(true); setMessage(error instanceof Error ? error.message : 'Could not complete this request. Please try again.'); }
   function switchMode(next: AccountMode) {
-    setMode(next); setPassword(''); setSendVerification(false); setRecoveryRequested(false); clearFeedback();
+    setMode(next); setPassword(''); setRecoveryRequested(false); clearFeedback();
     if (next === 'forgot') setEmail(account?.email ?? (email.includes('@') ? email : ''));
   }
   async function submit(event: FormEvent<HTMLFormElement>) {
@@ -56,11 +57,10 @@ export default function AccountPage({ account, setAccount, loading, accountError
         if (mode !== 'forgot') { setToken(''); setMode('login'); }
         setMessage(result.message);
       } else {
-        const requested = Boolean(email.trim()) && sendVerification;
-        const body = mode === 'register' ? { email: email.trim() || undefined, username, password, sendVerification: requested } : { identifier: email, password };
-        const result = await apiRequest<{ user: Account; verificationSent?: boolean }>(`/auth/${mode}`, { method: 'POST', body: JSON.stringify(body) });
+        const body = mode === 'register' ? { username, password } : { identifier: email, password };
+        const result = await apiRequest<{ user: Account }>(`/auth/${mode}`, { method: 'POST', body: JSON.stringify(body) });
         setPassword(''); await onSignedIn(result.user);
-        if (mode === 'register') setMessage(requested ? result.verificationSent ? 'Account created. Check your email for the optional verification link.' : 'Account created. Verification email is unavailable; you can request it later.' : 'Account created. You’re ready to practise.');
+        if (mode === 'register') setMessage('Account created. You’re ready to practise.');
       }
     } catch (error) { reportError(error); } finally { setBusy(false); }
   }
@@ -68,7 +68,7 @@ export default function AccountPage({ account, setAccount, loading, accountError
     setBusy(true); clearFeedback();
     try {
       await apiRequest<void>('/auth/logout', { method: 'POST' }); setAccount(null); switchMode('login');
-      setShowDelete(false); setDeletePassword(''); setRecoveryPassword(''); setMessage('You’re signed out.'); notifyAccountChanged();
+      setShowDelete(false); setDeletePassword(''); setRecoveryPassword(''); setEditingUsername(false); setNewUsername(''); setMessage('You’re signed out.'); notifyAccountChanged();
     } catch (error) { reportError(error); } finally { setBusy(false); }
   }
   async function requestVerification() {
@@ -88,33 +88,44 @@ export default function AccountPage({ account, setAccount, loading, accountError
     try {
       await apiRequest<void>('/auth/account', { method: 'DELETE', body: JSON.stringify({ password: deletePassword, confirmation: deleteConfirmation }) });
       if (account) forgetPendingProgress(account.id);
-      setAccount(null); setShowDelete(false); setDeletePassword(''); setDeleteConfirmation(''); setRecoveryPassword(''); switchMode('login');
+      setAccount(null); setShowDelete(false); setDeletePassword(''); setDeleteConfirmation(''); setRecoveryPassword(''); setEditingUsername(false); setNewUsername(''); switchMode('login');
       setMessage('Your account and saved learning data have been deleted.'); notifyAccountChanged();
+    } catch (error) { reportError(error); } finally { setBusy(false); }
+  }
+  async function updateUsername(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault(); setBusy(true); clearFeedback();
+    try {
+      const result = await apiRequest<{ user: Account }>('/auth/username', { method: 'POST', body: JSON.stringify({ username: newUsername.trim() }) });
+      setAccount(result.user); setEditingUsername(false); setNewUsername(''); setMessage('Username updated. Use your new username to sign in.');
     } catch (error) { reportError(error); } finally { setBusy(false); }
   }
   const controlsBusy = busy || progressSaving;
   const profile = Boolean(account) && !['forgot', 'reset', 'verify'].includes(mode);
   const titles = { login: 'Welcome back.', register: 'Make yourself at home.', forgot: 'Let’s get you back in.', reset: 'A fresh start for your password.', verify: 'Verify your email address' };
   return <section className={`account-page${profile ? ' profile-page' : ''}`} aria-label={t('Account management')} aria-busy={loading || controlsBusy}>
-    <div className="account-intro"><h2>{profile ? t('Your learning, in one place.') : t(titles[mode])}</h2><p>{profile ? t('A few simple settings. More room to grow.') : mode === 'register' ? t('Start with a username and password. Email is your choice.') : mode === 'forgot' ? t('Use your recovery email to choose a new password.') : mode === 'verify' ? t('Confirm ownership of your email address. This step is optional.') : t('Pick up where you left off, one word at a time.')}</p></div>
+    <div className="account-intro"><h2>{profile ? t('Your learning, in one place.') : t(titles[mode])}</h2><p>{profile ? t('A few simple settings. More room to grow.') : mode === 'register' ? t('Start with a username and password.') : mode === 'forgot' ? t('Use your recovery email to choose a new password.') : mode === 'verify' ? t('Confirm ownership of your email address. This step is optional.') : t('Pick up where you left off, one word at a time.')}</p></div>
       <div className="account-page-card">
         {loading ? null : accountError ? <><p role="alert">{t(accountError)}</p><button className="account-action" onClick={onRetry}>{t('Try again')}</button></> : profile && account ? <>
           <div className="account-profile-heading"><span className="profile-avatar" aria-hidden="true">{(account.username ?? account.email ?? 'L')[0]!.toUpperCase()}</span><div><h3>{account.username ?? account.email}</h3><p className="account-status" role="status">{t('Signed in as {0}', account.username ?? account.email)}</p></div><button className="account-secondary" onClick={() => void signOut()} disabled={controlsBusy}>{t('Sign out')}</button></div>
-          <dl className="account-profile"><div><dt>{t('Username')}</dt><dd>{account.username ?? t('Not set')}</dd></div><div><dt>{t('Recovery email')}</dt><dd>{account.email ?? t('Not added')}</dd></div></dl>
+          <dl className="account-profile"><div><dt>{t('Username')}</dt><dd className="account-username"><span>{account.username ?? t('Not set')}</span><button className="account-link" type="button" aria-expanded={editingUsername} onClick={() => { setNewUsername(account.username ?? ''); setEditingUsername(true); clearFeedback(); }} disabled={controlsBusy || editingUsername}>{t('Change username')}</button></dd></div><div><dt>{t('Recovery email')}</dt><dd>{account.email ?? t('Not added')}</dd></div></dl>
+          {editingUsername && <form className="account-form username-form" onSubmit={event => void updateUsername(event)}>
+            <label htmlFor="new-username">{t('New username')}</label><input id="new-username" autoComplete="username" autoFocus required minLength={3} maxLength={32} pattern={String.raw`[a-zA-Z\p{Script=Han}][a-zA-Z0-9_\p{Script=Han}]{2,31}`} aria-describedby="username-hint" value={newUsername} onChange={event => setNewUsername(event.target.value)} disabled={controlsBusy} />
+            <p className="account-hint" id="username-hint">{t('3–32 Chinese characters, letters, numbers, or underscores. Start with a Chinese character or letter.')}</p>
+            <div className="account-setting-actions"><button className="account-action" type="submit" disabled={controlsBusy || newUsername.trim().length < 3 || newUsername.trim().toLowerCase() === account.username?.toLowerCase()}>{t('Save changes')}</button><button className="account-secondary" type="button" onClick={() => { setEditingUsername(false); setNewUsername(''); clearFeedback(); }} disabled={controlsBusy}>{t('Cancel')}</button></div>
+          </form>}
           <section className="account-setting" aria-label={t('Email and recovery')}><div className="setting-heading"><h3>{t('Email & recovery')}</h3><span className={`account-pill${account.emailVerified ? ' verified' : ''}`}>{account.emailVerified ? t('Verified') : t('Optional')}</span></div>
             {account.email ? <><p className="setting-copy">{t('Your recovery email can help you reset a forgotten password.')}</p>{!account.emailVerified && <p className="verification-status">{t('Email not verified · optional')}</p>}<div className="account-setting-actions">{!account.emailVerified && <button className="account-secondary" onClick={() => void requestVerification()} disabled={controlsBusy}>{t('Send verification link')}</button>}<button className="account-link" onClick={() => switchMode('forgot')} disabled={controlsBusy}>{t('Reset your password')}</button></div></> : <><p className="setting-copy">{t('Add an email for password recovery. You can continue without one.')}</p><form className="account-form recovery-email-form" onSubmit={event => void addRecoveryEmail(event)}><label htmlFor="recovery-email">{t('Recovery email')}</label><input id="recovery-email" type="email" autoComplete="email" required maxLength={254} value={recoveryEmail} onChange={event => setRecoveryEmail(event.target.value)} disabled={controlsBusy} /><PasswordField id="recovery-password" label={t('Current password')} value={recoveryPassword} onChange={setRecoveryPassword} autoComplete="current-password" disabled={controlsBusy} /><button className="account-secondary" type="submit" disabled={controlsBusy}>{t('Add recovery email')}</button></form></>}
           </section>
           <section className="account-danger" aria-label={t('Delete account')}><div className="setting-heading"><h3>{t('Close your account')}</h3><span aria-hidden="true">↗</span></div><p className="setting-copy">{t('Delete your account, saved words, games, and statistics. This cannot be undone.')}</p>
-            {!showDelete ? <button className="account-delete-link" onClick={() => { setShowDelete(true); clearFeedback(); }} disabled={controlsBusy}>{t('Delete account')}</button> : <form className="account-form delete-account-form" onSubmit={event => void deleteAccount(event)}><PasswordField id="delete-password" label={t('Current password')} value={deletePassword} onChange={setDeletePassword} autoComplete="current-password" disabled={controlsBusy} /><label htmlFor="delete-confirmation">{t('Type DELETE to confirm')}</label><input id="delete-confirmation" value={deleteConfirmation} onChange={event => setDeleteConfirmation(event.target.value)} autoComplete="off" required pattern="DELETE" disabled={controlsBusy} /><div className="delete-actions"><button className="account-secondary" type="button" onClick={() => { setShowDelete(false); setDeletePassword(''); setDeleteConfirmation(''); }} disabled={controlsBusy}>{t('Keep my account')}</button><button className="account-danger-button" type="submit" disabled={controlsBusy || deleteConfirmation !== 'DELETE' || deletePassword.length < 8}>{t('Permanently delete account')}</button></div></form>}
+            {!showDelete ? <button className="account-delete-link" onClick={() => { setShowDelete(true); clearFeedback(); }} disabled={controlsBusy}>{t('Delete account')}</button> : <form className="account-form delete-account-form" onSubmit={event => void deleteAccount(event)}><PasswordField id="delete-password" label={t('Current password')} value={deletePassword} onChange={setDeletePassword} autoComplete="current-password" disabled={controlsBusy} /><label htmlFor="delete-confirmation">{t('Type DELETE to confirm')}</label><input id="delete-confirmation" value={deleteConfirmation} onChange={event => setDeleteConfirmation(event.target.value)} autoComplete="off" required pattern="DELETE" disabled={controlsBusy} /><div className="delete-actions"><button className="account-secondary" type="button" onClick={() => { setShowDelete(false); setDeletePassword(''); setDeleteConfirmation(''); }} disabled={controlsBusy}>{t('Keep my account')}</button><button className="account-danger-button" type="submit" disabled={controlsBusy || deleteConfirmation !== 'DELETE' || deletePassword.length < 6}>{t('Permanently delete account')}</button></div></form>}
           </section>
         </> : <>
           {['login', 'register'].includes(mode) && <div className="account-tabs" role="tablist" aria-label={t('Account access')}><button role="tab" aria-selected={mode === 'login'} onClick={() => switchMode('login')} disabled={controlsBusy}>{t('Sign in')}</button><button role="tab" aria-selected={mode === 'register'} onClick={() => switchMode('register')} disabled={controlsBusy}>{t('Create account')}</button></div>}
           {mode === 'register' && <NewAccountReward/>}
           {mode === 'forgot' && recoveryRequested ? <div className="recovery-confirmation"><span aria-hidden="true">↗</span><h3>{t('Check your inbox')}</h3><p>{t('If there’s an account linked to that email, you’ll receive a reset link. It expires in 30 minutes.')}</p><button className="account-secondary" onClick={() => { setRecoveryRequested(false); clearFeedback(); }}>{t('Send another link')}</button></div> : <form className="account-form" onSubmit={event => void submit(event)}>
-            {mode === 'register' && <><label htmlFor="account-username">{t('Username')}</label><input id="account-username" autoComplete="username" required minLength={3} maxLength={32} pattern="[a-zA-Z][a-zA-Z0-9_]{2,31}" value={username} onChange={event => setUsername(event.target.value)} disabled={controlsBusy} /><p className="account-hint">{t('3–32 letters, numbers, or underscores. Start with a letter.')}</p></>}
-            {!['reset', 'verify'].includes(mode) && <><label htmlFor="account-email">{mode === 'login' ? t('Username or email') : t('Email')}{mode === 'register' && <> <span className="field-optional">{t('optional')}</span></>}</label><input id="account-email" type={mode === 'login' ? 'text' : 'email'} autoComplete={mode === 'login' ? 'username' : 'email'} required={mode !== 'register'} maxLength={254} value={email} onChange={event => { setEmail(event.target.value); if (!event.target.value.trim()) setSendVerification(false); }} disabled={controlsBusy} />{mode === 'register' && <p className="account-hint">{t('Add an email if you’d like password recovery. You can add one later.')}</p>}</>}
-            {!['forgot', 'verify'].includes(mode) && <><PasswordField key={mode} id="account-password" label={mode === 'reset' ? t('New password') : t('Password')} value={password} onChange={setPassword} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} disabled={controlsBusy} /><p className="account-hint">{t('Use at least 8 characters.')}</p></>}
-            {mode === 'register' && <label className="verification-choice"><input type="checkbox" checked={sendVerification} onChange={event => setSendVerification(event.target.checked)} disabled={controlsBusy || !email.trim()} /><span>{t('Send me a verification email')}<small>{t('Optional. You can use LexiPlay without verification.')}</small></span></label>}
+            {mode === 'register' && <><label htmlFor="account-username">{t('Username')}</label><input id="account-username" autoComplete="username" required minLength={3} maxLength={32} pattern={String.raw`[a-zA-Z\p{Script=Han}][a-zA-Z0-9_\p{Script=Han}]{2,31}`} value={username} onChange={event => setUsername(event.target.value)} disabled={controlsBusy} /><p className="account-hint">{t('3–32 Chinese characters, letters, numbers, or underscores. Start with a Chinese character or letter.')}</p></>}
+            {['login', 'forgot'].includes(mode) && <><label htmlFor="account-email">{mode === 'login' ? t('Username or email') : t('Email')}</label><input id="account-email" type={mode === 'login' ? 'text' : 'email'} autoComplete={mode === 'login' ? 'username' : 'email'} required maxLength={254} value={email} onChange={event => setEmail(event.target.value)} disabled={controlsBusy} /></>}
+            {!['forgot', 'verify'].includes(mode) && <><PasswordField key={mode} id="account-password" label={mode === 'reset' ? t('New password') : t('Password')} value={password} onChange={setPassword} autoComplete={mode === 'login' ? 'current-password' : 'new-password'} disabled={controlsBusy} /><p className="account-hint">{t('Use at least 6 characters.')}</p></>}
             {mode === 'verify' && <p className="setting-copy">{t('Confirm ownership of the email address linked to your LexiPlay account. This link expires after 24 hours and can be used once. Verification is optional.')}</p>}
             {mode === 'forgot' && <p className="account-hint">{t('Recovery requires an email added before you lost your password.')}</p>}
             <button className="account-action" type="submit" disabled={controlsBusy}>{mode === 'register' ? t('Create account') : mode === 'forgot' ? t('Send reset link') : mode === 'reset' ? t('Update password') : mode === 'verify' ? t('Verify email address') : t('Sign in')}<span aria-hidden="true">→</span></button>

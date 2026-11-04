@@ -13,14 +13,7 @@ export class WordListsService {
     return this.dictionary.searchDictionary(term);
   }
 
-  dictionaryDefinition(term: string) { return this.dictionary.getDictionaryDefinition(term); }
-  dictionaryThesaurus(query: string) {
-    const term = query.trim();
-    if (!term || term.length > 100 || /[\u0000-\u001f\u007f]/.test(term)) {
-      throw new BadRequestException({ code: 'INVALID_DICTIONARY_QUERY', message: 'Enter a dictionary search of 1 to 100 characters.' });
-    }
-    return this.dictionary.getThesaurus(term);
-  }
+  dictionaryDefinition(term: string, forGame = false) { return this.dictionary.getDictionaryDefinition(term, forGame); }
   async dictionaryPartOfSpeech(term: string): Promise<string | undefined> {
     const entries = await this.dictionary.poolDictionaryEntries([term]);
     const classes = entries.flatMap(entry => entry.partOfSpeech)

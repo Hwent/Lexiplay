@@ -12,6 +12,7 @@ import { GameService } from './modules/games/game.service';
 import { guestOwner } from './modules/games/guest-cookie';
 import { CEFR_POOLS } from './modules/word-lists/cefr-pools';
 import { WORDLE_POOL } from './modules/word-lists/wordle-pool';
+import { CollectionsService } from './modules/collections/collections.service';
 import { WordListsService } from './modules/word-lists/word-lists.service';
 import { WordListRepository } from './modules/word-lists/word-list.repository';
 import { publishDictionary, type LibraryWord } from './modules/word-lists/library-maintenance';
@@ -19,6 +20,9 @@ import { planInflections, applyInflections } from './modules/word-lists/inflecti
 import { definitionInflections, websterInflections } from './modules/word-lists/dictionary-inflections';
 import { websterThesaurus } from './modules/word-lists/webster-thesaurus';
 import { planThesaurus, applyThesaurus } from './modules/word-lists/thesaurus-import';
+import { importProperNouns } from './modules/word-lists/proper-noun-import';
+import properNouns from './modules/word-lists/proper-nouns.json';
+import { cancelUnplayableGames } from './modules/word-lists/library-maintenance';
 
 const database = process.env.TEST_DATABASE_URL;
 const word = (term: string, positions = ['noun']): LibraryWord => ({
@@ -104,7 +108,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
       WHERE u.user_id=$1 AND e.term=$2 ORDER BY e.part_of_speech`, [user.id, term])).rows[0];
   }
 
-  it('publishes the top 20 coin balances with server-masked names and shared ranks', async () => {
+  it('publishes the top 20 coin balances with full usernames and shared ranks', async () => {
     expect(await (await request('/community/coin-rankings')).json()).toEqual([]);
     await pool.query(`INSERT INTO account_users(username,password_hash,coin_balance) VALUES
       ('alice','fixture-only',320),('bob','fixture-only',250),('charlie','fixture-only',250);
@@ -114,19 +118,78 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(response.status).toBe(200);
     const rankings = await response.json();
     expect(rankings).toHaveLength(20);
-    expect(rankings[0]).toEqual({ rank: 1, username: 'al**', coinBalance: 320 });
+    expect(rankings[0]).toEqual({ rank: 1, username: 'alice', coinBalance: 320 });
     expect(rankings.slice(1,3)).toEqual(expect.arrayContaining([
-      { rank: 2, username: 'bo**', coinBalance: 250 },
-      { rank: 2, username: 'ch**', coinBalance: 250 },
+      { rank: 2, username: 'bob', coinBalance: 250 },
+      { rank: 2, username: 'charlie', coinBalance: 250 },
     ]));
-    expect(rankings[3]).toEqual({ rank: 4, username: 'ra**', coinBalance: 99 });
+    expect(rankings[3]).toEqual({ rank: 4, username: 'ranked_1', coinBalance: 99 });
     for (const row of rankings) {
       expect(Object.keys(row).sort()).toEqual(['coinBalance','rank','username']);
-      expect(row.username).toMatch(/^[a-z]{1,2}\*{2}$/);
+      expect(row.username).not.toContain('*');
       expect(typeof row.coinBalance).toBe('number');
     }
     await pool.query("UPDATE account_users SET coin_balance=500 WHERE username='bob'");
-    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'bo**', coinBalance: 500 });
+    expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'bob', coinBalance: 500 });
+  });
+
+  it('ranks completed rounds and current UTC streaks across all three games, excluding give-ups and duplicate days', async () => {
+    const a = await account(), b = await account(), c = await account();
+    await pool.query("UPDATE account_users SET username=CASE id WHEN $1::uuid THEN 'Alice' WHEN $2::uuid THEN 'Bob' ELSE '陈同学' END", [a.id,b.id]);
+    const wordRound = async (userId: string, daysAgo: number, ladder = false, gaveUp = false) => pool.query(`
+      INSERT INTO practice_games(start_request_id,user_id,coin_user_id,answer,difficulty,coin_change,status,attempt_count,ladder_state,gave_up,finished_at)
+      VALUES($1,$2,$2,'apple','medium',0,$3,4,$4,$5,((now() AT TIME ZONE 'UTC')::date - $6::int)::timestamp AT TIME ZONE 'UTC')`,
+      [randomUUID(),userId,gaveUp ? 'lost' : 'won',ladder ? JSON.stringify({ startWord:'cold',targetWords:4 }) : null,gaveUp,daysAgo]);
+    const animalRound = async (userId: string, daysAgo: number) => pool.query(`INSERT INTO animal_guess_games(id,user_id,status,question_count,guess_count,finished_at)
+      VALUES($1,$2,'lost',15,3,((now() AT TIME ZONE 'UTC')::date - $3::int)::timestamp AT TIME ZONE 'UTC')`, [randomUUID(),userId,daysAgo]);
+    await wordRound(a.id,0); await wordRound(a.id,1,true); await animalRound(a.id,2); await animalRound(a.id,0);
+    await wordRound(a.id,3,false,true);
+    await wordRound(b.id,1); await animalRound(b.id,2);
+    await wordRound(c.id,3);
+    expect(await (await request('/community/practice-rankings')).json()).toEqual([
+      { rank:1,username:'Alice',value:4 },{ rank:2,username:'Bob',value:2 },{ rank:3,username:'陈同学',value:1 },
+    ]);
+    expect(await (await request('/community/streak-rankings')).json()).toEqual([
+      { rank:1,username:'Alice',value:3 },{ rank:2,username:'Bob',value:2 },
+    ]);
+    await wordRound(c.id,0);
+    expect((await (await request('/community/practice-rankings')).json()).slice(1).map((row: { rank: number }) => row.rank)).toEqual([2,2]);
+  });
+
+  it('records Guess Animal completions once, validates finished rounds, and never charges coins', async () => {
+    const player = await account(), other = await account();
+    const round = { roundId:randomUUID(),status:'won',questionCount:8,guessCount:1,completedAt:new Date().toISOString() };
+    const complete = (body: unknown, cookie = player.cookie) => request('/games/animal-guess/completions','POST',body,cookie);
+    const initial = await balance(player.cookie);
+    expect((await complete(round)).status).toBe(201);
+    expect((await complete(round)).status).toBe(201);
+    expect((await complete(round,other.cookie)).status).toBe(409);
+    expect((await complete({ ...round,roundId:randomUUID(),status:'lost' })).status).toBe(400);
+    expect((await complete({ ...round,roundId:randomUUID(),questionCount:0 })).status).toBe(400);
+    expect((await complete({ ...round,roundId:randomUUID(),completedAt:'2099-01-01T00:00:00Z' })).status).toBe(400);
+    expect(await balance(player.cookie)).toBe(initial);
+    expect((await (await request('/community/practice-rankings')).json())[0].value).toBe(1);
+  });
+
+  it('moves guest animal completions into the signed-in account without counting retries twice', async () => {
+    const cookie = await guest(), player = await account();
+    const round = { roundId:randomUUID(),status:'lost',questionCount:15,guessCount:3,completedAt:new Date().toISOString() };
+    expect((await request('/games/animal-guess/completions','POST',round,cookie)).status).toBe(201);
+    const transfer = { accountId:player.id,transferId:randomUUID(),words:[] };
+    const claimed = await request('/progress/claim','POST',transfer,player.cookie + '; ' + cookie);
+    expect(claimed.status).toBe(201);
+    expect(await claimed.json()).toMatchObject({ gamesTransferred:1 });
+    expect((await request('/games/animal-guess/completions','POST',round,player.cookie)).status).toBe(201);
+    expect((await (await request('/community/practice-rankings')).json())[0].value).toBe(1);
+    expect((await (await request('/community/streak-rankings')).json())[0].value).toBe(1);
+  });
+
+  it('excludes a word puzzle given up through the API from both activity rankings', async () => {
+    const player = await account(), game = await start(player.cookie);
+    expect((await request(`/games/${game.id}/give-up`,'POST',{},player.cookie)).status).toBe(201);
+    expect((await pool.query('SELECT gave_up FROM practice_games WHERE id=$1',[game.id])).rows[0].gave_up).toBe(true);
+    expect(await (await request('/community/practice-rankings')).json()).toEqual([]);
+    expect(await (await request('/community/streak-rankings')).json()).toEqual([]);
   });
 
   it('counts distinct playable words by length and excludes names while preserving ordinary homographs', async () => {
@@ -151,6 +214,42 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(['apple','cover','china']).toContain(saved.answer);
   });
 
+  it('uses cumulative CEFR game ranges and counts without changing vocabulary membership', async () => {
+    await publishDictionary(pool, [...dictionary, word('brave'), word('scope')]);
+    const levels = ['a1', 'a2', 'b1', 'b2', 'c1', 'c2'];
+    const words = ['apple', 'paper', 'cover', 'actor', 'brave', 'scope'];
+    await pool.query("DELETE FROM collection_entries WHERE collection_id IN (SELECT id FROM vocabulary_collections WHERE category='CEFR')");
+    for (const [index, level] of levels.entries()) {
+      await pool.query(`INSERT INTO collection_entries(collection_id,dictionary_entry_id,sort_order)
+        SELECT c.id,e.id,0 FROM vocabulary_collections c CROSS JOIN dictionary_entries e
+        WHERE c.slug=$1 AND e.term=ANY($2::text[])`, ['cefr-' + level, [words[index], 'apple']]);
+    }
+    const options = await (await request('/collections/game-options?wordLength=5')).json();
+    const allOptions = await (await request('/collections/game-options/all')).json();
+    expect(allOptions.find((option: { wordLength: number }) => option.wordLength === 5)).toEqual(options);
+    const service = app.get(CollectionsService);
+    for (const [index, level] of levels.entries()) {
+      const slug = 'cefr-' + level;
+      const option = options.collections.find((collection: { slug: string }) => collection.slug === slug);
+      expect(option.wordCount).toBe(index + 1);
+      for (const identifier of [slug, option.id]) {
+        const selected = await service.collectionGameWords(identifier, 5);
+        expect(selected.words.sort()).toEqual(words.slice(0, index + 1).sort());
+        expect(selected.collection.id).toBe(option.id);
+      }
+    }
+    const c2 = options.collections.find((collection: { slug: string }) => collection.slug === 'cefr-c2');
+    const cookie = await guest();
+    const response = await request('/games', 'POST', { collectionId: c2.id, wordLength: 5 }, cookie);
+    expect(response.status).toBe(201);
+    const game = await response.json();
+    expect(game.pool.id).toBe(c2.id);
+    expect(words).toContain((await pool.query('SELECT answer FROM practice_games WHERE id=$1', [game.id])).rows[0].answer);
+    expect((await pool.query(`SELECT DISTINCT e.term FROM collection_entries ce
+      JOIN vocabulary_collections c ON c.id=ce.collection_id JOIN dictionary_entries e ON e.id=ce.dictionary_entry_id
+      WHERE c.slug='cefr-c2' ORDER BY e.term`)).rows.map(row => row.term)).toEqual(['apple', 'scope']);
+  });
+
   it('loads the dictionary pool only once per collection start and replay', async () => {
     const user = await account();
     const words = vi.spyOn(app.get(WordListRepository), 'dictionaryGameWords');
@@ -162,7 +261,29 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     } finally { words.mockRestore(); }
   });
 
-  it('matches single-word guess validation to the full pool, excluding proper nouns and missing English definitions', async () => {
+  it('accepts capitalized dictionary guesses without changing dictionary spelling', async () => {
+    await publishDictionary(pool, [...dictionary, word('Sunday'), word('Monday'), word('London', ['proper noun']), word('Friday')]);
+    await pool.query("UPDATE dictionary_definitions SET language_code='fr' WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='Friday')");
+    const repository = app.get(WordListRepository);
+    expect(await repository.isDictionaryGameWord('sunday')).toBe(true);
+    expect(await repository.isDictionaryGameWord('SUNDAY')).toBe(true);
+    expect(await repository.isDictionaryGameWord('london')).toBe(false);
+    expect(await repository.isDictionaryGameWord('friday')).toBe(false);
+    const cookie = await guest();
+    const response = await request('/games', 'POST', { wordLength: 6 }, cookie);
+    expect(response.status).toBe(201);
+    const game = await response.json();
+    for (const guess of ['Sunday', 'MONDAY']) {
+      const submitted = await request(`/games/${game.id}/guesses`, 'POST', { guess }, cookie);
+      expect(submitted.status).toBe(201);
+      expect(await submitted.json()).toMatchObject({ guess: guess.toLowerCase(), definition: `Definition of ${guess === 'Sunday' ? 'Sunday' : 'Monday'}.` });
+    }
+    const restored = await (await request(`/games/${game.id}`, 'GET', undefined, cookie)).json();
+    expect(restored.guesses.map((guess: { definition: string }) => guess.definition)).toEqual(['Definition of Sunday.', 'Definition of Monday.']);
+    expect((await pool.query("SELECT term FROM dictionary_entries WHERE lower(term COLLATE \"default\")='sunday'")).rows).toEqual([{ term: 'Sunday' }]);
+  });
+
+  it('matches lowercase guess validation to the full pool, excluding proper nouns and missing English definitions', async () => {
     await publishDictionary(pool, [...dictionary, word('paris', ['proper noun']), word('alone')]);
     await pool.query("UPDATE dictionary_definitions SET language_code='fr' WHERE dictionary_entry_id IN (SELECT id FROM dictionary_entries WHERE term='alone')");
     const repository = app.get(WordListRepository);
@@ -214,7 +335,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await app.get(WordListRepository).isDictionaryGameWord('cats')).toBe(false);
   });
 
-  it('imports sense-specific synonyms and antonyms without changing the dictionary and exposes local lookup', async () => {
+  it('isolates offline thesaurus imports from dictionary versions and application routes', async () => {
     const source = websterThesaurus(['noun', 'verb'].map(pos => ({ meta: { id: 'cover', uuid: `cover-${pos}` }, hwi: { hw: 'cover' }, fl: pos,
       def: [{ sseq: [[['sense', { sn: '1', dt: [['text', pos === 'noun' ? 'a protective layer' : 'to conceal']],
         syn_list: [[{ wd: pos === 'noun' ? 'protective covering' : 'conceal', wsls: { wsl: 'formal' } }]],
@@ -222,18 +343,73 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const before = (await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n;
     const plan = await planThesaurus(pool, source);
     expect(plan.senses.every(sense => sense.dictionaryEntryId)).toBe(true);
-    expect(await applyThesaurus(pool, plan)).toEqual({ sensesAdded: 2, relationsAdded: 6 });
+    const activeGame = await pool.connect();
+    const importer = new Pool({ connectionString: database!, lock_timeout: 1000 });
+    try {
+      await activeGame.query('BEGIN');
+      await activeGame.query("SELECT pg_advisory_xact_lock_shared(hashtextextended('library-publication',0))");
+      await activeGame.query('SELECT version FROM library_state WHERE id=1 FOR UPDATE');
+      expect(await applyThesaurus(importer, plan)).toEqual({ sensesAdded: 2, relationsAdded: 6 });
+    } finally {
+      await activeGame.query('ROLLBACK');
+      activeGame.release();
+      await importer.end();
+    }
     expect((await pool.query('SELECT count(*)::int n FROM dictionary_entries')).rows[0].n).toBe(before);
-    const response = await request('/word-lists/dictionary/COVER/thesaurus');
-    expect(response.status).toBe(200);
-    const body = await response.json();
-    expect(body.senses).toHaveLength(2);
-    expect(body.senses.find((sense: { partOfSpeech: string }) => sense.partOfSpeech === 'verb')).toMatchObject({ definition: 'to conceal' });
-    expect(body.senses.flatMap((sense: { relations: { term: string; kind: string }[] }) => sense.relations))
-      .toContainEqual(expect.objectContaining({ term: 'reveal', kind: 'near_antonym' }));
-    expect(await applyThesaurus(pool, await planThesaurus(pool, source))).toEqual({ sensesAdded: 0, relationsAdded: 0 });
+    expect((await pool.query('SELECT version FROM library_state WHERE id=1')).rows[0].version).toBe(plan.version);
+    const senses = (await pool.query("SELECT id,part_of_speech,definition FROM thesaurus_senses WHERE term='cover'")).rows;
+    expect(senses).toHaveLength(2);
+    expect(senses.find(sense => sense.part_of_speech === 'verb')).toMatchObject({ definition: 'to conceal' });
+    expect((await pool.query(`SELECT r.target_term,r.kind FROM thesaurus_relations r
+      JOIN thesaurus_senses s ON s.id=r.sense_id WHERE s.term='cover'`)).rows)
+      .toContainEqual({ target_term: 'reveal', kind: 'near_antonym' });
+    expect(await applyThesaurus(pool, plan)).toEqual({ sensesAdded: 0, relationsAdded: 0 });
+    expect((await request('/word-lists/dictionary/COVER/thesaurus')).status).toBe(404);
+    await publishDictionary(pool, dictionary);
     await expect(applyThesaurus(pool, plan)).rejects.toThrow('Dictionary changed');
-    expect(await (await request('/word-lists/dictionary/missingword/thesaurus')).json()).toEqual({ term: 'missingword', senses: [] });
+  });
+
+  it('supplements non-personal proper nouns and plays them with lowercase answers', async () => {
+    const repository = app.get(WordListRepository);
+    expect(await repository.dictionaryGameWords(6)).not.toContain('africa');
+    const china = (await pool.query("INSERT INTO dictionary_entries(term,part_of_speech) VALUES('china','noun') RETURNING id")).rows[0];
+    await pool.query("INSERT INTO dictionary_definitions(dictionary_entry_id,sense_order,definition) VALUES($1,0,'Porcelain tableware.')", [china.id]);
+    const original = (await pool.query("SELECT jsonb_agg(to_jsonb(d) ORDER BY dictionary_entry_id,sense_order) definitions FROM dictionary_definitions d")).rows[0].definitions;
+    const imported = await importProperNouns(pool);
+    expect(imported.entriesAdded).toBe(properNouns.entries.length);
+    expect(imported.definitionsAdded).toBe(properNouns.entries.reduce((n,entry) => n+entry.definitions.length,0));
+    expect((await repository.searchDictionary('africa'))[0]).toMatchObject({ term: 'Africa', partOfSpeech: ['proper noun'] });
+    expect(await repository.dictionaryGameWords(6)).toEqual(expect.arrayContaining(['africa','london']));
+    expect(await repository.dictionaryGameWords(3,9)).not.toContain('new york');
+    expect(await repository.isDictionaryGameWord('AFRICA')).toBe(true);
+    expect(await repository.isDictionaryGameWord('john')).toBe(false);
+    expect(await repository.getDictionaryDefinition('china')).toBe('Porcelain tableware.');
+    expect(await repository.getDictionaryDefinition('china', true)).toContain('country in Asia');
+    expect((await pool.query(`SELECT jsonb_agg(to_jsonb(d) ORDER BY dictionary_entry_id,sense_order) definitions
+      FROM dictionary_definitions d JOIN dictionary_entries e ON e.id=d.dictionary_entry_id WHERE e.part_of_speech<>'proper noun'`)).rows[0].definitions).toEqual(original);
+    const version = (await pool.query('SELECT version FROM library_state WHERE id=1')).rows[0].version;
+    expect(await importProperNouns(pool)).toEqual({ entriesAdded: 0, definitionsAdded: 0 });
+    expect((await pool.query('SELECT version FROM library_state WHERE id=1')).rows[0].version).toBe(version);
+    const user = await account();
+    const game = await app.get(GameService).start(6, ['africa'], 'easy', 'user:' + user.id);
+    const client = await pool.connect();
+    try { expect(await cancelUnplayableGames(client)).toBe(0); } finally { client.release(); }
+    const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
+    expect(restored.completed).toBe(false);
+    const response = await request('/games/' + game.id + '/guesses', 'POST', { guess: 'AFRICA' }, user.cookie);
+    expect(response.status).toBe(201);
+    expect(await response.json()).toMatchObject({ answer: 'africa', completed: true, outcome: 'WON' });
+    expect((await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json()).answerDefinition).toContain('continent');
+    const countryGame = await app.get(GameService).start(5, ['china'], 'easy', 'user:' + user.id);
+    const countryWin = await (await request('/games/' + countryGame.id + '/guesses', 'POST', { guess: 'china' }, user.cookie)).json();
+    expect(countryWin.answerDefinition).toContain('country in Asia');
+    expect((await (await request('/games/' + countryGame.id, 'GET', undefined, user.cookie)).json()).answerDefinition).toContain('country in Asia');
+    const collection = (await pool.query(`INSERT INTO vocabulary_collections(slug,name,category) VALUES('proper-fixture','Places','Fixture') RETURNING id`)).rows[0];
+    await pool.query(`INSERT INTO collection_entries(collection_id,dictionary_entry_id,sort_order)
+      SELECT $1,id,0 FROM dictionary_entries WHERE term='Africa' AND part_of_speech='proper noun'`, [collection.id]);
+    expect((await app.get(CollectionsService).collectionGameWords(collection.id,6)).words).toEqual(['africa']);
+    const options = await (await request('/collections/game-options?wordLength=6')).json();
+    expect(options.collections.find((row: {id:string}) => row.id===collection.id).wordCount).toBe(1);
   });
 
   it('plays Original Wordle from a hidden, dictionary-backed collection', async () => {
@@ -383,9 +559,10 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     }
   });
 
-  it('uses 18 tables and enforces balances, ownership, and case-preserved identities', async () => {
+  it('uses 19 tables and enforces balances, ownership, and case-preserved identities', async () => {
     const tables = (await pool.query("SELECT tablename FROM pg_tables WHERE schemaname='public' AND tablename<>'_prisma_migrations'")).rows;
-    expect(tables).toHaveLength(18);
+    expect(tables).toHaveLength(19);
+    expect(tables).toContainEqual({ tablename: 'animal_guess_games' });
     expect(tables).toContainEqual({ tablename: 'message' });
     const user = await account();
     expect(user.coinBalance).toBe(100);
@@ -418,31 +595,56 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await balance(cookie)).toBe(9);
   });
 
-  it.each([['easy',4],['medium',5],['hard',6]])('charges once and credits a %s win exactly once', async (difficulty, reward) => {
-    const user = await account(), id = randomUUID();
-    const [first, retry] = await Promise.all([start(user.cookie, difficulty, id), start(user.cookie, difficulty, id)]);
+  it.each([3,4,5,6,7,8,9].flatMap(length => ['account','guest'].map(kind => ({ length, kind }))))('charges once and pays a $length-letter $kind win exactly once', async ({ length, kind }) => {
+    const cookie = kind === 'account' ? (await account()).cookie : await guest();
+    const before = await balance(cookie), id = randomUUID();
+    const rewards: Record<number, number> = { 3: 4, 4: 4, 5: 5, 6: 5, 7: 6, 8: 6, 9: 7 };
+    const reward = rewards[length]!;
+    const create = async () => {
+      const response = await request('/games', 'POST', { wordLength: length, startRequestId: id }, cookie);
+      expect(response.status, await response.clone().text()).toBe(201);
+      return response.json();
+    };
+    const [first, retry] = await Promise.all([create(), create()]);
     expect(first.id).toBe(retry.id);
+    expect(first).toMatchObject({ difficulty: 'medium', attemptLimit: 6, winRewardCoins: reward });
     expect(first).not.toHaveProperty('answer'); expect(first).not.toHaveProperty('answerDefinition'); expect(first).not.toHaveProperty('allowedWords'); expect(first).not.toHaveProperty('owner');
-    expect(await balance(user.cookie)).toBe(99);
-    await request('/games/' + first.id, 'GET', undefined, user.cookie);
-    expect(await balance(user.cookie)).toBe(99);
+    expect(await balance(cookie)).toBe(before - 1);
+    const restored = await (await request('/games/' + first.id, 'GET', undefined, cookie)).json();
+    expect(restored).toMatchObject({ attemptLimit: 6, winRewardCoins: reward });
+    expect(await balance(cookie)).toBe(before - 1);
+    const answer = (await pool.query('SELECT answer FROM practice_games WHERE id=$1', [first.id])).rows[0].answer;
     const responses = await Promise.all([
-      request('/games/' + first.id + '/guesses', 'POST', { guess: ' APPLE ' }, user.cookie),
-      request('/games/' + first.id + '/guesses', 'POST', { guess: 'apple' }, user.cookie),
+      request('/games/' + first.id + '/guesses', 'POST', { guess: ` ${answer.toUpperCase()} ` }, cookie),
+      request('/games/' + first.id + '/guesses', 'POST', { guess: answer }, cookie),
     ]);
     expect(responses.map(response => response.status).sort()).toEqual([201,400]);
     const won = await responses.find(response => response.status === 201)!.json();
     expect(won).toMatchObject({ outcome: 'WON', rewardCoins: reward });
-    expect(await balance(user.cookie)).toBe(99 + Number(reward));
+    expect(await balance(cookie)).toBe(before - 1 + reward);
     expect((await pool.query('SELECT active_state,attempt_count,coin_change FROM practice_games WHERE id=$1',[first.id])).rows[0]).toEqual({active_state:null,attempt_count:1,coin_change:Number(reward)-1});
+  });
+
+  it('restores a legacy round with its original attempts and stored reward', async () => {
+    const user = await account(), game = await start(user.cookie);
+    await pool.query(`UPDATE practice_games SET difficulty='hard',
+      active_state=jsonb_set(active_state,'{winRewardCoins}','6'::jsonb) WHERE id=$1`, [game.id]);
+    const restored = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
+    expect(restored).toMatchObject({ difficulty: 'hard', attemptLimit: 5, winRewardCoins: 6 });
+    expect(await (await request('/games/' + game.id + '/guesses', 'POST', { guess: 'paper' }, user.cookie)).json())
+      .toMatchObject({ attemptsRemaining: 4, completed: false });
+    expect(await (await request('/games/' + game.id + '/guesses', 'POST', { guess: 'apple' }, user.cookie)).json())
+      .toMatchObject({ outcome: 'WON', rewardCoins: 6 });
+    expect(await balance(user.cookie)).toBe(105);
   });
 
   it('leaves losses charged and rejects invalid or unaffordable starts without debit', async () => {
     const user = await account(), game = await start(user.cookie, 'hard');
-    for (let i = 0; i < 5; i++) {
+    expect(game).toMatchObject({ difficulty: 'medium', attemptLimit: 6 });
+    for (let i = 0; i < 6; i++) {
       const result = await (await request('/games/' + game.id + '/guesses', 'POST', { guess: 'paper' }, user.cookie)).json();
-      expect(result.completed).toBe(i === 4);
-      if (i === 4) expect(result.outcome).toBe('LOST');
+      expect(result.completed).toBe(i === 5);
+      if (i === 5) expect(result.outcome).toBe('LOST');
     }
     expect(await balance(user.cookie)).toBe(99);
     const failed = await request('/games', 'POST', { wordLength: 10 }, user.cookie);
@@ -463,6 +665,53 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     await expect(app.get(GameService).start(5, ['apple'], 'easy', 'user:' + user.id, { id: randomUUID(), name: 'Missing collection', author: '' })).rejects.toThrow();
     expect(await balance(user.cookie)).toBe(99);
     expect((await pool.query('SELECT status FROM practice_games WHERE id=$1',[previous.id])).rows[0].status).toBe('active');
+  });
+
+  it.each([0, 9, 10, 14].flatMap(guestBalance => [100, 240].map(accountBalance => ({ guestBalance, accountBalance }))))('adds guest coins above 10 once: $guestBalance guest coins, $accountBalance account coins', async ({ guestBalance, accountBalance }) => {
+    const cookie = await guest(), user = await account();
+    await pool.query('UPDATE account_users SET coin_balance=$2 WHERE id=$1', [user.id, accountBalance]);
+    await pool.query('UPDATE guest_sessions SET coin_balance=$2 WHERE token_hash=$1', [guestOwner(cookie)!.slice(6), guestBalance]);
+    const combined = user.cookie + '; ' + cookie;
+    const body = { accountId: user.id, transferId: randomUUID(), words: [] };
+    const claim = () => request('/progress/claim', 'POST', body, combined);
+    const replies = await Promise.all([claim(), claim()]);
+    expect(replies.map(reply => reply.status)).toEqual([201, 201]);
+    expect(await balance(user.cookie)).toBe(accountBalance + Math.max(guestBalance - 10, 0));
+    expect((await request('/progress/claim', 'POST', { ...body, transferId: randomUUID() }, combined)).status).toBe(201);
+    expect(await balance(user.cookie)).toBe(accountBalance + Math.max(guestBalance - 10, 0));
+  });
+
+  it('charges one coin per ladder hint, restores it, and does not charge retries or failed purchases', async () => {
+    await publishDictionary(pool, [...dictionary, ...['stone', 'store', 'shore', 'share', 'spare'].map(term => word(term))]);
+    const cookie = await guest();
+    const started = await request('/games', 'POST', { kind: 'word-ladder', wordLength: 5 }, cookie);
+    expect(started.status).toBe(201);
+    const game = await started.json();
+    const path = `/games/${game.id}`;
+    const hint = () => request(path + '/hints', 'POST', { type: 'nextWord' }, cookie);
+    expect((await request(path + '/hints', 'POST', { type: 'definition' }, cookie)).status).toBe(400);
+    const purchases = await Promise.all([hint(), hint()]);
+    expect(purchases.map(reply => reply.status)).toEqual([201, 201]);
+    const clues = await Promise.all(purchases.map(reply => reply.json()));
+    expect(clues.map(clue => clue.cost).sort()).toEqual([0, 1]);
+    expect(clues[0].text).toBe(clues[1].text);
+    expect(await balance(cookie)).toBe(8);
+    expect(await (await request(path, 'GET', undefined, cookie)).json()).toMatchObject({ clues: { nextWord: clues[0].text }, hintCoinsSpent: 1 });
+    expect((await request(path + '/guesses', 'POST', { guess: clues[0].text }, cookie)).status).toBe(201);
+    expect(await (await request(path, 'GET', undefined, cookie)).json()).toMatchObject({ hints: { nextWord: 1 }, clues: {} });
+    await pool.query('UPDATE guest_sessions SET coin_balance=0 WHERE token_hash=$1', [guestOwner(cookie)!.slice(6)]);
+    expect((await hint()).status).toBe(400);
+    expect(await (await request(path, 'GET', undefined, cookie)).json()).toMatchObject({ hints: { nextWord: 1 }, clues: {}, hintCoinsSpent: 1 });
+    await pool.query('UPDATE guest_sessions SET coin_balance=8 WHERE token_hash=$1', [guestOwner(cookie)!.slice(6)]);
+    for (let step = 1; step < 4; step++) {
+      const clue = await (await hint()).json();
+      expect(clue.cost).toBe(1);
+      const accepted = await request(path + '/guesses', 'POST', { guess: clue.text }, cookie);
+      expect(accepted.status).toBe(201);
+      expect(await accepted.json()).toMatchObject({ completed: step === 3 });
+    }
+    expect(await balance(cookie)).toBe(10);
+    expect((await hint()).status).toBe(400);
   });
 
   it('keeps guest payouts in the original wallet after a retry-safe progress transfer', async () => {
@@ -564,8 +813,8 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     const regrouped = await (await request('/collections/cefr-a1')).json();
     expect(regrouped.version).not.toBe(after.version);
     const history = await (await request('/games/' + game.id, 'GET', undefined, user.cookie)).json();
-    expect(history).toMatchObject({answer:'apple',answerDefinition:'Updated meaning.',attemptCount:1,coinChange:3,guesses:[]});
-    expect(await balance(user.cookie)).toBe(103);
+    expect(history).toMatchObject({answer:'apple',answerDefinition:'Updated meaning.',attemptCount:1,coinChange:4,guesses:[]});
+    expect(await balance(user.cookie)).toBe(104);
     const stats = await (await request('/progress/summary', 'GET', undefined, user.cookie)).json();
     expect(stats).toMatchObject({ total: 1, wins: 1, losses: 0 });
     const columns = (await pool.query("SELECT column_name FROM information_schema.columns WHERE table_name='practice_guesses'")).rows.map(row => row.column_name);

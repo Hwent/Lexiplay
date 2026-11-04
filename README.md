@@ -4,14 +4,15 @@ LexiPlay helps learners build English vocabulary through word games, dictionary 
 
 ## App
 
-- **Word Guess:** find a hidden 3–9-letter word, with difficulty options and definition hints.
+- **Word Guess:** find a hidden 3–9-letter word in six guesses, with definition hints.
 - **Word Ladder:** make four new words by changing one letter at a time; choose four or five letters.
+- **Guess Animal:** think of a common animal and answer Yes, No or Maybe. A free, browser-run guessing algorithm asks up to 15 questions and makes up to 3 guesses. English questions include keyword explanations in the interface language; results can be saved to your vocabulary. See [game data and rules](apps/web/src/animal-guess/README.md).
 - **Vocabulary:** explore curated collections, look up definitions and pronunciation, and save words to personal lists.
 - **Progress:** track completed games, wins, and practice streaks; transfer guest progress after signing in.
-- **Community:** rank the top 20 accounts by coin balance, showing only each username’s first letter.
+- **Community:** view the top 20 accounts by completed rounds, current practice streak, or coin balance. All games count; giving up does not. Usernames are shown in full, with long names shortened on screen.
 - **Settings:** English or Chinese interface, themes, text size, and sound.
 
-Games cost 1 coin. Word Guess wins award 4–6 coins by difficulty; Word Ladder wins award 4 or 5 coins by word length. New accounts receive 100 coins.
+Word Guess and Word Ladder cost 1 coin. Word Guess wins award 4 coins at 3–4 letters, 5 at 5–6, 6 at 7–8, and 7 at 9 letters. Word Ladder wins award 4 or 5 coins by word length. Guess Animal is free and does not change the coin balance. New accounts receive 100 coins.
 
 ## API
 
@@ -23,10 +24,25 @@ Base path: `/api/v1`. Requests and responses use JSON. Cookie sessions identify 
 | Games | `POST /games`, `GET /games/:id`, `POST /games/:id/guesses` |
 | Hints and giving up | `POST /games/:id/hints`, `POST /games/:id/give-up` |
 | Dictionary | `GET /word-lists/dictionary?q=word`, `GET /word-lists/dictionary/:term/definition` |
-| Synonyms and antonyms | `GET /word-lists/dictionary/:term/thesaurus` |
 | Collections and saved words | `GET /collections`, `GET /collections/:slug/words`, `GET /word-lists/mine` |
 | Statistics | `GET /progress/summary` |
-| Coin leaderboard | `GET /community/coin-rankings` |
+| Leaderboards | `GET /community/practice-rankings`, `GET /community/streak-rankings`, `GET /community/coin-rankings` |
+| Guess Animal completion | `POST /games/animal-guess/completions` |
 | Feedback | `POST /feedback` |
 
 Data attribution and license notices: [licenses](apps/web/public/licenses/).
+
+Leaderboard streaks use UTC dates and remain active if the latest completed round was yesterday. Guess Animal completions are recorded once per round and transferred with guest progress after sign-in; earlier browser-only rounds cannot be backfilled.
+
+## Frontend routing
+
+React Router starts in `apps/web/src/App.tsx`, with navigation and account coordination in `AppLayout.tsx`; shared paths live in `routes.ts`. `GamePage.tsx` renders puzzle setup and play, and `LicensesPage.tsx` renders attribution. Existing feature pages are mounted through routes. Pending vocabulary saves block navigation until successful, including browser back/forward. `/play` redirects to `/games`; email action hashes continue to open the account page.
+
+The frontend separates state by responsibility:
+
+- `usePuzzleGame.ts`: puzzle setup, input, hints, wallet and round recovery. The layout keeps this hook mounted across routes.
+- `GamePage.tsx`: puzzle UI, using the typed controller returned by `usePuzzleGame`.
+- `PreferencesProvider.tsx`: theme, language, font size and sound persistence; settings read it through `usePreferences()`.
+- `PuzzleHint.tsx` and `WordBookmark.tsx`: shared UI, separate from game state and API actions.
+
+Account and pending-word state stay above the pages so navigation preserves progress and unsaved selections.

@@ -71,6 +71,18 @@ export class AccountService {
     if (!await this.accounts.deleteAccount(user.id, record.passwordHash)) throw new ConflictException('Your account changed. Sign in again before deleting it.');
   }
 
+  async updateUsername(session: string | undefined, username: string) {
+    const user = await this.current(session);
+    try {
+      const updated = await this.accounts.updateUsername(user.id, username.trim().toLowerCase());
+      if (!updated) throw new UnauthorizedException();
+      return { user: updated };
+    } catch (error) {
+      if ((error as { code?: string }).code === '23505') throw new ConflictException('That username is already in use.');
+      throw error;
+    }
+  }
+
   private async requirePassword(id: string, password: string) {
     const record = await this.accounts.findById(id);
     if (!record || !await this.verifyPassword(password, record.passwordHash)) throw new UnauthorizedException('Your current password is incorrect.');

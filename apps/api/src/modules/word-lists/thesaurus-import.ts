@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from 'node:crypto';
+import { createHash } from 'node:crypto';
 import { Pool } from 'pg';
 import { ThesaurusSense } from './webster-thesaurus';
 
@@ -27,8 +27,8 @@ export async function applyThesaurus(pool: Pool, plan: ThesaurusPlan) {
   const client = await pool.connect();
   try {
     await client.query('BEGIN');
-    await client.query("SELECT pg_advisory_xact_lock(hashtextextended('library-publication',0))");
-    const state = (await client.query('SELECT version FROM library_state WHERE id=1 FOR UPDATE')).rows[0];
+    await client.query("SELECT pg_advisory_xact_lock(hashtextextended('thesaurus-import',0))");
+    const state = (await client.query('SELECT version FROM library_state WHERE id=1')).rows[0];
     if (state.version !== plan.version) throw new Error('Dictionary changed. Generate a fresh thesaurus report.');
     let sensesAdded = 0, relationsAdded = 0;
     for (let offset = 0; offset < plan.senses.length; offset += 100) {
@@ -44,7 +44,6 @@ export async function applyThesaurus(pool: Pool, plan: ThesaurusPlan) {
         CROSS JOIN LATERAL jsonb_array_elements(item->'relations') r(value)
         ON CONFLICT DO NOTHING`, [data])).rowCount ?? 0;
     }
-    if (sensesAdded || relationsAdded) await client.query('UPDATE library_state SET version=$1 WHERE id=1', [randomUUID()]);
     await client.query('COMMIT');
     return { sensesAdded, relationsAdded };
   } catch (error) { await client.query('ROLLBACK'); throw error; }

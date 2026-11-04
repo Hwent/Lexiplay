@@ -4,7 +4,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import App from './App';
 
 describe('completed games', () => {
-  beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games'); });
+  beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const ladder = { startWord: 'cold', startDefinition: 'At a low temperature.', targetWords: 4 };
   function fixture(kind: string, status: string) {
@@ -76,7 +76,7 @@ describe('completed games', () => {
     { auth: 'account', status: 'won' }, { auth: 'guest', status: 'cancelled' }, { auth: 'guest', status: 'active' }, { auth: 'error', status: 'won' },
   ] as const)('does not prompt auth=$auth status=$status', async ({ auth, status }) => {
     mockGame('word-puzzle', status, auth); render(<App/>);
-    await screen.findByText('medium · 4 letters');
+    await screen.findByText('Word puzzle · 4 letters');
     await waitFor(() => expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toHaveAttribute('aria-busy', 'false'));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });

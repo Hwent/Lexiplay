@@ -5,7 +5,7 @@ import App from './App';
 import { gameAudio } from './services/game-audio';
 import { stubGameApiFetch } from './game-api-test-fixtures';
 
-beforeEach(() => { localStorage.clear(); history.replaceState({}, '', '/games'); });
+beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/games'); });
 afterEach(() => { cleanup(); gameAudio.setEnabled(true); localStorage.clear(); vi.unstubAllGlobals(); });
 
 it('plays input and result cues once, including rewards, without replaying a restored win', async () => {

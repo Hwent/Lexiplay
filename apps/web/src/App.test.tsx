@@ -1,3 +1,4 @@
+import { StrictMode } from 'react';
 import { stubGameApiFetch } from './game-api-test-fixtures';
 import { act, cleanup, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -6,11 +7,27 @@ import App from './App';
 import { cachedDictionaryDefinition, clearDictionaryCache } from './dictionary-cache';
 
 describe('practice puzzle', () => {
-  beforeEach(() => { window.localStorage.clear(); window.history.replaceState({}, '', '/'); });
+  beforeEach(() => { window.localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); window.history.replaceState({}, '', '/'); });
   afterEach(() => {
     cleanup();
     clearDictionaryCache();
     vi.unstubAllGlobals();
+  });
+
+  it('keeps browser back and forward working in StrictMode', async () => {
+    stubGameApiFetch(vi.fn(async input => String(input).endsWith('/auth/me')
+      ? new Response('{}', { status: 401 }) : Response.json([])));
+    const user = userEvent.setup();
+    render(<StrictMode><App /></StrictMode>);
+    await user.click(screen.getByRole('button', { name: 'Settings' }));
+    expect(window.location.pathname).toBe('/settings');
+    await user.click(screen.getByRole('link', { name: 'Licenses' }));
+    expect(await screen.findByRole('region', { name: 'Licenses and attribution' })).toBeInTheDocument();
+    act(() => window.history.back());
+    expect(await screen.findByRole('region', { name: 'Preferences' })).toBeInTheDocument();
+    expect(window.location.pathname).toBe('/settings');
+    act(() => window.history.forward());
+    expect(await screen.findByRole('region', { name: 'Licenses and attribution' })).toBeInTheDocument();
   });
 
   it('lets players choose a four-letter game and requires one character per keystroke', async () => {
@@ -174,7 +191,7 @@ describe('practice puzzle', () => {
     expect(submissions).toBe(2);
   });
 
-  it('shows rules for the selected length and difficulty before starting', async () => {
+  it('shows six-guess rules at every selected length without difficulty options', async () => {
     stubGameApiFetch( vi.fn(async () => new Response('{}', { status: 401 })));
     const user = userEvent.setup();
     render(<App />);
@@ -184,11 +201,21 @@ describe('practice puzzle', () => {
     await user.click(screen.getByText('How to play'));
     expect(screen.getByText(/hidden 5-letter word in 6 guesses/i)).toBeVisible();
     await user.click(screen.getByRole('radio', { name: '9 letters' }));
-    await user.click(screen.getByRole('radio', { name: /Hard/ }));
-    expect(screen.getByText(/hidden 9-letter word in 5 guesses/i)).toBeInTheDocument();
+    expect(screen.queryByText('Difficulty')).not.toBeInTheDocument();
+    expect(screen.queryByRole('radio', { name: /Hard|Easy/ })).not.toBeInTheDocument();
+    expect(screen.getByText(/hidden 9-letter word in 6 guesses/i)).toBeInTheDocument();
     expect(screen.getByText('Correct spot')).toBeInTheDocument();
     expect(screen.getByText('Wrong spot')).toBeInTheDocument();
     expect(screen.getByText('Not in word')).toBeInTheDocument();
+  });
+
+  it.each([[3, 4], [4, 4], [5, 5], [6, 5], [7, 6], [8, 6], [9, 7]])('shows a %i-letter win reward of %i coins', async (length, reward) => {
+    stubGameApiFetch(vi.fn(async () => new Response('{}', { status: 401 })));
+    const user = userEvent.setup();
+    render(<App/>);
+    await user.click(screen.getByRole('button', { name: 'Games' }));
+    await user.click(screen.getByRole('radio', { name: `${length} letters` }));
+    expect(screen.getByLabelText(`Entry: 1 coin. Win: ${reward} coins`)).toHaveTextContent(`+${reward} on a win`);
   });
 
   it('does not restore an old puzzle when an automatic guess finishes after an account change', async () => {
@@ -230,14 +257,13 @@ describe('practice puzzle', () => {
     await user.click(screen.getByText('Account'));
     await user.click(await screen.findByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
-    await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
     expect(await screen.findByText(/signed in as learner@example\.test/i)).toBeInTheDocument();
     expect(fetchMock).toHaveBeenNthCalledWith(2, '/api/v1/auth/register', expect.objectContaining({
       method: 'POST',
-      body: JSON.stringify({ email: 'learner@example.test', username: 'learner', password: 'wordpractice123', sendVerification: false }),
+      body: JSON.stringify({ username: 'learner', password: 'wordpractice123' }),
     }));
     await user.click(screen.getByRole('button', { name: /sign out/i }));
     expect(await screen.findByText(/you’re signed out/i)).toBeInTheDocument();
@@ -254,7 +280,6 @@ describe('practice puzzle', () => {
     await user.click(screen.getByText('Account'));
     await user.click(await screen.findByRole('tab', { name: /create account/i }));
     await user.type(screen.getByRole('textbox', { name: /^username$/i }), 'learner');
-    await user.type(screen.getByRole('textbox', { name: /email/i }), 'learner@example.test');
     await user.type(screen.getByLabelText(/^password$/i), 'wordpractice123');
     await user.click(screen.getByRole('button', { name: /^create account$/i }));
 
@@ -358,7 +383,7 @@ describe('practice puzzle', () => {
     expect(screen.queryByText(/definitions are adapted/i)).not.toBeInTheDocument();
   });
 
-  it('selects word lengths and the personal pool with the redesigned controls', async () => {
+  it('selects word lengths without offering a personal collection', async () => {
     stubGameApiFetch( vi.fn(async input => String(input).endsWith('/auth/me') ? Response.json({ id: 'learner', username: 'learner' }) : Response.json([])));
     const user = userEvent.setup();
     render(<App />);
@@ -368,9 +393,8 @@ describe('practice puzzle', () => {
     expect(screen.getByRole('radio', { name: '8 letters' })).toBeChecked();
     expect(screen.getByRole('radio', { name: '5 letters' })).not.toBeChecked();
     const collection = screen.getByLabelText('Collection');
-    await waitFor(() => expect(screen.getByRole('option', { name: 'My word list' })).toBeEnabled());
-    await user.selectOptions(collection, 'my-words');
-    expect(collection).toHaveValue('my-words');
+    expect(screen.queryByRole('option', { name: 'My word list' })).not.toBeInTheDocument();
+    expect(collection).toHaveValue('');
     expect(screen.queryByRole('switch', { name: 'Play with my words' })).not.toBeInTheDocument();
   });
 });
