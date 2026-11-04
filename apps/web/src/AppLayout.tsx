@@ -104,20 +104,10 @@ export default function AppLayout() {
     if (wordStore.owner === 'guest') return;
     void wordStore.loadSaved().catch(() => {});
     void wordStore.requests
-      .get<PersonalList[]>('/word-lists/mine')
-      .then((lists) => {
-        const list = lists.find((item) => item.isDefault) ?? lists[0];
-        if (!list) return;
-        const params = new URLSearchParams({
-          page: '1',
-          pageSize: '25',
-          language: list.preferredLanguage,
-        });
-        return wordStore.requests.get<PersonalPage>(
-          `/word-lists/${list.id}/entries?${params}`,
-        );
-      })
-      .catch(() => {});
+      .get<PersonalPage>('/word-lists/mine/entries?page=1&pageSize=25&language=en')
+      .then((page) => {
+        if (page?.list) wordStore.requests.prime<PersonalList[]>('/word-lists/mine', [page.list]);
+      }).catch(() => {});
   }, [accountLoading, accountRevision, wordStore]);
   useEffect(() => {
     document.documentElement.scrollTop = 0;

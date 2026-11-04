@@ -61,7 +61,7 @@ it('loads the signed-in word list before navigation and reuses the first page', 
     const path = String(input);
     if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
     if (path.endsWith('/word-lists/mine')) return Response.json([list]);
-    if (path.includes('/word-lists/learner/entries?')) return entries();
+    if (path.includes('/word-lists/mine/entries?')) return entries();
     if (path.endsWith('/word-lists/saved-terms')) return Response.json({ terms: [] });
     return Response.json([]);
   }));
