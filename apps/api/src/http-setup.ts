@@ -35,7 +35,13 @@ export function configureHttp(app: NestExpressApplication, config: ReturnType<ty
   if (!config.serveWeb) return;
   const index = resolve(webRoot, 'index.html');
   if (!existsSync(index)) throw new Error('The built website is missing. Run pnpm build before starting production.');
-  app.useStaticAssets(webRoot, { index: false, dotfiles: 'deny' });
+  app.useStaticAssets(webRoot, { index: false, dotfiles: 'deny',
+    setHeaders(response, filename) {
+      if (/[/\\]assets[/\\][^/\\]+-[A-Za-z0-9_-]{8,}\.[^/\\]+$/.test(filename)) {
+        response.setHeader('Cache-Control', 'public, max-age=31536000, immutable');
+      }
+    },
+  });
   // Browser routes receive the SPA; API endpoints and missing asset files retain real 404s.
   app.use((request: { method: string; path: string }, response: { setHeader(name: string, value: string): void; sendFile(path: string): void }, next: () => void) => {
     if (!['GET', 'HEAD'].includes(request.method) || !/^\/(?!api(?:\/|$)|assets(?:\/|$))[^.]*$/.test(request.path)) { next(); return; }
