@@ -276,6 +276,7 @@ export default function AppLayout() {
     <PendingWordsContext.Provider value={wordStore}>
       <main
         className="app-shell"
+        aria-busy={accountLoading || progressSaving || wordSelection.saving}
         inert={showGuestReminder}
       >
         <aside className="sidebar">
