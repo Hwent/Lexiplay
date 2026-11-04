@@ -29,6 +29,10 @@ describe('game HTTP endpoints and rules', () => {
     });
     vi.spyOn(WordListRepository.prototype, 'getDictionaryDefinition').mockImplementation(async term => `Definition of ${term}.`);
     vi.spyOn(WordListRepository.prototype, 'isDictionaryGameWord').mockResolvedValue(false);
+    vi.spyOn(WordListRepository.prototype, 'gameWordDefinition').mockImplementation(async function (this: WordListRepository, term) {
+      const valid = await this.isDictionaryGameWord(term);
+      return { valid, definition: valid ? await this.getDictionaryDefinition(term, true) : '' };
+    });
   });
   afterEach(async () => { await app?.close(); app = undefined; vi.restoreAllMocks(); });
   async function startApp() {

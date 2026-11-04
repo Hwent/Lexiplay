@@ -1,5 +1,6 @@
 import { BadRequestException, Inject, Injectable } from '@nestjs/common';
 import { WordListRepository } from './word-list.repository';
+import { PoolClient } from 'pg';
 
 @Injectable()
 export class WordListsService {
@@ -13,7 +14,7 @@ export class WordListsService {
     return this.dictionary.searchDictionary(term);
   }
 
-  dictionaryDefinition(term: string, forGame = false) { return this.dictionary.getDictionaryDefinition(term, forGame); }
+  dictionaryDefinition(term: string, forGame = false, client?: PoolClient) { return this.dictionary.getDictionaryDefinition(term, forGame, client); }
   async dictionaryPartOfSpeech(term: string): Promise<string | undefined> {
     const entries = await this.dictionary.poolDictionaryEntries([term]);
     const classes = entries.flatMap(entry => entry.partOfSpeech)
@@ -21,5 +22,6 @@ export class WordListsService {
     return [...new Set(classes)].join(' · ') || undefined;
   }
   dictionaryGameWords(length: number) { return this.dictionary.dictionaryGameWords(length); }
+  gameWordDefinition(term: string, client?: PoolClient) { return this.dictionary.gameWordDefinition(term, client); }
   isDictionaryGameWord(term: string) { return this.dictionary.isDictionaryGameWord(term); }
 }

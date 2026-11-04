@@ -1,5 +1,6 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Pool, PoolClient } from 'pg';
+import { DatabasePool } from '../../database/database.module';
+import { Inject, Injectable } from '@nestjs/common';
+import { PoolClient } from 'pg';
 import { LibraryCache } from './library-cache';
 import { playableEntrySql, playableProperNounSql } from './game-entry';
 
@@ -14,9 +15,15 @@ const sensesSql = `SELECT jsonb_agg(jsonb_build_object('id',e.id,'partOfSpeech',
     FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en'
     WHERE e.term=w.term GROUP BY e.id,e.part_of_speech) e`;
 
+const definitionSql = `SELECT string_agg(d.definition,'; ' ORDER BY e.part_of_speech,d.sense_order) AS definition
+      FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en'
+      WHERE e.term=(SELECT term FROM dictionary_entries WHERE lower(term COLLATE "default")=lower($1)
+        ORDER BY (term=$1) DESC,term LIMIT 1)
+      OR ($2 AND lower(e.term COLLATE "default")=lower($1) AND ${playableProperNounSql})`;
+
 @Injectable()
-export class WordListRepository implements OnModuleDestroy {
-  private readonly pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
+export class WordListRepository {
+  constructor(@Inject(DatabasePool) private readonly pool: DatabasePool) {}
   private readonly cache = new LibraryCache();
 
   async searchDictionary(query: string, limit = 10): Promise<DictionaryEntry[]> {
@@ -29,12 +36,8 @@ export class WordListRepository implements OnModuleDestroy {
       definition: row.senses.map(sense => sense.definitions.join('; ')).join('\n') }));
   }
 
-  async getDictionaryDefinition(term: string, forGame = false): Promise<string> {
-    const result = await this.pool.query<{ definition: string }>(`SELECT string_agg(d.definition,'; ' ORDER BY e.part_of_speech,d.sense_order) AS definition
-      FROM dictionary_entries e JOIN dictionary_definitions d ON d.dictionary_entry_id=e.id AND d.language_code='en'
-      WHERE e.term=(SELECT term FROM dictionary_entries WHERE lower(term COLLATE "default")=lower($1)
-        ORDER BY (term=$1) DESC,term LIMIT 1)
-      OR ($2 AND lower(e.term COLLATE "default")=lower($1) AND ${playableProperNounSql})`, [term.trim(), forGame]);
+  async getDictionaryDefinition(term: string, forGame = false, client: Pick<PoolClient, 'query'> = this.pool): Promise<string> {
+    const result = await client.query<{ definition: string }>(definitionSql, [term.trim(), forGame]);
     return result.rows[0]?.definition ?? '';
   }
 
@@ -74,6 +77,15 @@ export class WordListRepository implements OnModuleDestroy {
     return rows[0]!.valid;
   }
 
+  async gameWordDefinition(term: string, client: Pick<PoolClient, 'query'> = this.pool): Promise<{ valid: boolean; definition: string }> {
+    const { rows: [word] } = await client.query<{ valid: boolean; definition: string | null }>(`SELECT EXISTS(
+      SELECT 1 FROM dictionary_entries e WHERE lower(e.term COLLATE "default")=lower($1)
+      AND ${playableEntrySql}
+      AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
+    ) AS valid, (${definitionSql}) AS definition`, [term.trim(), true]);
+    return { valid: word!.valid, definition: word!.definition ?? '' };
+  }
+
   async mergeGuestWords(client: PoolClient, userId: string, words: Omit<WordEntry, 'id'>[]) {
     if (!words.length) return { wordsAdded: 0, wordsAlreadySaved: 0 };
     const matches = await client.query<{ id: string }>(`SELECT DISTINCT e.id FROM jsonb_array_elements($1::jsonb) incoming
@@ -89,6 +101,4 @@ export class WordListRepository implements OnModuleDestroy {
       ON CONFLICT(user_id,dictionary_entry_id) DO NOTHING RETURNING id`, [userId, ids]);
     return { wordsAdded: added.rowCount ?? 0, wordsAlreadySaved: ids.length - (added.rowCount ?? 0) };
   }
-
-  async onModuleDestroy() { await this.pool.end(); }
 }

@@ -1,6 +1,7 @@
+import { DatabasePool } from '../../database/database.module';
 import { playableEntrySql, playableProperNounSql } from '../word-lists/game-entry';
-import { BadRequestException, ConflictException, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
-import { Pool, PoolClient } from 'pg';
+import { Inject, BadRequestException, ConflictException, Injectable, NotFoundException } from '@nestjs/common';
+import { PoolClient } from 'pg';
 import { LEGACY_ATTEMPT_LIMITS, Difficulty, Game, GameStatus, Guess, PUZZLE_ALREADY_STARTED, score } from './game.types';
 import { LADDER_WORDS } from './word-ladder';
 import { AnimalCompletionDto } from './game.dto';
@@ -19,8 +20,8 @@ type GameRow = {
 };
 
 @Injectable()
-export class GameRepository implements OnModuleDestroy {
-  private readonly pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
+export class GameRepository {
+  constructor(@Inject(DatabasePool) private readonly pool: DatabasePool) {}
 
   private async walletRow(client: PoolClient, owner: string, lock = false): Promise<Wallet> {
     if (owner.startsWith('user:')) {
@@ -136,7 +137,7 @@ export class GameRepository implements OnModuleDestroy {
     finally { client.release(); }
   }
 
-  async change<T>(id: string, owner: string, operation: (game: Game) => T | Promise<T>): Promise<T> {
+  async change<T>(id: string, owner: string, operation: (game: Game, client?: PoolClient) => T | Promise<T>, options: { includeDefinitions?: boolean } = {}): Promise<T> {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN');
@@ -147,10 +148,10 @@ export class GameRepository implements OnModuleDestroy {
       const table = payer.coin_user_id ? 'account_users' : 'guest_sessions', payerId = payer.coin_user_id ?? payer.coin_guest_session_id;
       // Wallets precede game locks, matching starts, account deletion, and guest claims.
       const wallet = (await client.query<{ coin_balance: number }>(`SELECT coin_balance FROM ${table} WHERE id=$1 FOR UPDATE`, [payerId])).rows[0]!;
-      const game = await this.load(client, id, owner, true);
+      const game = await this.load(client, id, owner, true, options.includeDefinitions !== false);
       const wasCompleted = game.completed;
       const previousHintCost = game.hintCoinsSpent;
-      const result = await operation(game);
+      const result = await operation(game, client);
       if (!wasCompleted) {
         const debit = game.hintCoinsSpent - previousHintCost;
         if (wallet.coin_balance < debit) throw new BadRequestException({ code: 'INSUFFICIENT_COINS', message: 'You need 1 coin to use this hint.' });
@@ -177,12 +178,25 @@ export class GameRepository implements OnModuleDestroy {
     const client = await this.pool.connect();
     try {
       await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-      const rows = (await client.query<{ id: string; status: GameStatus; finished_at: Date; attempt_count: number }>(
-        "SELECT id,status,finished_at,attempt_count FROM practice_games WHERE user_id=$1 AND status IN ('won','lost') ORDER BY finished_at DESC,id", [owner.slice(5)])).rows;
-      const totalPages = Math.max(1, Math.ceil(rows.length / pageSize));
+      const rows = (await client.query<GameRow & { summaries: { status: GameStatus; completedAt: string; attemptCount: number }[] }>(`
+        WITH history AS MATERIALIZED (
+          SELECT id,status,finished_at,attempt_count FROM practice_games
+          WHERE user_id=$1 AND status IN ('won','lost')
+        ), selected AS (
+          SELECT id FROM history ORDER BY finished_at DESC,id LIMIT $2::int
+          OFFSET (LEAST($3::int,GREATEST(1,ceil((SELECT count(*) FROM history)::numeric/$2::int)::int))-1)*$2
+        )
+        SELECT g.*,c.name AS collection_name,c.author AS collection_author,
+          CASE WHEN row_number() OVER (ORDER BY g.finished_at DESC,g.id)=1 THEN
+            (SELECT jsonb_agg(jsonb_build_object('status',status,'completedAt',finished_at,'attemptCount',attempt_count)
+              ORDER BY finished_at DESC,id) FROM history) END AS summaries
+        FROM selected JOIN practice_games g USING(id)
+        LEFT JOIN vocabulary_collections c ON c.id=g.collection_id
+        ORDER BY g.finished_at DESC,g.id`, [owner.slice(5),pageSize,page])).rows;
+      const summaries = (rows[0]?.summaries ?? []).map(row => ({ ...row, completedAt: new Date(row.completedAt).toISOString() }));
+      const totalPages = Math.max(1, Math.ceil(summaries.length / pageSize));
       page = Math.min(page, totalPages);
-      const recent = await this.rows(client, rows.slice((page - 1) * pageSize, page * pageSize).map(row => row.id), owner);
-      const summaries = rows.map(row => ({ status: row.status, completedAt: row.finished_at.toISOString(), attemptCount: row.attempt_count }));
+      const recent = await this.hydrateRows(client, rows, owner);
       await client.query('COMMIT'); return { summaries, recent, page, pageSize, totalPages };
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
@@ -196,13 +210,13 @@ export class GameRepository implements OnModuleDestroy {
     return (result.rowCount ?? 0) + (animals.rowCount ?? 0);
   }
 
-  private async load(client: PoolClient, id: string, owner: string, lock = false) {
-    const game = (await this.rows(client, [id], owner, lock))[0];
+  private async load(client: PoolClient, id: string, owner: string, lock = false, includeDefinitions = true) {
+    const game = (await this.rows(client, [id], owner, lock, includeDefinitions))[0];
     if (!game) throw new NotFoundException({ code: 'GAME_NOT_FOUND', message: 'This practice game could not be found.' });
     return game;
   }
 
-  private async rows(client: PoolClient, ids: string[], owner: string, lock = false): Promise<Game[]> {
+  private async rows(client: PoolClient, ids: string[], owner: string, lock = false, includeDefinitions = true): Promise<Game[]> {
     if (!ids.length) return [];
     const { rows } = await client.query<GameRow>(`SELECT g.*,c.name AS collection_name,c.author AS collection_author
       FROM practice_games g LEFT JOIN guest_sessions s ON s.id=g.guest_session_id
@@ -210,7 +224,11 @@ export class GameRepository implements OnModuleDestroy {
       WHERE g.id=ANY($1::uuid[]) AND (($2 LIKE 'user:%' AND g.user_id::text=substring($2 from 6))
         OR ($2 LIKE 'guest:%' AND s.token_hash=substring($2 from 7) AND s.claimed_at IS NULL AND s.expires_at>now()))
       ORDER BY g.finished_at DESC NULLS FIRST,g.id${lock ? ' FOR UPDATE OF g' : ''}`, [ids,owner]);
-    const terms = [...new Set(rows.flatMap(row => [row.answer,...(row.ladder_state ? [row.ladder_state.startWord] : []),...(row.active_state?.guesses ?? row.ladder_state?.guesses ?? [])]))];
+    return this.hydrateRows(client, rows, owner, includeDefinitions);
+  }
+
+  private async hydrateRows(client: PoolClient, rows: GameRow[], owner: string, includeDefinitions = true): Promise<Game[]> {
+    const terms = includeDefinitions ? [...new Set(rows.flatMap(row => [row.answer,...(row.ladder_state ? [row.ladder_state.startWord] : []),...(row.active_state?.guesses ?? row.ladder_state?.guesses ?? [])]))] : [];
     const definitions = terms.length ? (await client.query<{term:string; definition:string}>(`SELECT chosen.term,
       string_agg(d.definition,'; ' ORDER BY e.part_of_speech,d.sense_order) definition FROM unnest($1::text[]) chosen(term)
       JOIN LATERAL (SELECT term FROM dictionary_entries WHERE lower(term COLLATE "default")=chosen.term
@@ -242,6 +260,4 @@ export class GameRepository implements OnModuleDestroy {
         ...(row.collection_id ? {pool:{id:row.collection_id,name:row.collection_name,author:row.collection_author ?? ''}} : {}) };
     });
   }
-
-  async onModuleDestroy() { await this.pool.end(); }
 }

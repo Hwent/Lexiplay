@@ -1,5 +1,5 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { DatabasePool } from '../../database/database.module';
+import { Inject, Injectable } from '@nestjs/common';
 
 export type AccountUser = { id: string; email: string | null; username: string; emailVerified: boolean; coinBalance: number };
 export type AccountRecord = AccountUser & { passwordHash: string };
@@ -7,10 +7,8 @@ export type CoinRanking = { rank: number; username: string; coinBalance: number 
 export type ActivityRanking = { rank: number; username: string; value: number };
 
 @Injectable()
-export class AccountRepository implements OnModuleDestroy {
-  private readonly pool = new Pool({
-    connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay',
-  });
+export class AccountRepository {
+  constructor(@Inject(DatabasePool) private readonly pool: DatabasePool) {}
 
   async createUser(email: string | null, passwordHash: string, username: string): Promise<AccountUser | null> {
     try {
@@ -138,7 +136,5 @@ export class AccountRepository implements OnModuleDestroy {
       return true;
     } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   }
-
-  async onModuleDestroy() { await this.pool.end(); }
 
 }

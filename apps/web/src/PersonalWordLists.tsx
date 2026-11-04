@@ -19,10 +19,9 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
   const [writing, setWriting] = useState<ReadonlySet<string>>(new Set());
   const [error, setError] = useState('');
   const [loadedKey, setLoadedKey] = useState('');
-  const [listRetry, setListRetry] = useState(0);
   const [collections, setCollections] = useState<VocabularyCollection[]>([]);
   const query = searchQuery.trim();
-  const requestKey = `${list?.id}|${page}|${query}|${refresh}|${revision}`;
+  const requestKey = `${initialId}|${page}|${query}|${refresh}|${revision}`;
   const currentKey = useRef(requestKey);
   useEffect(() => { currentKey.current = requestKey; }, [requestKey]);
   const showEntries = !!data && loadedKey === requestKey && !loading;
@@ -36,37 +35,22 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
     return () => { active = false; };
   }, [signedIn, revision, store]);
 
+  useEffect(() => { setPage(1); }, [query]);
   useEffect(() => {
     if (!signedIn) return;
     let active = true;
     setLoading(true);
     setError('');
-    store.requests.get<PersonalList[]>('/word-lists/mine').then(rows => {
-      if (!active) return;
-      if (!Array.isArray(rows)) throw new Error('Could not load your word list.');
-      const chosen = rows.find(row => row.id === initialId) ?? rows.find(row => row.isDefault) ?? rows[0];
-      if (!chosen) throw new Error('Could not find your word list.');
-      setList(chosen);
-    }).catch(error => { if (active) { setError(error instanceof Error ? error.message : 'Could not load your word list.'); setLoading(false); } });
-    return () => { active = false; };
-  }, [signedIn, initialId, revision, listRetry, store]);
-
-  useEffect(() => { setPage(1); }, [query]);
-  useEffect(() => {
-    if (!signedIn || !list) return;
-    let active = true;
-    setLoading(true);
-    setError('');
-    const params = new URLSearchParams({ page: String(page), pageSize: '25', language: list.preferredLanguage, ...(query ? { q: query } : {}) });
-    const path = `/word-lists/${list.id}/entries?${params}`;
+    const params = new URLSearchParams({ page: String(page), pageSize: '25', language: 'en', ...(query ? { q: query } : {}) });
+    const path = `/word-lists/${initialId || 'mine'}/entries?${params}`;
     const cached = store.requests.peek<PersonalPage>(path);
-    if (cached) { setData(cached); setLoadedKey(requestKey); setLoading(false); return; }
+    if (cached) { setList(cached.list); setData(cached); setLoadedKey(requestKey); setLoading(false); return; }
     store.requests.get<PersonalPage>(path).then(value => {
-      if (active) { setData(value); setLoadedKey(requestKey); }
+      if (active) { setList(value.list); setData(value); setLoadedKey(requestKey); }
     }).catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not load your entries.'); })
       .finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [signedIn, list, requestKey, store]);
+  }, [signedIn, initialId, page, query, requestKey, store]);
 
   async function review(word: PersonalWord, again = false) {
     if (!list || writing.has(word.id)) return;
@@ -77,6 +61,7 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
     try {
       await api(`/word-lists/${list.id}/entries/${word.id}`, { method: 'PATCH', body: JSON.stringify(update) });
       store.requests.invalidate(`/word-lists/${list.id}/entries`);
+      store.requests.invalidate('/word-lists/mine/entries');
     } catch (error) {
       if (currentKey.current === startedKey) setData(value => value && ({ ...value, words: value.words.map(row => row.id === word.id ? word : row) }));
       setError(error instanceof Error ? error.message : 'Could not save your review.');
@@ -129,7 +114,7 @@ export default function PersonalWordLists({ signedIn, searchQuery, initialId, re
       </li>)}</ul>
     </section>}
     <div className="library-section-heading"><h2>{t('Your words')}</h2>{data && data.total > 0 && <span className="library-count">{data.total.toLocaleString()} {query ? t('matching') : t('saved')} {data.total === 1 ? t('word') : t('words')}</span>}</div>
-    {error && <p role="alert">{t(error)} <button type="button" onClick={() => { setLoading(true); if (list) { store.requests.invalidate(`/word-lists/${list.id}/entries`); setRefresh(value => value + 1); } else { store.requests.invalidate('/word-lists/mine'); setListRetry(value => value + 1); } }}>{t('Retry')}</button></p>}
+    {error && <p role="alert">{t(error)} <button type="button" onClick={() => { setLoading(true); store.requests.invalidate('/word-lists/'); setRefresh(value => value + 1); }}>{t('Retry')}</button></p>}
     {pagination('top')}
     {showEntries && <>{data.words.length > 0 && <div className="library-table-scroll"><table className="library-data-table personal-entries-table" aria-label={t('Saved vocabulary')}><thead><tr><th scope="col">{t('Word')}</th><th scope="col">{t('Meaning')}</th><th scope="col">{t('Review')}</th></tr></thead><tbody>{data.words.map(word => <tr key={word.id}>
       <td><span className="word-with-pronunciation"><strong>{word.lemma}</strong><PronunciationButton term={word.lemma}/></span><small>{word.partOfSpeech}</small></td>

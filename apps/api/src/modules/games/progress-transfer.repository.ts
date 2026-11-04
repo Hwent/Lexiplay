@@ -1,14 +1,13 @@
-import { ConflictException, Inject, Injectable, NotFoundException, OnModuleDestroy } from '@nestjs/common';
+import { DatabasePool } from '../../database/database.module';
+import { ConflictException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { createHash } from 'node:crypto';
-import { Pool } from 'pg';
 import { WordEntry, WordListRepository } from '../word-lists/word-list.repository';
 import { GameRepository } from './game.repository';
 
 type TransferCounts = { wordsAdded: number; wordsAlreadySaved: number; gamesTransferred: number };
 @Injectable()
-export class ProgressTransferRepository implements OnModuleDestroy {
-  private readonly pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
-  constructor(@Inject(WordListRepository) private readonly words: WordListRepository, @Inject(GameRepository) private readonly games: GameRepository) {}
+export class ProgressTransferRepository {
+  constructor(@Inject(DatabasePool) private readonly pool: DatabasePool, @Inject(WordListRepository) private readonly words: WordListRepository, @Inject(GameRepository) private readonly games: GameRepository) {}
 
   async transfer(userId: string, id: string, words: Omit<WordEntry, 'id'>[], guest?: string, lastGameId?: string) {
     const payloadHash = createHash('sha256').update(JSON.stringify(words)).digest('hex');
@@ -50,6 +49,4 @@ export class ProgressTransferRepository implements OnModuleDestroy {
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
-
-  async onModuleDestroy() { await this.pool.end(); }
 }

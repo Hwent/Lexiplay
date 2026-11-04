@@ -42,6 +42,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
   beforeAll(async () => {
     if (!new URL(database!).pathname.startsWith('/lexiplay_test_')) throw new Error('Disposable test database required.');
     vi.stubEnv('DATABASE_URL', database!);
+    vi.stubEnv('DATABASE_POOL_MAX', '2');
     vi.spyOn(ThrottlerGuard.prototype, 'canActivate').mockResolvedValue(true);
     vi.spyOn(AccountMailService.prototype, 'send').mockResolvedValue(undefined);
     pool = new Pool({ connectionString: database! });
@@ -103,6 +104,33 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     await start(cookie);
     expect(await balance(cookie)).toBe(8);
   });
+  it('loads current personal entries with filters, empty pages and ownership checks', async () => {
+    const user = await account();
+    await request(`/word-lists/${user.id}/dictionary-entries`, 'POST', { terms: ['apple', 'book', 'cover'] }, user.cookie);
+    const current = await (await request('/word-lists/mine/entries?pageSize=2', 'GET', undefined, user.cookie)).json();
+    const explicit = await (await request(`/word-lists/${user.id}/entries?pageSize=2`, 'GET', undefined, user.cookie)).json();
+    expect(current).toEqual(explicit);
+    expect(current).toMatchObject({ total: 4, list: { id: user.id, isDefault: true } });
+    expect(current.words).toHaveLength(2);
+    const filtered = await (await request('/word-lists/mine/entries?q=cover&partOfSpeech=verb', 'GET', undefined, user.cookie)).json();
+    expect(filtered).toMatchObject({ total: 1, words: [{ lemma: 'cover', partOfSpeech: 'verb' }] });
+    expect(await (await request('/word-lists/mine/entries?q=%25', 'GET', undefined, user.cookie)).json()).toMatchObject({ total: 0, words: [] });
+    expect(await (await request('/word-lists/mine/entries?page=99', 'GET', undefined, user.cookie)).json()).toMatchObject({ total: 4, words: [] });
+    expect((await request('/word-lists/mine/entries')).status).toBe(401);
+    const other = await account();
+    expect((await request(`/word-lists/${user.id}/entries`, 'GET', undefined, other.cookie)).status).toBe(404);
+  });
+
+  it('submits concurrent guesses with a two-connection shared pool without nested acquisitions', async () => {
+    const user = await account();
+    const game = await start(user.cookie);
+    const results = await Promise.all(Array.from({ length: 4 }, () => request(`/games/${game.id}/guesses`, 'POST', { guess: 'paper' }, user.cookie)));
+    expect(results.map(response => response.status)).toEqual([201,201,201,201]);
+    const saved = await (await request(`/games/${game.id}`, 'GET', undefined, user.cookie)).json();
+    expect(saved.attemptCount).toBe(4);
+    expect(await balance(user.cookie)).toBe(user.coinBalance - 1);
+  });
+
   async function entry(user: Account, term: string) {
     return (await pool.query(`SELECT u.* FROM user_words u JOIN dictionary_entries e ON e.id=u.dictionary_entry_id
       WHERE u.user_id=$1 AND e.term=$2 ORDER BY e.part_of_speech`, [user.id, term])).rows[0];
