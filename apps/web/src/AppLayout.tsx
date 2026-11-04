@@ -92,6 +92,7 @@ export default function AppLayout() {
     [account?.id],
   );
   const wordSelection = useWordSelection(wordStore);
+  const accountPlaceholder = <p role="status" aria-busy="true">{t('Loading…')}</p>;
   const [quickSearch, setQuickSearch] = useState('');
   useEffect(() => {
     if (accountLoading) return;
@@ -513,7 +514,7 @@ export default function AppLayout() {
             <Route
               path="/library"
               element={
-                <section className="library-page">
+                accountLoading ? accountPlaceholder : <section className="library-page">
                   <VocabularyLibrary
                     onUseCollection={selectCollection}
                     key={accountRevision}
@@ -560,7 +561,7 @@ export default function AppLayout() {
             <Route
               path="/progress"
               element={
-                <StatisticsPanel
+                accountLoading ? accountPlaceholder : <StatisticsPanel
                   key={accountRevision}
                   onPlay={() => navigateTo('play')}
                   onSignIn={() => navigateTo('account')}
@@ -570,7 +571,7 @@ export default function AppLayout() {
             <Route
               path="/community"
               element={
-                <CommunityPage onExplore={() => navigateTo('library')} />
+                accountLoading ? accountPlaceholder : <CommunityPage onExplore={() => navigateTo('library')} />
               }
             />
             <Route path="/settings" element={<SettingsPage />} />

@@ -399,6 +399,7 @@ export default function usePuzzleGame({
   ]);
 
   useEffect(() => {
+    if (accountLoading) return;
     let active = true;
     wordStore.requests
       .get<{ version: string }>('/library/revision', 60_000)
@@ -429,7 +430,7 @@ export default function usePuzzleGame({
     return () => {
       active = false;
     };
-  }, [activeSection, wordStore]);
+  }, [activeSection, wordStore, accountLoading]);
 
   useEffect(() => {
     if (game && !finished && activeSection === 'play')

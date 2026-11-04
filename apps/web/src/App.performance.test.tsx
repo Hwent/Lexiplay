@@ -1,10 +1,35 @@
-import { cleanup, render, screen, waitFor } from '@testing-library/react';
+import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 
 beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
+
+it('resolves the request owner before loading statistics and checking the library revision', async () => {
+  history.replaceState({}, '', '/progress');
+  localStorage.setItem('lexiplay-library-revision', 'stable');
+  let finishAccount!: (response: Response) => void;
+  const account = new Promise<Response>(resolve => { finishAccount = resolve; });
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    const path = String(input);
+    if (path.endsWith('/auth/me')) return account;
+    if (path.endsWith('/library/revision')) return Response.json({ version: 'stable' });
+    if (path.includes('/progress/summary')) return Response.json({ total: 0, recent: [] });
+    if (path.endsWith('/word-lists/saved-terms')) return Response.json({ terms: [] });
+    return Response.json([]);
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<App />);
+  await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/auth/me'))).toBe(true));
+  const requests = (part: string) => fetchMock.mock.calls.filter(([path]) => String(path).includes(part));
+  expect(requests('/progress/summary')).toHaveLength(0);
+  expect(requests('/library/revision')).toHaveLength(0);
+  await act(async () => { finishAccount(Response.json({ id: 'learner', username: 'learner', coinBalance: 12, activeGameId: null })); });
+  expect(await screen.findByText('Your first word starts the story.')).toBeInTheDocument();
+  expect(requests('/progress/summary')).toHaveLength(1);
+  expect(requests('/library/revision')).toHaveLength(1);
+});
 
 it('uses the authenticated bootstrap wallet without requesting it again', async () => {
   const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
