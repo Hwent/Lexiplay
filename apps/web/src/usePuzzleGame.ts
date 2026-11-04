@@ -331,6 +331,7 @@ export default function usePuzzleGame({
       if (account) bootstrapWalletUsed.current = account.id;
       setWallet(game.wallet);
       setWalletOwner(account?.id ?? 'guest');
+      setRestoring(false);
       return;
     }
     let active = true;

@@ -60,6 +60,7 @@ it('shares the saved-game and authenticated active-game recovery request', async
   finish(Response.json({ id: 'saved-game', wordLength: 5, attemptLimit: 6, guesses: [], hints: { definition: 1 }, clues: {}, revealedAbsent: [], revealedPresent: [], wallet: { coinBalance: 12, kind: 'account' } }));
   await userEvent.setup().click(screen.getByRole('button', { name: 'Games' }));
   expect(await screen.findByRole('grid', { name: '5-letter puzzle board' })).toBeInTheDocument();
+  await waitFor(() => expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toHaveAttribute('aria-busy', 'false'));
   expect(gameReads).toBe(1);
 });
 
