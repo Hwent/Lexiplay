@@ -62,6 +62,10 @@ export function cachedDictionaryDefinition(term: string) {
   return cached(definitions, term.trim());
 }
 
+export function cachedDictionarySearch(query: string) {
+  return cached(searches, normalizeTerm(query));
+}
+
 // Only canonical dictionary/API game definitions belong here, never personal notes.
 export function rememberDictionaryDefinition(term: string, definition: string) {
   if (!definition.trim()) return;
