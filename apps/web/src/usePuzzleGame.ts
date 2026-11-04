@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Account } from './useAccount';
-import type { Game, Feedback, GuessResult, HintType } from './game-types';
+import type { Game, GameWallet, Feedback, GuessResult, HintType } from './game-types';
 import type { Section } from './routes';
 import type { PendingWords } from './services/pending-words';
 import { ApiError, apiRequest as api } from './services/api-client';
@@ -315,6 +315,11 @@ export default function usePuzzleGame({
       : Math.ceil(selectedWordLength / 2) + 2;
   useEffect(() => {
     if (accountLoading || progressSaving) return;
+    if (game?.wallet && game.wallet.kind === (account ? 'account' : 'guest')) {
+      setWallet(game.wallet);
+      setWalletOwner(account?.id ?? 'guest');
+      return;
+    }
     let active = true;
     api<{ coinBalance: number; kind: string; activeGameId?: string | null }>(
       '/games/wallet',
@@ -522,6 +527,7 @@ export default function usePuzzleGame({
         text: string;
         hints: Game['hints'];
         cost: number;
+        wallet?: GameWallet;
       }>(`/games/${game.id}/hints`, {
         method: 'POST',
         body: JSON.stringify({ type }),
@@ -529,6 +535,7 @@ export default function usePuzzleGame({
       if (session !== guessSession.current) return;
       const updatedGame = {
         ...game,
+        ...(result.wallet ? { wallet: result.wallet } : {}),
         hints: result.hints,
         clues: { ...game.clues, [type]: result.text },
         hintCoinsSpent: (game.hintCoinsSpent ?? 0) + result.cost,
@@ -596,6 +603,7 @@ export default function usePuzzleGame({
       if (game.ladder) delete clues.nextWord;
       setGame({
         ...game,
+        ...(result.wallet ? { wallet: result.wallet } : {}),
         clues,
         ...(game.ladder
           ? { hints: { definition: 0, nextWord: result.completed ? 0 : 1 } }
