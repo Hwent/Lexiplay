@@ -1,4 +1,4 @@
-import { gameWord, playableEntryWhere, playableEntrySql } from '../word-lists/game-entry';
+import { gameWord, playableEntryWhere } from '../word-lists/game-entry';
 import { BadRequestException, Inject, Injectable, NotFoundException } from '@nestjs/common';
 import { AccountService } from '../accounts/account.service';
 import { CollectionsStorage } from './collections.storage';
@@ -329,23 +329,24 @@ export class CollectionsService {
   async wordleGameWords() { return this.collectionGameWords(WORDLE_POOL.slug, 5, true); }
 
   async collectionGameWords(slug: string, length: number, includeHidden = false) {
-    const levels = Prisma.sql`ARRAY[${Prisma.join(cefrSlugs)}]::text[]`;
-    const [collection] = await this.db.$queryRaw<{ id: string; name: string; author: string | null; status: string; words: string[] }[]>`
-      SELECT c.id,c.name,c.author,c.status,COALESCE(words.terms,ARRAY[]::text[]) AS words
-      FROM vocabulary_collections c LEFT JOIN LATERAL (
-        SELECT array_agg(DISTINCT CASE WHEN e.part_of_speech='proper noun' THEN lower(e.term COLLATE "default") ELSE e.term END) AS terms
-        FROM vocabulary_collections source JOIN collection_entries ce ON ce.collection_id=source.id
-        JOIN dictionary_entries e ON e.id=ce.dictionary_entry_id
-        WHERE (CASE WHEN array_position(${levels},c.slug)>1
-          THEN source.slug=ANY((${levels})[1:array_position(${levels},c.slug)]) AND source.status='available' AND NOT source.hidden
-          ELSE source.id=c.id END)
-        AND char_length(e.term)=${length} AND (CASE WHEN e.part_of_speech='proper noun' THEN lower(e.term COLLATE "default") ELSE e.term END) ~ '^[a-z]+$'
-        AND ${Prisma.raw(playableEntrySql)}
-        AND EXISTS(SELECT 1 FROM dictionary_definitions d WHERE d.dictionary_entry_id=e.id AND d.language_code='en')
-      ) words ON true WHERE (c.slug=${slug} OR c.id::text=${slug}) AND (${includeHidden} OR NOT c.hidden)`;
+    const where = /^[0-9a-f]{8}(?:-[0-9a-f]{4}){3}-[0-9a-f]{12}$/i.test(slug) ? { OR: [{ id: slug }, { slug }] } : { slug };
+    const collection = await this.db.vocabularyCollection.findFirst({
+      where: { ...where, ...(includeHidden ? {} : { hidden: false }) },
+      select: { id: true, slug: true, name: true, author: true, status: true, entries: {
+        where: { entry: { ...playableEntryWhere, definitions: { some: { languageCode: 'en' } } } },
+        select: { entry: { select: { term: true, partOfSpeech: true } } },
+      } },
+    });
     if (!collection) throw new NotFoundException('Vocabulary collection not found.');
     if (collection.status !== 'available') throw new BadRequestException('This collection is not available for play.');
-    const words = collection.words;
+    const slugs = gameCollectionSlugs(collection.slug);
+    const entries = slugs.length === 1 ? collection.entries : await this.db.collectionEntry.findMany({
+      where: { collection: { slug: { in: slugs }, status: 'available', hidden: false },
+        entry: { ...playableEntryWhere, definitions: { some: { languageCode: 'en' } } } },
+      select: { entry: { select: { term: true, partOfSpeech: true } } },
+    });
+    const words = [...new Set(entries.map(row => row.entry.partOfSpeech === 'proper noun' ? row.entry.term.toLowerCase() : row.entry.term)
+      .filter(term => term.length === length && /^[a-z]+$/.test(term)))];
     if (!words.length) throw new BadRequestException('This collection has no playable words at this length.');
     return { words, collection: { id: collection.id, name: collection.name, author: collection.author } };
   }

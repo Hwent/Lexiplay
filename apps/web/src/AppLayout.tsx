@@ -92,7 +92,6 @@ export default function AppLayout() {
     [account?.id],
   );
   const wordSelection = useWordSelection(wordStore);
-  const accountPlaceholder = <p role="status" aria-busy="true">{t('Loading…')}</p>;
   const [quickSearch, setQuickSearch] = useState('');
   useEffect(() => {
     if (accountLoading) return;
@@ -105,10 +104,20 @@ export default function AppLayout() {
     if (wordStore.owner === 'guest') return;
     void wordStore.loadSaved().catch(() => {});
     void wordStore.requests
-      .get<PersonalPage>('/word-lists/mine/entries?page=1&pageSize=25&language=en')
-      .then((page) => {
-        if (page?.list) wordStore.requests.prime<PersonalList[]>('/word-lists/mine', [page.list]);
-      }).catch(() => {});
+      .get<PersonalList[]>('/word-lists/mine')
+      .then((lists) => {
+        const list = lists.find((item) => item.isDefault) ?? lists[0];
+        if (!list) return;
+        const params = new URLSearchParams({
+          page: '1',
+          pageSize: '25',
+          language: list.preferredLanguage,
+        });
+        return wordStore.requests.get<PersonalPage>(
+          `/word-lists/${list.id}/entries?${params}`,
+        );
+      })
+      .catch(() => {});
   }, [accountLoading, accountRevision, wordStore]);
   useEffect(() => {
     document.documentElement.scrollTop = 0;
@@ -277,7 +286,6 @@ export default function AppLayout() {
     <PendingWordsContext.Provider value={wordStore}>
       <main
         className="app-shell"
-        aria-busy={accountLoading || progressSaving || wordSelection.saving}
         inert={showGuestReminder}
       >
         <aside className="sidebar">
@@ -514,7 +522,7 @@ export default function AppLayout() {
             <Route
               path="/library"
               element={
-                accountLoading ? accountPlaceholder : <section className="library-page">
+                <section className="library-page">
                   <VocabularyLibrary
                     onUseCollection={selectCollection}
                     key={accountRevision}
@@ -561,7 +569,7 @@ export default function AppLayout() {
             <Route
               path="/progress"
               element={
-                accountLoading ? accountPlaceholder : <StatisticsPanel
+                <StatisticsPanel
                   key={accountRevision}
                   onPlay={() => navigateTo('play')}
                   onSignIn={() => navigateTo('account')}
@@ -571,7 +579,7 @@ export default function AppLayout() {
             <Route
               path="/community"
               element={
-                accountLoading ? accountPlaceholder : <CommunityPage onExplore={() => navigateTo('library')} />
+                <CommunityPage onExplore={() => navigateTo('library')} />
               }
             />
             <Route path="/settings" element={<SettingsPage />} />

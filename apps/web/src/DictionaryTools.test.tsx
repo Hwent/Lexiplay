@@ -5,23 +5,13 @@ import DictionaryTools from './DictionaryTools';
 import { importTerms } from './dictionary-import';
 import { PendingWords } from './services/pending-words';
 import { PendingWordsContext } from './usePendingWords';
-import { cachedDictionarySearch, searchDictionary } from './dictionary-cache';
-vi.mock('./dictionary-cache', () => ({ cachedDictionarySearch: vi.fn(), normalizeTerm: (value: string) => value.trim().toLowerCase(), searchDictionary: vi.fn(async () => [{ term: 'cover', partOfSpeech: ['verb'], senses: [{ partOfSpeech: 'verb', definitions: ['To place over.'] }] }]) }));
-beforeEach(() => { localStorage.clear(); vi.mocked(cachedDictionarySearch).mockReset(); });
+import { searchDictionary } from './dictionary-cache';
+vi.mock('./dictionary-cache', () => ({ normalizeTerm: (value: string) => value.trim().toLowerCase(), searchDictionary: vi.fn(async () => [{ term: 'cover', partOfSpeech: ['verb'], senses: [{ partOfSpeech: 'verb', definitions: ['To place over.'] }] }]) }));
+beforeEach(() => localStorage.clear());
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.useRealTimers(); });
 function renderTools(store: PendingWords, query = '') {
   return render(<PendingWordsContext.Provider value={store}><DictionaryTools listId="my-list" searchQuery={query}/></PendingWordsContext.Provider>);
 }
-it('renders cached search results without waiting for the typing debounce', () => {
-  vi.useFakeTimers();
-  vi.stubGlobal('fetch', vi.fn(async () => Response.json({ terms: [] })));
-  const search = vi.mocked(searchDictionary); search.mockClear();
-  vi.mocked(cachedDictionarySearch).mockReturnValue([{ term: 'cover', partOfSpeech: ['verb'], definition: 'To place over.' }]);
-  renderTools(new PendingWords('user'));
-  fireEvent.change(screen.getByRole('searchbox', { name: 'Search the dictionary' }), { target: { value: 'cover' } });
-  expect(screen.getByText('To place over.')).toBeInTheDocument();
-  expect(search).not.toHaveBeenCalled();
-});
 it('starts a real dictionary lookup from the empty-state example', async () => {
   vi.stubGlobal('fetch', vi.fn(async () => Response.json({ terms: [] })));
   const user = userEvent.setup(); const { container } = renderTools(new PendingWords('user'));

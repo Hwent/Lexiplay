@@ -5,7 +5,6 @@ export const WORDLE_COST = 1;
 export const HINT_COST = 1;
 export const PUZZLE_ALREADY_STARTED = { code: 'PUZZLE_ALREADY_STARTED', message: 'Finish this puzzle or give up before choosing a new one.' };
 export type HintType = 'definition' | 'nextWord';
-export type GameWallet = { coinBalance: number; kind: 'account' | 'guest' };
 export const WORD_PUZZLE_ATTEMPTS = 6;
 // Existing rounds retain their original attempt limit when restored.
 export const LEGACY_ATTEMPT_LIMITS = { easy: 7, medium: WORD_PUZZLE_ATTEMPTS, hard: 5 } as const;
@@ -13,10 +12,8 @@ export function wordPuzzleReward(wordLength: number): number { return Math.ceil(
 export type Guess = {
   guess: string; feedback: Feedback[]; attemptsRemaining: number; completed: boolean;
   outcome?: 'WON' | 'LOST'; answer?: string; definition?: string; answerDefinition?: string; rewardCoins?: number;
-  wallet?: GameWallet;
 };
 export type Game = {
-  wallet?: GameWallet;
   pool?: { id: string; name: string; author: string };
   id: string; startRequestId: string; kind: 'word-puzzle' | 'word-ladder'; owner: string; answer: string;
   ladder?: { startWord: string; targetWords: number; startDefinition?: string };

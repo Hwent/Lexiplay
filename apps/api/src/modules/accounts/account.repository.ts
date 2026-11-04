@@ -1,7 +1,7 @@
 import { DatabasePool } from '../../database/database.module';
 import { Inject, Injectable } from '@nestjs/common';
 
-export type AccountUser = { id: string; email: string | null; username: string; emailVerified: boolean; coinBalance: number; activeGameId?: string | null };
+export type AccountUser = { id: string; email: string | null; username: string; emailVerified: boolean; coinBalance: number };
 export type AccountRecord = AccountUser & { passwordHash: string };
 export type CoinRanking = { rank: number; username: string; coinBalance: number };
 export type ActivityRanking = { rank: number; username: string; value: number };
@@ -94,11 +94,9 @@ export class AccountRepository {
     await this.pool.query('INSERT INTO account_sessions (user_id, token_hash, expires_at) VALUES ($1, $2, $3)', [userId, tokenHash, expiresAt]);
   }
 
-  async findSession(tokenHash: string, includeActiveGame = false): Promise<AccountUser | null> {
+  async findSession(tokenHash: string): Promise<AccountUser | null> {
     const result = await this.pool.query<AccountUser>(
-      `SELECT users.id, users.email, users.username, users.email_verified AS "emailVerified", coin_balance AS "coinBalance"
-       ${includeActiveGame ? `,(SELECT id FROM practice_games WHERE user_id=users.id AND status='active' ORDER BY attempt_count DESC,id LIMIT 1) AS "activeGameId"` : ''}
-       FROM account_sessions sessions
+      `SELECT users.id, users.email, users.username, users.email_verified AS "emailVerified", coin_balance AS "coinBalance" FROM account_sessions sessions
        JOIN account_users users ON users.id = sessions.user_id
        WHERE sessions.token_hash = $1 AND sessions.expires_at > now()`, [tokenHash],
     );

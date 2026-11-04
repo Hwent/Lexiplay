@@ -8,24 +8,6 @@ describe('saved practice and account updates', () => {
   beforeEach(() => { window.localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); window.history.replaceState({}, '', '/games'); });
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
   const emptyGame = { id: 'saved-game', wordLength: 9, difficulty: 'hard', attemptLimit: 5, guesses: [], hints: { definition: 1 }, clues: {}, hintCoinsSpent: 0, revealedAbsent: [], revealedPresent: [] };
-  it('uses the committed hint wallet without a second wallet request', async () => {
-    localStorage.setItem('lexiplay-last-game', emptyGame.id);
-    let walletRequests = 0;
-    vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
-      const path = String(input);
-      if (path.endsWith('/auth/me')) return Response.json({}, { status: 401 });
-      if (path.endsWith('/games/wallet')) { walletRequests++; return Response.json({ coinBalance: 9, kind: 'guest' }); }
-      if (path.endsWith('/games/saved-game')) return Response.json({ ...emptyGame, wallet: { coinBalance: 9, kind: 'guest' } });
-      if (path.endsWith('/hints')) return Response.json({ type: 'definition', text: 'A useful clue.', hints: { definition: 0 }, cost: 1, wallet: { coinBalance: 8, kind: 'guest' } });
-      return Response.json([]);
-    }));
-    const user = userEvent.setup(); render(<App />);
-    expect(await screen.findByLabelText('Coin balance: 9')).toBeInTheDocument();
-    const before = walletRequests;
-    await user.click(await screen.findByRole('button', { name: /definition hint.*1 coin/i }));
-    expect(await screen.findByLabelText('Coin balance: 8')).toBeInTheDocument();
-    expect(walletRequests).toBe(before);
-  });
   it('reminds players to click the puzzle after losing keyboard focus and restores typing', async () => {
     localStorage.setItem('lexiplay-last-game', emptyGame.id);
     stubGameApiFetch(vi.fn(async (input: RequestInfo | URL) => {

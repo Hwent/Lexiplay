@@ -1,6 +1,6 @@
 import { useTranslation } from './i18n';
 import { useEffect, useRef, useState } from 'react';
-import { DictionaryEntry, cachedDictionarySearch, normalizeTerm, searchDictionary } from './dictionary-cache';
+import { DictionaryEntry, normalizeTerm, searchDictionary } from './dictionary-cache';
 import usePendingWords from './usePendingWords';
 import PronunciationButton from './PronunciationButton';
 import Icon from './Icon';
@@ -34,11 +34,6 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
   useEffect(() => { typed.current = false; setQuery(searchQuery); setMode('search'); }, [searchQuery]);
   useEffect(() => {
     let active = true;
-    const cached = normalized.length >= 2 && mode === 'search' ? cachedDictionarySearch(normalized) : undefined;
-    if (cached) {
-      setResults(cached); setSearched(normalized); setSearching(false); setError('');
-      return;
-    }
     setResults([]); setError(''); setSearching(normalized.length >= 2);
     if (normalized.length < 2 || mode !== 'search') { setSearching(false); return; }
     const timer = setTimeout(() => {

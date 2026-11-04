@@ -1,4 +1,4 @@
-import { Global, Injectable, Logger, Module, OnApplicationBootstrap, OnApplicationShutdown } from '@nestjs/common';
+import { Global, Injectable, Logger, Module, OnApplicationShutdown } from '@nestjs/common';
 import { Pool } from 'pg';
 
 function integerSetting(name: string, fallback: number, minimum: number) {
@@ -8,7 +8,7 @@ function integerSetting(name: string, fallback: number, minimum: number) {
 }
 
 @Injectable()
-export class DatabasePool extends Pool implements OnApplicationBootstrap, OnApplicationShutdown {
+export class DatabasePool extends Pool implements OnApplicationShutdown {
   constructor() {
     super({
       connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay',
@@ -18,14 +18,6 @@ export class DatabasePool extends Pool implements OnApplicationBootstrap, OnAppl
       connectionTimeoutMillis: 15_000,
     });
     this.on('error', () => Logger.error('An idle database connection failed.', 'DatabasePool'));
-  }
-
-  async onApplicationBootstrap() {
-    if (process.env.NODE_ENV !== 'production') return;
-    await Promise.all(Array.from({ length: 2 }, async () => {
-      const client = await this.connect();
-      client.release();
-    }));
   }
 
   async onApplicationShutdown() { await this.end(); }

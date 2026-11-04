@@ -53,9 +53,9 @@ export class GameService {
   }
 
   async hint(id: string, type: HintType, owner: string) {
+    const current = await this.games.read(id, owner);
+    this.requireActive(current);
     if (type === 'nextWord') {
-      const current = await this.games.read(id, owner);
-      this.requireActive(current);
       if (!current.ladder) throw new BadRequestException('Next-word hints are only available in Word Ladder.');
       const words = await this.dictionary.dictionaryGameWords(current.wordLength);
       return this.games.change(id, owner, game => {
@@ -72,14 +72,16 @@ export class GameService {
         return { type, text: word, hints: { ...game.hints }, cost: purchased ? 0 : HINT_COST };
       }, { includeDefinitions: false });
     }
-    return this.games.change(id, owner, async (game, client) => {
+    if (current.ladder) throw new BadRequestException('Word Ladder already includes word definitions.');
+    // Resolve dictionary clues before taking wallet and game locks.
+    const text = current.clues[type] ?? (current.answerDefinition || await this.dictionary.dictionaryDefinition(current.answer, true));
+    if (!text) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: 'No definition is available for this word. No coins were charged.' });
+    const clue = text.replace(new RegExp(current.answer, 'gi'), '_____');
+    return this.games.change(id, owner, game => {
       this.requireActive(game);
-      if (game.ladder) throw new BadRequestException('Word Ladder already includes word definitions.');
       const purchased = !!game.clues[type];
       if (!purchased) {
-        const text = game.answerDefinition || await this.dictionary.dictionaryDefinition(game.answer, true, client);
-        if (!text) throw new BadRequestException({ code: 'NO_HINT_AVAILABLE', message: 'No definition is available for this word. No coins were charged.' });
-        game.clues[type] = text.replace(new RegExp(game.answer, 'gi'), '_____');
+        game.clues[type] = clue;
         game.hints[type] = 0;
         game.hintCoinsSpent += HINT_COST;
       }

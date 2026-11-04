@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState, type KeyboardEvent } from 'react';
 import type { Account } from './useAccount';
-import type { Game, GameWallet, Feedback, GuessResult, HintType } from './game-types';
+import type { Game, Feedback, GuessResult, HintType } from './game-types';
 import type { Section } from './routes';
 import type { PendingWords } from './services/pending-words';
 import { ApiError, apiRequest as api } from './services/api-client';
@@ -121,17 +121,6 @@ export default function usePuzzleGame({
   const puzzleRef = useRef<HTMLDivElement>(null);
   const submittingGuess = useRef(false);
   const guessSession = useRef(0);
-  const bootstrapWalletUsed = useRef<string | null>(null);
-  const gameReads = useRef(new Map<string, Promise<Game>>());
-  function readGame(id: string) {
-    const pending = gameReads.current.get(id);
-    if (pending) return pending;
-    const request = api<Game>(`/games/${encodeURIComponent(id)}`).finally(() => {
-      if (gameReads.current.get(id) === request) gameReads.current.delete(id);
-    });
-    gameReads.current.set(id, request);
-    return request;
-  }
 
   const activeSectionRef = useRef(activeSection);
   activeSectionRef.current = activeSection;
@@ -239,7 +228,7 @@ export default function usePuzzleGame({
     }
     if (id) {
       setRestoring(true);
-      readGame(id)
+      api<Game>(`/games/${encodeURIComponent(id)}`)
         .then((result) => {
           if (active) setGame(result);
         })
@@ -265,7 +254,6 @@ export default function usePuzzleGame({
     let revision = 0;
     const changed = (event: Event) => {
       active = false;
-      gameReads.current.clear();
       const detail = (
         event as CustomEvent<{
           resumeGameId?: string;
@@ -290,7 +278,7 @@ export default function usePuzzleGame({
           /* Resume remains available in this view. */
         }
         setRestoring(true);
-        readGame(resumeId)
+        api<Game>(`/games/${encodeURIComponent(resumeId)}`)
           .then((result) => {
             if (revision === currentRevision) setGame(result);
           })
@@ -327,29 +315,19 @@ export default function usePuzzleGame({
       : Math.ceil(selectedWordLength / 2) + 2;
   useEffect(() => {
     if (accountLoading || progressSaving) return;
-    if (game?.wallet && game.wallet.kind === (account ? 'account' : 'guest')) {
-      if (account) bootstrapWalletUsed.current = account.id;
-      setWallet(game.wallet);
-      setWalletOwner(account?.id ?? 'guest');
-      setRestoring(false);
-      return;
-    }
     let active = true;
-    const bootstrap = account && account.activeGameId !== undefined && Number.isInteger(account.coinBalance)
-      && bootstrapWalletUsed.current !== account.id;
-    if (!account) bootstrapWalletUsed.current = null;
-    if (bootstrap) bootstrapWalletUsed.current = account.id;
-    const request = bootstrap
-      ? Promise.resolve({ coinBalance: account!.coinBalance!, kind: 'account', activeGameId: account!.activeGameId })
-      : api<{ coinBalance: number; kind: string; activeGameId?: string | null }>('/games/wallet');
-    request
+    api<{ coinBalance: number; kind: string; activeGameId?: string | null }>(
+      '/games/wallet',
+    )
       .then(async (value) => {
         if (!active || !Number.isInteger(value.coinBalance)) return;
         setWallet(value);
         if (value.activeGameId && value.activeGameId !== game?.id) {
           setRestoring(true);
           try {
-            const restored = await readGame(value.activeGameId);
+            const restored = await api<Game>(
+              `/games/${encodeURIComponent(value.activeGameId)}`,
+            );
             if (active) {
               guessSession.current++;
               setGuess('');
@@ -396,11 +374,9 @@ export default function usePuzzleGame({
     game?.id,
     game?.guesses.length,
     game?.hintCoinsSpent,
-    game?.wallet,
   ]);
 
   useEffect(() => {
-    if (accountLoading) return;
     let active = true;
     wordStore.requests
       .get<{ version: string }>('/library/revision', 60_000)
@@ -431,7 +407,7 @@ export default function usePuzzleGame({
     return () => {
       active = false;
     };
-  }, [activeSection, wordStore, accountLoading]);
+  }, [activeSection, wordStore]);
 
   useEffect(() => {
     if (game && !finished && activeSection === 'play')
@@ -546,7 +522,6 @@ export default function usePuzzleGame({
         text: string;
         hints: Game['hints'];
         cost: number;
-        wallet?: GameWallet;
       }>(`/games/${game.id}/hints`, {
         method: 'POST',
         body: JSON.stringify({ type }),
@@ -554,7 +529,6 @@ export default function usePuzzleGame({
       if (session !== guessSession.current) return;
       const updatedGame = {
         ...game,
-        ...(result.wallet ? { wallet: result.wallet } : {}),
         hints: result.hints,
         clues: { ...game.clues, [type]: result.text },
         hintCoinsSpent: (game.hintCoinsSpent ?? 0) + result.cost,
@@ -622,7 +596,6 @@ export default function usePuzzleGame({
       if (game.ladder) delete clues.nextWord;
       setGame({
         ...game,
-        ...(result.wallet ? { wallet: result.wallet } : {}),
         clues,
         ...(game.ladder
           ? { hints: { definition: 0, nextWord: result.completed ? 0 : 1 } }

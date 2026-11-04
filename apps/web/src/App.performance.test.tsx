@@ -1,68 +1,10 @@
-import { act, cleanup, render, screen, waitFor } from '@testing-library/react';
+import { cleanup, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import App from './App';
 
 beforeEach(() => { localStorage.clear(); localStorage.setItem('lexiplay-guess-animal-invitation-seen', 'true'); history.replaceState({}, '', '/'); });
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); vi.restoreAllMocks(); });
-
-it('resolves the request owner before loading statistics and checking the library revision', async () => {
-  history.replaceState({}, '', '/progress');
-  localStorage.setItem('lexiplay-library-revision', 'stable');
-  let finishAccount!: (response: Response) => void;
-  const account = new Promise<Response>(resolve => { finishAccount = resolve; });
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-    const path = String(input);
-    if (path.endsWith('/auth/me')) return account;
-    if (path.endsWith('/library/revision')) return Response.json({ version: 'stable' });
-    if (path.includes('/progress/summary')) return Response.json({ total: 0, recent: [] });
-    if (path.endsWith('/word-lists/saved-terms')) return Response.json({ terms: [] });
-    return Response.json([]);
-  });
-  vi.stubGlobal('fetch', fetchMock);
-  render(<App />);
-  await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/auth/me'))).toBe(true));
-  const requests = (part: string) => fetchMock.mock.calls.filter(([path]) => String(path).includes(part));
-  expect(requests('/progress/summary')).toHaveLength(0);
-  expect(requests('/library/revision')).toHaveLength(0);
-  await act(async () => { finishAccount(Response.json({ id: 'learner', username: 'learner', coinBalance: 12, activeGameId: null })); });
-  expect(await screen.findByText('Your first word starts the story.')).toBeInTheDocument();
-  expect(requests('/progress/summary')).toHaveLength(1);
-  expect(requests('/library/revision')).toHaveLength(1);
-});
-
-it('uses the authenticated bootstrap wallet without requesting it again', async () => {
-  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
-    if (String(input).endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner', coinBalance: 12, activeGameId: null });
-    return Response.json([]);
-  });
-  vi.stubGlobal('fetch', fetchMock);
-  render(<App />);
-  expect(await screen.findByLabelText('Coin balance: 12')).toBeInTheDocument();
-  await waitFor(() => expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/collections/game-options/all'))).toBe(true));
-  expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/games/wallet'))).toBe(false);
-});
-
-it('shares the saved-game and authenticated active-game recovery request', async () => {
-  localStorage.setItem('lexiplay-last-game', 'saved-game');
-  let finish!: (response: Response) => void;
-  const pending = new Promise<Response>(resolve => { finish = resolve; });
-  let gameReads = 0;
-  vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => {
-    const path = String(input);
-    if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner', coinBalance: 12, activeGameId: 'saved-game' });
-    if (path.endsWith('/games/saved-game')) { gameReads++; return pending; }
-    return Response.json([]);
-  }));
-  render(<App />);
-  expect(await screen.findByLabelText('Coin balance: 12')).toBeInTheDocument();
-  expect(gameReads).toBe(1);
-  finish(Response.json({ id: 'saved-game', wordLength: 5, attemptLimit: 6, guesses: [], hints: { definition: 1 }, clues: {}, revealedAbsent: [], revealedPresent: [], wallet: { coinBalance: 12, kind: 'account' } }));
-  await userEvent.setup().click(screen.getByRole('button', { name: 'Games' }));
-  expect(await screen.findByRole('grid', { name: '5-letter puzzle board' })).toBeInTheDocument();
-  await waitFor(() => expect(screen.getByRole('region', { name: 'Vocabulary puzzle' })).toHaveAttribute('aria-busy', 'false'));
-  expect(gameReads).toBe(1);
-});
 
 it('prefetches every word count before opening setup and reuses them across lengths', async () => {
   const counts = vi.fn(async () => Response.json(Array.from({ length: 7 }, (_, index) => ({ wordLength: index + 3, totalWords: (index + 3) * 10, collections: [] }))));
@@ -119,7 +61,7 @@ it('loads the signed-in word list before navigation and reuses the first page', 
     const path = String(input);
     if (path.endsWith('/auth/me')) return Response.json({ id: 'learner', username: 'learner' });
     if (path.endsWith('/word-lists/mine')) return Response.json([list]);
-    if (path.includes('/word-lists/mine/entries?')) return entries();
+    if (path.includes('/word-lists/learner/entries?')) return entries();
     if (path.endsWith('/word-lists/saved-terms')) return Response.json({ terms: [] });
     return Response.json([]);
   }));

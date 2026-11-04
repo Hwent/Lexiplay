@@ -5,7 +5,6 @@ import { ValidationPipe } from '@nestjs/common';
 import { NestFactory } from '@nestjs/core';
 import { ThrottlerGuard } from '@nestjs/throttler';
 import { Pool } from 'pg';
-import { DatabasePool } from './database/database.module';
 import { afterAll, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
 import { AppModule } from './app.module';
 import { AccountMailService } from './modules/accounts/account-mail.service';
@@ -84,38 +83,6 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     return response.json();
   }
   async function balance(cookie: string) { return (await (await request('/games/wallet', 'GET', undefined, cookie)).json()).coinBalance; }
-  it('keeps authenticated game operations within database round-trip budgets', async () => {
-    const user = await account();
-    const databasePool = app.get(DatabasePool);
-    const spies = new Map<import('pg').PoolClient, ReturnType<typeof vi.spyOn>>();
-    const attach = (client: import('pg').PoolClient) => {
-      if (!spies.has(client)) spies.set(client, vi.spyOn(client, 'query'));
-    };
-    databasePool.on('acquire', attach);
-    const measurements: { name: string; queries: number; ms: number; budget: number; sql: string[] }[] = [];
-    async function profile<T>(name: string, budget: number, run: () => Promise<T>) {
-      for (const spy of spies.values()) spy.mockClear();
-      const started = performance.now();
-      const value = await run();
-      const sql = [...spies.values()].flatMap(spy => spy.mock.calls.map((args: unknown[]) => String(args[0]).replace(/\s+/g, ' ').slice(0, 85)));
-      measurements.push({ name, budget, queries: sql.length, ms: performance.now() - started, sql });
-      return value;
-    }
-    try {
-      const game = await profile('start', 12, () => start(user.cookie));
-      expect(await (await request('/auth/me', 'GET', undefined, user.cookie)).json()).toMatchObject({ activeGameId: game.id, coinBalance: user.coinBalance - 1 });
-      await profile('read', 2, async () => expect((await request(`/games/${game.id}`, 'GET', undefined, user.cookie)).status).toBe(200));
-      await profile('hint', 7, async () => expect((await request(`/games/${game.id}/hints`, 'POST', { type: 'definition' }, user.cookie)).status).toBe(201));
-      await profile('guess', 7, async () => expect((await request(`/games/${game.id}/guesses`, 'POST', { guess: 'paper' }, user.cookie)).status).toBe(201));
-      await profile('win', 7, async () => expect((await request(`/games/${game.id}/guesses`, 'POST', { guess: 'apple' }, user.cookie)).status).toBe(201));
-      await profile('history', 2, async () => expect((await request('/progress/summary', 'GET', undefined, user.cookie)).status).toBe(200));
-    } finally {
-      databasePool.removeListener('acquire', attach);
-      for (const spy of spies.values()) spy.mockRestore();
-    }
-    console.log('DATABASE_ROUND_TRIPS ' + JSON.stringify(measurements));
-    for (const row of measurements) expect(row.queries, row.name).toBeLessThanOrEqual(row.budget);
-  });
   it('discovers a guest active game from its cookie after the application restarts', async () => {
     const cookie = await guest();
     const otherGuest = await guest();

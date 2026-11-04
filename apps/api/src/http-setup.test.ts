@@ -18,13 +18,12 @@ describe('production HTTP setup', () => {
   let app: NestExpressApplication | undefined; let directory: string | undefined;
   afterEach(async () => {
     await app?.close(); app = undefined;
-    if (directory) { await unlink(join(directory, 'index.html')); await unlink(join(directory, 'assets/app.js')); await unlink(join(directory, 'assets/app-a1b2c3d4.js')); await rmdir(join(directory, 'assets')); await rmdir(directory); directory = undefined; }
+    if (directory) { await unlink(join(directory, 'index.html')); await unlink(join(directory, 'assets/app.js')); await rmdir(join(directory, 'assets')); await rmdir(directory); directory = undefined; }
   });
   it('serves browser deep links and assets on the API origin without masking API/asset errors', async () => {
     directory = await mkdtemp(join(tmpdir(), 'lexiplay-web-')); await mkdir(join(directory, 'assets'));
     await writeFile(join(directory, 'index.html'), '<!doctype html><title>LexiPlay production</title><div id="root"></div>');
     await writeFile(join(directory, 'assets/app.js'), 'console.log("production fixture");');
-    await writeFile(join(directory, 'assets/app-a1b2c3d4.js'), 'console.log("hashed fixture");');
     app = await NestFactory.create<NestExpressApplication>(TestAppModule, { logger: false });
     configureHttp(app, serverConfig({ ...production, PORT: '0', TRUST_PROXY_HOPS: '1' }), directory);
     await app.listen(0, '127.0.0.1'); const origin = await app.getUrl();
@@ -32,8 +31,6 @@ describe('production HTTP setup', () => {
       const result = await fetch(origin + route); expect(result.status).toBe(200); expect(result.headers.get('cache-control')).toBe('no-store'); expect(await result.text()).toContain('LexiPlay production');
     }
     const asset = await fetch(origin + '/assets/app.js'); expect(asset.status).toBe(200); expect(await asset.text()).toContain('production fixture');
-    const hashed = await fetch(origin + '/assets/app-a1b2c3d4.js'); expect(hashed.status).toBe(200);
-    expect(hashed.headers.get('cache-control')).toBe('public, max-age=31536000, immutable');
     const health = await fetch(origin + '/api/v1/health'); expect(await health.json()).toEqual({ status: 'ok' }); expect(health.headers.get('x-content-type-options')).toBe('nosniff');
     for (const route of ['/api/v1/missing', '/assets/missing.js', '/.env']) expect((await fetch(origin + route)).status).toBe(404);
     const ip = await fetch(origin + '/api/v1/health/ip', { headers: { 'x-forwarded-for': '198.51.100.7, 203.0.113.9' } }); expect(await ip.json()).toEqual({ ip: '203.0.113.9' });

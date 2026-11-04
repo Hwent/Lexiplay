@@ -80,7 +80,7 @@ export default function GamePage({
       <section
         className="game-card"
         aria-label={t('Vocabulary puzzle')}
-        aria-busy={busy || progressSaving || restoring || accountLoading || walletOwner !== (account?.id ?? 'guest')}
+        aria-busy={busy || progressSaving || restoring}
         onClick={(event) => {
           const target = event.target;
           if (
