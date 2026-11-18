@@ -40,7 +40,7 @@ export default function DictionaryTools({ listId, searchQuery, signedIn = !!list
       searchDictionary(normalized).then(rows => { if (active) { setResults(rows); setSearched(normalized); } })
         .catch(error => { if (active) setError(error instanceof Error ? error.message : 'Could not search the dictionary.'); })
         .finally(() => { if (active) setSearching(false); });
-    }, typed.current ? 150 : 0);
+    }, typed.current ? 500 : 0);
     return () => { active = false; clearTimeout(timer); };
   }, [normalized, mode, retry]);
   function stage(values: string[]) {
