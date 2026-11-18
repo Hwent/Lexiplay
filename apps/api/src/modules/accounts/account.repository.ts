@@ -43,25 +43,15 @@ export class AccountRepository {
     return result.rows;
   }
 
-  async activityRankings(kind: 'practice' | 'streak'): Promise<ActivityRanking[]> {
-    const metric = kind === 'practice' ? 'practice_count' : 'streak_days';
+  async practiceRankings(): Promise<ActivityRanking[]> {
     const result = await this.pool.query<ActivityRanking>(`WITH finished AS (
-      SELECT user_id,finished_at FROM practice_games WHERE user_id IS NOT NULL AND status IN ('won','lost') AND NOT gave_up
-      UNION ALL SELECT user_id,finished_at FROM animal_guess_games WHERE user_id IS NOT NULL
+      SELECT user_id FROM practice_games WHERE user_id IS NOT NULL AND status IN ('won','lost') AND NOT gave_up
+      UNION ALL SELECT user_id FROM animal_guess_games WHERE user_id IS NOT NULL
     ), counts AS (
       SELECT user_id,count(*)::int AS practice_count FROM finished GROUP BY user_id
-    ), days AS (
-      SELECT DISTINCT user_id,(finished_at AT TIME ZONE 'UTC')::date AS day FROM finished
-    ), runs AS (
-      SELECT user_id,day,day - (row_number() OVER (PARTITION BY user_id ORDER BY day))::int AS run FROM days
-    ), streaks AS (
-      SELECT user_id,count(*)::int AS streak_days FROM runs GROUP BY user_id,run
-      HAVING max(day) BETWEEN (now() AT TIME ZONE 'UTC')::date - 1 AND (now() AT TIME ZONE 'UTC')::date
-    ), scores AS (
-      SELECT u.id,u.username,c.practice_count,COALESCE(s.streak_days,0) AS streak_days
-      FROM counts c JOIN account_users u ON u.id=c.user_id LEFT JOIN streaks s ON s.user_id=u.id
-    ) SELECT rank() OVER (ORDER BY ${metric} DESC)::int AS rank,username,${metric} AS value
-      FROM scores WHERE ${metric}>0 ORDER BY ${metric} DESC,id LIMIT 20`);
+    ) SELECT rank() OVER (ORDER BY c.practice_count DESC)::int AS rank,u.username,c.practice_count AS value
+      FROM counts c JOIN account_users u ON u.id=c.user_id
+      WHERE c.practice_count>0 ORDER BY c.practice_count DESC,u.id LIMIT 20`);
     return result.rows;
   }
 

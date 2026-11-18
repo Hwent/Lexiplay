@@ -161,7 +161,7 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect((await (await request('/community/coin-rankings')).json())[0]).toEqual({ rank: 1, username: 'bob', coinBalance: 500 });
   });
 
-  it('ranks completed rounds and current UTC streaks across all three games, excluding give-ups and duplicate days', async () => {
+  it('ranks completed rounds across all games and excludes give-ups', async () => {
     const a = await account(), b = await account(), c = await account();
     await pool.query("UPDATE account_users SET username=CASE id WHEN $1::uuid THEN 'Alice' WHEN $2::uuid THEN 'Bob' ELSE '陈同学' END", [a.id,b.id]);
     const wordRound = async (userId: string, daysAgo: number, ladder = false, gaveUp = false) => pool.query(`
@@ -176,9 +176,6 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     await wordRound(c.id,3);
     expect(await (await request('/community/practice-rankings')).json()).toEqual([
       { rank:1,username:'Alice',value:4 },{ rank:2,username:'Bob',value:2 },{ rank:3,username:'陈同学',value:1 },
-    ]);
-    expect(await (await request('/community/streak-rankings')).json()).toEqual([
-      { rank:1,username:'Alice',value:3 },{ rank:2,username:'Bob',value:2 },
     ]);
     await wordRound(c.id,0);
     expect((await (await request('/community/practice-rankings')).json()).slice(1).map((row: { rank: number }) => row.rank)).toEqual([2,2]);
@@ -209,15 +206,13 @@ describe.skipIf(!database)('canonical database, vocabulary, and coin transaction
     expect(await claimed.json()).toMatchObject({ gamesTransferred:1 });
     expect((await request('/games/animal-guess/completions','POST',round,player.cookie)).status).toBe(201);
     expect((await (await request('/community/practice-rankings')).json())[0].value).toBe(1);
-    expect((await (await request('/community/streak-rankings')).json())[0].value).toBe(1);
   });
 
-  it('excludes a word puzzle given up through the API from both activity rankings', async () => {
+  it('excludes a word puzzle given up through the API from practice rankings', async () => {
     const player = await account(), game = await start(player.cookie);
     expect((await request(`/games/${game.id}/give-up`,'POST',{},player.cookie)).status).toBe(201);
     expect((await pool.query('SELECT gave_up FROM practice_games WHERE id=$1',[game.id])).rows[0].gave_up).toBe(true);
     expect(await (await request('/community/practice-rankings')).json()).toEqual([]);
-    expect(await (await request('/community/streak-rankings')).json()).toEqual([]);
   });
 
   it('counts distinct playable words by length and excludes names while preserving ordinary homographs', async () => {
