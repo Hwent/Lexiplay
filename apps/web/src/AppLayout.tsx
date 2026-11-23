@@ -69,6 +69,30 @@ export default function AppLayout() {
     progressMessage,
     retryProgress,
   } = useAccount();
+  useEffect(() => {
+    if (!import.meta.env.DEV) return;
+    let visitorId = localStorage.getItem('lexiplay-local-monitor-visitor');
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem('lexiplay-local-monitor-visitor', visitorId);
+    }
+    const reportVisit = () => {
+      void fetch('http://127.0.0.1:4178/visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitorId,
+          path: location.pathname,
+          kind: account?.id ? 'account' : 'guest',
+          userId: account?.id ?? null,
+          username: account?.username ?? null,
+        }),
+      }).catch(() => {});
+    };
+    reportVisit();
+    const heartbeat = window.setInterval(reportVisit, 30_000);
+    return () => window.clearInterval(heartbeat);
+  }, [account?.id, account?.username, location.pathname]);
   const [dismissedGuestReminder, setDismissedGuestReminder] = useState('');
   const [accountEntryMode, setAccountEntryMode] = useState<
     'login' | 'register'
