@@ -70,7 +70,7 @@ export default function AppLayout() {
     retryProgress,
   } = useAccount();
   useEffect(() => {
-    if (!import.meta.env.DEV) return;
+    if (!import.meta.env.DEV || import.meta.env.MODE === 'test') return;
     let visitorId = localStorage.getItem('lexiplay-local-monitor-visitor');
     if (!visitorId) {
       visitorId = crypto.randomUUID();
