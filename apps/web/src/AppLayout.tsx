@@ -27,7 +27,6 @@ import {
   GAME_OPTIONS_LIFETIME,
 } from './services/game-options';
 import {
-  PersonalList,
   PersonalPage,
   VocabularyCollection,
 } from './collection-types';
@@ -128,19 +127,7 @@ export default function AppLayout() {
     if (wordStore.owner === 'guest') return;
     void wordStore.loadSaved().catch(() => {});
     void wordStore.requests
-      .get<PersonalList[]>('/word-lists/mine')
-      .then((lists) => {
-        const list = lists.find((item) => item.isDefault) ?? lists[0];
-        if (!list) return;
-        const params = new URLSearchParams({
-          page: '1',
-          pageSize: '25',
-          language: list.preferredLanguage,
-        });
-        return wordStore.requests.get<PersonalPage>(
-          `/word-lists/${list.id}/entries?${params}`,
-        );
-      })
+      .get<PersonalPage>('/word-lists/mine/entries?page=1&pageSize=25&language=en')
       .catch(() => {});
   }, [accountLoading, accountRevision, wordStore]);
   useEffect(() => {

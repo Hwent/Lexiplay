@@ -51,7 +51,7 @@ describe('guest progress on authentication', () => {
       if (path.endsWith(`/games/${gameId}`)) return Response.json(game);
       if (path.endsWith('/collections')) return Response.json([]);
       if (path.endsWith('/word-lists/mine')) return Response.json([{ id:'account-list',name:'My words',isDefault:true,preferredLanguage:'en',wordCount:1 }]);
-      if (path.includes('/word-lists/account-list/entries?')) return Response.json({ list:{id:'account-list',name:'My words',preferredLanguage:'en'},page:1,pageSize:25,total:1,words:[{id:'account-word',lemma:'chair',partOfSpeech:'noun',stage:'Core',definition:'A seat.',customDefinition:'A seat.',customLanguage:'en',language:'en',definitionSource:'custom',familiarity:5,nextReviewAt:null}] });
+      if (path.includes('/word-lists/mine/entries?')) return Response.json({ list:{id:'account-list',name:'My words',preferredLanguage:'en'},page:1,pageSize:25,total:1,words:[{id:'account-word',lemma:'chair',partOfSpeech:'noun',stage:'Core',definition:'A seat.',customDefinition:'A seat.',customLanguage:'en',language:'en',definitionSource:'custom',familiarity:5,nextReviewAt:null}] });
       if (path.endsWith('/word-lists')) return Response.json([{ id: 'account-list', name: 'My words', words: [{ ...word, id: 'account-word' }] }]);
       throw new Error(`Unexpected request: ${path}`);
     }); stubGameApiFetch( fetchMock); const user = userEvent.setup(); render(<App />);
