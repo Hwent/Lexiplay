@@ -70,7 +70,7 @@ export class GameService {
           game.hintCoinsSpent += HINT_COST;
         }
         return { type, text: word, hints: { ...game.hints }, cost: purchased ? 0 : HINT_COST };
-      });
+      }, { includeDefinitions: false });
     }
     if (current.ladder) throw new BadRequestException('Word Ladder already includes word definitions.');
     // Resolve dictionary clues before taking wallet and game locks.
@@ -86,14 +86,15 @@ export class GameService {
         game.hintCoinsSpent += HINT_COST;
       }
       return { type, text: game.clues[type]!, hints: { ...game.hints }, cost: purchased ? 0 : HINT_COST };
-    });
+    }, { includeDefinitions: false });
   }
 
   async submit(id: string, rawGuess: string, owner: string): Promise<Guess> {
-    return this.games.change(id, owner, async game => {
+    return this.games.change(id, owner, async (game, client) => {
       this.requireActive(game);
       const guess = rawGuess.trim().toLowerCase();
-      if (!/^[a-z]+$/.test(guess) || guess.length !== game.wordLength || !(await this.dictionary.isDictionaryGameWord(guess))) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
+      const word = /^[a-z]+$/.test(guess) && guess.length === game.wordLength ? await this.dictionary.gameWordDefinition(guess, client) : null;
+      if (!word?.valid) throw new BadRequestException({ code: 'INVALID_GUESS', message: `Enter a valid ${game.wordLength}-letter word from the practice dictionary.` });
       const previous = game.guesses.at(-1)?.guess ?? game.ladder?.startWord;
       if (game.ladder && (guess === game.ladder.startWord || game.guesses.some(step => step.guess === guess))) {
         throw new BadRequestException({ code: 'REPEATED_LADDER_WORD', message: 'Use a different word. The starting word and earlier words cannot be reused.' });
@@ -105,12 +106,12 @@ export class GameService {
       const won = game.ladder ? attemptsRemaining === 0 : guess === game.answer;
       const completed = won || attemptsRemaining === 0;
       const result: Guess = { guess, feedback: game.ladder ? [] : score(game.answer, guess), attemptsRemaining, completed };
-      result.definition = await this.dictionary.dictionaryDefinition(guess, true) ?? '';
+      result.definition = word.definition;
       if (completed) {
         if (game.ladder) game.answer = guess;
         result.outcome = won ? 'WON' : 'LOST';
         result.answer = game.answer;
-        result.answerDefinition = won ? result.definition : await this.dictionary.dictionaryDefinition(game.answer, true) ?? '';
+        result.answerDefinition = won ? result.definition : await this.dictionary.dictionaryDefinition(game.answer, true, client) ?? '';
         game.completed = true;
         game.status = won ? 'won' : 'lost';
         if (won) result.rewardCoins = game.winRewardCoins;
@@ -122,7 +123,7 @@ export class GameService {
         game.hints.nextWord = completed ? 0 : 1;
       }
       return result;
-    });
+    }, { includeDefinitions: false });
   }
 
   async abandon(id: string, owner: string) {

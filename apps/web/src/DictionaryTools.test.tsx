@@ -29,7 +29,7 @@ it('debounces rapid typing and cancels a queued search when switching to imports
   renderTools(new PendingWords('user'));
   const input = screen.getByRole('searchbox', { name: 'Search the dictionary' });
   for (const value of ['co', 'cov', 'cove', 'cover']) fireEvent.change(input, { target: { value } });
-  await act(() => vi.advanceTimersByTimeAsync(149));
+  await act(() => vi.advanceTimersByTimeAsync(499));
   expect(search).not.toHaveBeenCalled();
   await act(() => vi.advanceTimersByTimeAsync(1));
   expect(search).toHaveBeenCalledExactlyOnceWith('cover');

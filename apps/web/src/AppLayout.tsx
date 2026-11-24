@@ -27,7 +27,6 @@ import {
   GAME_OPTIONS_LIFETIME,
 } from './services/game-options';
 import {
-  PersonalList,
   PersonalPage,
   VocabularyCollection,
 } from './collection-types';
@@ -69,6 +68,30 @@ export default function AppLayout() {
     progressMessage,
     retryProgress,
   } = useAccount();
+  useEffect(() => {
+    if (!import.meta.env.DEV || import.meta.env.MODE === 'test') return;
+    let visitorId = localStorage.getItem('lexiplay-local-monitor-visitor');
+    if (!visitorId) {
+      visitorId = crypto.randomUUID();
+      localStorage.setItem('lexiplay-local-monitor-visitor', visitorId);
+    }
+    const reportVisit = () => {
+      void fetch('http://127.0.0.1:4178/visit', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          visitorId,
+          path: location.pathname,
+          kind: account?.id ? 'account' : 'guest',
+          userId: account?.id ?? null,
+          username: account?.username ?? null,
+        }),
+      }).catch(() => {});
+    };
+    reportVisit();
+    const heartbeat = window.setInterval(reportVisit, 30_000);
+    return () => window.clearInterval(heartbeat);
+  }, [account?.id, account?.username, location.pathname]);
   const [dismissedGuestReminder, setDismissedGuestReminder] = useState('');
   const [accountEntryMode, setAccountEntryMode] = useState<
     'login' | 'register'
@@ -104,19 +127,7 @@ export default function AppLayout() {
     if (wordStore.owner === 'guest') return;
     void wordStore.loadSaved().catch(() => {});
     void wordStore.requests
-      .get<PersonalList[]>('/word-lists/mine')
-      .then((lists) => {
-        const list = lists.find((item) => item.isDefault) ?? lists[0];
-        if (!list) return;
-        const params = new URLSearchParams({
-          page: '1',
-          pageSize: '25',
-          language: list.preferredLanguage,
-        });
-        return wordStore.requests.get<PersonalPage>(
-          `/word-lists/${list.id}/entries?${params}`,
-        );
-      })
+      .get<PersonalPage>('/word-lists/mine/entries?page=1&pageSize=25&language=en')
       .catch(() => {});
   }, [accountLoading, accountRevision, wordStore]);
   useEffect(() => {

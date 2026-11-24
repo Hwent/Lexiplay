@@ -1,5 +1,5 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
-import { Pool } from 'pg';
+import { DatabasePool } from '../../database/database.module';
+import { Inject, Injectable } from '@nestjs/common';
 
 export type AccountUser = { id: string; email: string | null; username: string; emailVerified: boolean; coinBalance: number };
 export type AccountRecord = AccountUser & { passwordHash: string };
@@ -7,10 +7,8 @@ export type CoinRanking = { rank: number; username: string; coinBalance: number 
 export type ActivityRanking = { rank: number; username: string; value: number };
 
 @Injectable()
-export class AccountRepository implements OnModuleDestroy {
-  private readonly pool = new Pool({
-    connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay',
-  });
+export class AccountRepository {
+  constructor(@Inject(DatabasePool) private readonly pool: DatabasePool) {}
 
   async createUser(email: string | null, passwordHash: string, username: string): Promise<AccountUser | null> {
     try {
@@ -45,25 +43,15 @@ export class AccountRepository implements OnModuleDestroy {
     return result.rows;
   }
 
-  async activityRankings(kind: 'practice' | 'streak'): Promise<ActivityRanking[]> {
-    const metric = kind === 'practice' ? 'practice_count' : 'streak_days';
+  async practiceRankings(): Promise<ActivityRanking[]> {
     const result = await this.pool.query<ActivityRanking>(`WITH finished AS (
-      SELECT user_id,finished_at FROM practice_games WHERE user_id IS NOT NULL AND status IN ('won','lost') AND NOT gave_up
-      UNION ALL SELECT user_id,finished_at FROM animal_guess_games WHERE user_id IS NOT NULL
+      SELECT user_id FROM practice_games WHERE user_id IS NOT NULL AND status IN ('won','lost') AND NOT gave_up
+      UNION ALL SELECT user_id FROM animal_guess_games WHERE user_id IS NOT NULL
     ), counts AS (
       SELECT user_id,count(*)::int AS practice_count FROM finished GROUP BY user_id
-    ), days AS (
-      SELECT DISTINCT user_id,(finished_at AT TIME ZONE 'UTC')::date AS day FROM finished
-    ), runs AS (
-      SELECT user_id,day,day - (row_number() OVER (PARTITION BY user_id ORDER BY day))::int AS run FROM days
-    ), streaks AS (
-      SELECT user_id,count(*)::int AS streak_days FROM runs GROUP BY user_id,run
-      HAVING max(day) BETWEEN (now() AT TIME ZONE 'UTC')::date - 1 AND (now() AT TIME ZONE 'UTC')::date
-    ), scores AS (
-      SELECT u.id,u.username,c.practice_count,COALESCE(s.streak_days,0) AS streak_days
-      FROM counts c JOIN account_users u ON u.id=c.user_id LEFT JOIN streaks s ON s.user_id=u.id
-    ) SELECT rank() OVER (ORDER BY ${metric} DESC)::int AS rank,username,${metric} AS value
-      FROM scores WHERE ${metric}>0 ORDER BY ${metric} DESC,id LIMIT 20`);
+    ) SELECT rank() OVER (ORDER BY c.practice_count DESC)::int AS rank,u.username,c.practice_count AS value
+      FROM counts c JOIN account_users u ON u.id=c.user_id
+      WHERE c.practice_count>0 ORDER BY c.practice_count DESC,u.id LIMIT 20`);
     return result.rows;
   }
 
@@ -138,7 +126,5 @@ export class AccountRepository implements OnModuleDestroy {
       return true;
     } catch (error) { await client.query('ROLLBACK'); throw error; } finally { client.release(); }
   }
-
-  async onModuleDestroy() { await this.pool.end(); }
 
 }

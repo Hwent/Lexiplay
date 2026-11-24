@@ -1,10 +1,10 @@
-import { Injectable, OnModuleDestroy } from '@nestjs/common';
+import { DatabasePool } from '../../database/database.module';
+import { Inject, Injectable } from '@nestjs/common';
 import { createHash, randomBytes } from 'node:crypto';
-import { Pool } from 'pg';
 
 @Injectable()
-export class FeedbackRepository implements OnModuleDestroy {
-  private readonly pool = new Pool({ connectionString: process.env.DATABASE_URL ?? 'postgresql://lexiplay:lexiplay@127.0.0.1:5432/lexiplay' });
+export class FeedbackRepository {
+  constructor(@Inject(DatabasePool) private readonly pool: DatabasePool) {}
 
   async create(content: string, userId: string | undefined, guestHash: string | undefined) {
     const client = await this.pool.connect();
@@ -31,6 +31,4 @@ export class FeedbackRepository implements OnModuleDestroy {
     } catch (error) { await client.query('ROLLBACK'); throw error; }
     finally { client.release(); }
   }
-
-  async onModuleDestroy() { await this.pool.end(); }
 }

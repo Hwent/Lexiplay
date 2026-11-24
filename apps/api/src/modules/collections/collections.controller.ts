@@ -28,6 +28,7 @@ export class PersonalCollectionsController {
   constructor(@Inject(CollectionsService) private readonly collections: CollectionsService) {}
   @Get('collections') saved(@Headers('cookie') cookie?:string) { return this.collections.savedCollections(readSessionCookie(cookie)); }
   @Get('mine') lists(@Headers('cookie') cookie?:string) { return this.collections.lists(readSessionCookie(cookie)); }
+  @Get('mine/entries') currentEntries(@Headers('cookie') cookie:string|undefined,@Query() query:CollectionWordsQuery) { return this.collections.currentEntries(readSessionCookie(cookie),query); }
   @Get('saved-terms') savedTerms(@Headers('cookie') cookie?:string) { return this.collections.savedTerms(readSessionCookie(cookie)); }
   @Post() create(@Headers('cookie') cookie:string|undefined,@Body() input:NewPersonalList) { return this.collections.createList(readSessionCookie(cookie),input); }
   @Get(':id/entries') entries(@Headers('cookie') cookie:string|undefined,@Param('id',ParseUUIDPipe) id:string,@Query() query:CollectionWordsQuery) { return this.collections.entries(readSessionCookie(cookie),id,query); }

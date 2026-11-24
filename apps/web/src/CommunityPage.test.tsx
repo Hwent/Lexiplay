@@ -5,7 +5,7 @@ import userEvent from '@testing-library/user-event';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import CommunityPage from './CommunityPage';
 
-describe('community coin leaderboard', () => {
+describe('community leaderboards', () => {
   afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
 
   it('defaults to practice rankings with full names, shared ranks, and formatted counts', async () => {
@@ -42,18 +42,17 @@ describe('community coin leaderboard', () => {
     expect(fetch).toHaveBeenCalledTimes(2);
   });
 
-  it('orders practice, streak, and coin tabs and supports keyboard switching', async () => {
+  it('shows practice and coin tabs and supports keyboard switching', async () => {
     vi.stubGlobal('fetch', vi.fn(async (input: RequestInfo | URL) => Response.json(String(input).endsWith('/coin-rankings')
       ? [{ rank: 1, username: 'Alice', coinBalance: 2500 }] : [{ rank: 1, username: 'Bob', value: 3 }])));
     const user = userEvent.setup();
     render(<CommunityPage onExplore={() => {}}/>);
-    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual(['Practice count','Streak days','Coins']);
+    expect(screen.getAllByRole('tab').map(tab => tab.textContent)).toEqual(['Practice count','Coins']);
+    expect(screen.queryByRole('tab', { name: 'Streak days' })).not.toBeInTheDocument();
     await screen.findByRole('table', { name: 'Practice leaderboard' });
     await user.click(screen.getByRole('tab', { name: 'Practice count' }));
     await user.keyboard('{ArrowRight}');
-    expect(screen.getByRole('tab', { name: 'Streak days' })).toHaveFocus();
-    expect(await screen.findByRole('table', { name: 'Streak leaderboard' })).toHaveTextContent('3');
-    await user.keyboard('{End}');
+    expect(screen.getByRole('tab', { name: 'Coins' })).toHaveFocus();
     expect(await screen.findByRole('table', { name: 'Coin leaderboard' })).toHaveTextContent('2,500');
   });
 

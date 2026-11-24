@@ -8,7 +8,6 @@ import './community.css';
 type Ranking = { rank: number; username: string; value: number };
 const boards = [
   { id: 'practice', label: 'Practice count', title: 'Practice leaderboard', value: 'Completed rounds', description: 'Top 20 by completed rounds across all games. Wins and losses count; giving up does not.', icon: 'play' },
-  { id: 'streak', label: 'Streak days', title: 'Streak leaderboard', value: 'Days', description: 'Top 20 by current streak across all games. Days use UTC; your streak stays active if you played yesterday.', icon: 'sun' },
   { id: 'coin', label: 'Coins', title: 'Coin leaderboard', value: 'Coins', description: 'Top 20 accounts by current coin balance.', icon: 'coin' },
 ] as const;
 type Board = typeof boards[number]['id'];

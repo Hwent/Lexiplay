@@ -232,19 +232,42 @@ export class CollectionsService {
 
   async entries(cookie: string | undefined, id: string, query: CollectionWordsQuery) {
     const user = await this.owned(cookie, id);
+    return this.personalEntries(user.id, query);
+  }
+
+  async currentEntries(cookie: string | undefined, query: CollectionWordsQuery) {
+    const user = await this.accounts.current(cookie);
+    return this.personalEntries(user.id, query);
+  }
+
+  private async personalEntries(userId: string, query: CollectionWordsQuery) {
     const page = Math.max(1, Number(query.page ?? 1)), pageSize = Number(query.pageSize ?? 25);
-    const where: Prisma.UserWordWhereInput = { userId: user.id, status: 'active',
-      ...(query.stage ? { stage: query.stage } : {}),
-      ...(query.q || query.partOfSpeech ? { entry: { ...(query.partOfSpeech ? { partOfSpeech: query.partOfSpeech } : {}),
-        ...(query.q ? { term: { contains: query.q.trim(), mode: 'insensitive' } } : {}) } } : {}),
-      ...(query.review ? { OR: [{ nextReviewAt: null }, { nextReviewAt: { lte: new Date() } }] } : {}) };
-    const [total, rows] = await Promise.all([this.db.userWord.count({ where }), this.db.userWord.findMany({
-      where, skip: (page - 1) * pageSize, take: pageSize, include: { entry: { select: entrySelect } }, orderBy: [{ createdAt: 'asc' }, { id: 'asc' }],
-    })]);
-    const words = rows.map(row => ({ id: row.id, dictionaryEntryId: row.dictionaryEntryId, lemma: row.entry.term,
-      partOfSpeech: row.entry.partOfSpeech, stage: row.stage, familiarity: row.familiarity, nextReviewAt: row.nextReviewAt,
-      ...this.definition(row.entry) }));
-    return { list: { id: user.id, name: 'My Word List', preferredLanguage: 'en', isDefault: true }, page, pageSize, total, words };
+    const search = query.q ? `%${query.q.trim().replace(/[\\%_]/g, '\\$&')}%` : null;
+    type Word = { id: string; dictionaryEntryId: string; lemma: string; partOfSpeech: string; stage: string;
+      familiarity: number; nextReviewAt: string | null; definition: string | null; language: string | null; definitionSource: string | null };
+    const [result] = await this.db.$queryRaw<{ total: number; words: Word[] }[]>`
+      WITH matching AS MATERIALIZED (
+        SELECT u.id,u.dictionary_entry_id AS "dictionaryEntryId",e.term AS lemma,e.part_of_speech AS "partOfSpeech",
+          u.stage,u.familiarity,u.next_review_at AS "nextReviewAt",u.created_at
+        FROM user_words u JOIN dictionary_entries e ON e.id=u.dictionary_entry_id
+        WHERE u.user_id=${userId}::uuid AND u.status='active'
+          AND (${query.stage ?? null}::text IS NULL OR u.stage=${query.stage ?? null})
+          AND (${query.partOfSpeech ?? null}::text IS NULL OR e.part_of_speech=${query.partOfSpeech ?? null})
+          AND (${search}::text IS NULL OR e.term ILIKE ${search})
+          AND (${!query.review} OR u.next_review_at IS NULL OR u.next_review_at<=now())
+      )
+      SELECT (SELECT count(*)::int FROM matching) AS total,
+        COALESCE((SELECT jsonb_agg((to_jsonb(selected)-'created_at') || jsonb_build_object(
+          'definition',d.definition,'language',CASE WHEN d.definition IS NOT NULL THEN 'en' END,
+          'definitionSource',CASE WHEN d.definition IS NOT NULL THEN 'dictionary' END)
+          ORDER BY selected.created_at,selected.id)
+        FROM (SELECT * FROM matching ORDER BY created_at,id LIMIT ${pageSize} OFFSET ${(page-1)*pageSize}) selected
+        LEFT JOIN LATERAL (SELECT NULLIF(string_agg(definition,'; ' ORDER BY sense_order),'') AS definition
+          FROM dictionary_definitions WHERE dictionary_entry_id=selected."dictionaryEntryId" AND language_code='en') d ON true
+        ),'[]'::jsonb) AS words`;
+    const { total, words } = result!;
+    return { list: { id: userId, name: 'My Word List', preferredLanguage: 'en', isDefault: true, wordCount: total },
+      page, pageSize, total, words: words.map(word => ({ ...word, nextReviewAt: word.nextReviewAt ? new Date(word.nextReviewAt).toISOString() : null })) };
   }
 
   async updateEntry(cookie: string | undefined, id: string, entryId: string, input: UpdatePersonalEntry) {

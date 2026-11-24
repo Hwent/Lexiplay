@@ -6,6 +6,17 @@ const list = { id: 'list-1', name: 'My words', isDefault: true, preferredLanguag
 const word = { id: 'entry-1', dictionaryEntryId: 'word-1', lemma: 'analyse', partOfSpeech: 'verb', stage: 'Core', definition: 'To examine carefully.', language: 'en', definitionSource: 'dictionary', familiarity: 4, nextReviewAt: null };
 const page = { list, page: 1, pageSize: 25, total: 26, words: [word] };
 afterEach(() => { cleanup(); vi.unstubAllGlobals(); });
+it('loads the current account entries directly without a list-metadata waterfall', async () => {
+  const fetchMock = vi.fn(async (input: RequestInfo | URL) => {
+    if (String(input).endsWith('/collections')) return Response.json([]);
+    if (String(input).includes('/mine/entries?')) return Response.json(page);
+    throw new Error('Unexpected request: ' + String(input));
+  });
+  vi.stubGlobal('fetch', fetchMock);
+  render(<PersonalWordLists signedIn searchQuery="" initialId="" revision={0}/>);
+  await screen.findByText('To examine carefully.');
+  expect(fetchMock.mock.calls.some(([path]) => String(path).endsWith('/mine'))).toBe(false);
+});
 it('opens and unsaves collection cards without removing saved words', async () => {
   const collection = { id: 'a2', slug: 'cefr-a2', name: 'CEFR A2', level: 'A2', wordCount: 793 };
   const fetchMock = vi.fn(async (input: RequestInfo | URL, init?: RequestInit) => {

@@ -12,8 +12,5 @@ export class CommunityController {
   rankings() { return this.accounts.coinRankings(); }
 
   @Get('practice-rankings')
-  practiceRankings() { return this.accounts.activityRankings('practice'); }
-
-  @Get('streak-rankings')
-  streakRankings() { return this.accounts.activityRankings('streak'); }
+  practiceRankings() { return this.accounts.practiceRankings(); }
 }
