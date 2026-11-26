@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
+  <path
+    fill="#aecb9f"
+    d="M13 2h22a11 11 0 0 1 11 11v22a11 11 0 0 1-11 11H12A10 10 0 0 1 2 36V13A11 11 0 0 1 13 2Z"
+  />
+  <text
+    x="24"
+    y="36"
+    fill="#141a14"
+    font-family="Georgia, 'Times New Roman', serif"
+    font-size="35"
+    font-weight="700"
+    text-anchor="middle"
+  >L</text>
+</svg>
